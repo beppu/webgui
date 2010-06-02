@@ -287,12 +287,12 @@ my $session = WebGUI::Test->session;
     my $revAsset  = $testAsset->addRevision({}, $now);
     my $revAssetDb = $revAsset->cloneFromDb;
     isa_ok $revAsset, 'WebGUI::Asset';
-    is $revAsset->revisionDate, $now, 'revisionDate set correctly on new revision';
-    is $revAsset->title, 'test title 43', 'data fetch from database correct';
+    is $revAsset->revisionDate, $now, 'revisionDate set correctly on new revision'; # XXX fails without setting of some attributes blacklisted: revisionDate
+    is $revAsset->title, 'test title 43', 'data fetch from database correct'; # XXX fails without the $self->set( %{$self->get} ) thing
     is $revAsset->revisedBy, $session->user->userId, 'revisedBy is current session user';
     is $revAsset->tagId, $tag->getId, 'tagId is current working tagId';
-    ok $revAsset->isLocked, 'new revision is locked';
-    is $revAsset->isLockedBy, '7', 'locked by userId 7';
+    ok $revAsset->isLocked, 'new revision is locked'; # XXX fails without setting of some attributes blacklisted: isLockedBy
+    is $revAsset->isLockedBy, '7', 'locked by userId 7'; # XXX fails without setting of some attributes blacklisted: isLockedBy
     is $revAssetDb->isLockedBy, '7', 'database jives with asset data';
     my $count = $session->db->quickScalar('SELECT COUNT(*) from assetData where assetId=?',[$testId2]);
     is $count, 2, 'two records in the database';

@@ -287,6 +287,7 @@ sub trash {
 
     # Raw database work is more efficient than $asset->update
     my $db = $session->db;
+use Carp; Carp::cluck('AssetTrash trash invoked for lineage ``'. $self->get('lineage') . "''");
     $db->beginTransaction;
     $outputSub->($i18n->get('Clearing asset tables'));
     $db->write("update asset set state='trash-limbo' where lineage like ?",[$self->get("lineage").'%']);

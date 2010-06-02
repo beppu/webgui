@@ -61,6 +61,8 @@ like($keyword->getKeywordsForAsset({asset=>$home }), qr/owns/, "getLatestVersion
 $keyword->deleteKeyword({keyword => "owns"});
 unlike($keyword->getKeywordsForAsset({asset=>$home }), qr/owns/, "getLatestVersionNumber()");
 
+# use Enbugger; Enbugger->stop; # XXXXXXX
+
 my $snippet = $home->addChild({
     className => 'WebGUI::Asset::Snippet',
     title     => 'keyword snippet',
@@ -73,6 +75,10 @@ WebGUI::Test->tagsToRollback($tag);
 $tag->commit;
 
 my $assetIds = $keyword->getMatchingAssets({ keyword => 'webgui', });
+
+use Data::Dumper; # XXX
+warn Dumper $assetIds; # XXX
+warn Dumper    [$snippet->getId, $home->getId, ]; # XXX
 
 cmp_deeply(
     $assetIds,

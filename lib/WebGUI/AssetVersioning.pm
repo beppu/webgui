@@ -126,7 +126,25 @@ sub addRevision {
     $session->db->commit;
 
 	# current values, and the user set properties
-	my %mergedProperties = (%{$self->get}, %{$properties}, (status => 'pending', revisedBy => $session->user->userId, tagId => $workingTag->getId), );
+	# my %mergedProperties = (%{$self->get}, %{$properties}, (status => 'pending', revisedBy => $session->user->userId, tagId => $workingTag->getId), );
+	# my %mergedProperties = ( %{$properties}, (status => 'pending', revisedBy => $session->user->userId, tagId => $workingTag->getId), );
+
+    my %mergedProperties = %{ $self->get };
+    delete $mergedProperties{title} if lc($mergedProperties{title}) eq 'untitled';
+    delete $mergedProperties{revisionDate};
+    delete $mergedProperties{isLockedBy};
+    delete $mergedProperties{lineage} unless $mergedProperties{lineage};  # setting a null lineage is a nono
+#warn "merged state: " .  $mergedProperties{state};
+	%mergedProperties = ( %mergedProperties, %{$properties}, status => 'pending', revisedBy => $session->user->userId, tagId => $workingTag->getId, );
+
+    #if( $mergedProperties{title} eq 'Untitled' ) {
+    #    # without this, the asset will lose its title in an addRevision() call
+    #    # see t/Asset.t "data fetch from database correct"
+    #    # no reason to pass 'Untitled' as the title; it'll default to that if nothing is ever passed
+    #    # XXX this is only needed when we do %mergedProperties = ( %{$self->get}, ... ); if that goes away, this can too
+    #    # XXX and that same test will fail if we don't do the $self->get thing... hmm, wonder which properties are needed
+    #    delete $mergedProperties{title}; 
+    #}
 
     #Instantiate new revision and fill with real data
     my $newVersion = WebGUI::Asset->newById($session, $self->getId, $now);
