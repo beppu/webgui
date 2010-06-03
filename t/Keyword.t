@@ -30,7 +30,7 @@ isa_ok($home, "WebGUI::Asset");
 my $keyword = WebGUI::Keyword->new($session);
 isa_ok($keyword, "WebGUI::Keyword");
 
-$keyword->setKeywordsForAsset({ asset=>$home, keywords=>"test key, word, foo bar"});
+$keyword->setKeywordsForAsset({ asset=>$home, keywords=>"test key, word, foo bar"}); # XXX does this step into the Asset and set its keyword attribute?
 my ($count) = $session->db->quickArray("select count(*) from assetKeyword where assetId=?", [$home->getId]);
 is($count, 3, "setKeywordsForAsset() create");
 cmp_bag(

@@ -295,6 +295,28 @@ sub www_view {
     return $output;
 }
 
+#-------------------------------------------------------------------
+
+override set => sub {
+    my $self = shift;
+    super();
+    my $properties = @_ % 2 ? shift : { @_ };
+    if(exists $properties->{keywords}) {
+        $self->keywords($properties->{keywords});
+    }
+};
+
+override get => sub {
+    my $self = shift;
+    if( @_ and $_[0] eq 'keywords' ) { 
+        return $self->keywords;
+    }
+    return super();
+};
+
+#-------------------------------------------------------------------
+
 __PACKAGE__->meta->make_immutable;
+
 1;
 
