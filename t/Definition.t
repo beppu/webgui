@@ -45,9 +45,9 @@ my $session = WebGUI::Test->session;
     ::can_ok +__PACKAGE__, 'property1';
 
     # role applied
-    ::can_ok +__PACKAGE__, 'update';
-    ::can_ok +__PACKAGE__, 'get';
-    ::can_ok +__PACKAGE__, 'set';
+    # ::can_ok +__PACKAGE__, 'update';
+    # ::can_ok +__PACKAGE__, 'get';
+    # ::can_ok +__PACKAGE__, 'set';
 
     ::ok +__PACKAGE__->meta->does_role('WebGUI::Definition::Role::Object'), 'meta class check on the package';
 
