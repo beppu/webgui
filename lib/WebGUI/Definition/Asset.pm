@@ -98,10 +98,6 @@ sub init_meta {
                 class           => ['WebGUI::Definition::Meta::Asset'],
             },
         );
-        Moose::Util::apply_all_roles(
-            $for_class,
-            'WebGUI::Definition::Role::Asset',
-        );
     }
     else {
         Moose::Util::MetaRole::apply_metaroles(

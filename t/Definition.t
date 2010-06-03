@@ -49,13 +49,14 @@ my $session = WebGUI::Test->session;
     # ::can_ok +__PACKAGE__, 'get';
     # ::can_ok +__PACKAGE__, 'set';
 
-    ::ok +__PACKAGE__->meta->does_role('WebGUI::Definition::Role::Object'), 'meta class check on the package';
+    # ::ok +__PACKAGE__->meta->does_role('WebGUI::Definition::Role::Object'), 'meta class check on the package';
 
-    ::cmp_deeply(
-        [ +__PACKAGE__->getProperties ],
-        [qw/property1 property2/],
-        'getProperties works as a class method'
-    );
+    # XXX move to Asset.t
+    # ::cmp_deeply(
+    #     [ +__PACKAGE__->getProperties ],
+    #     [qw/property1 property2/],
+    #     'getProperties works as a class method'
+    # );
 
 }
 

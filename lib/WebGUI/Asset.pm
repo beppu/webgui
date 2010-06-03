@@ -2920,6 +2920,7 @@ sub get {
         return undef;
     }
     my %properties = map { $_ => scalar $self->$_ } $self->meta->get_all_attributes_list;
+    delete $properties{session};
     return \%properties;
 }
 

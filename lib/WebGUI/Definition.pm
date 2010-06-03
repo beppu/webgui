@@ -83,10 +83,6 @@ sub init_meta {
                 class           => ['WebGUI::Definition::Meta::Class'],
             },
         );
-        #Moose::Util::apply_all_roles(
-        #    $for_class,
-        #    'WebGUI::Definition::Role::Object',
-        #);
     }
     else {
         Moose::Util::MetaRole::apply_metaroles(

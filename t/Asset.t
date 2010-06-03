@@ -51,6 +51,20 @@ my $session = WebGUI::Test->session;
 }
 
 {
+    note "get/set/update";
+    my $asset = WebGUI::Asset->new({session => $session, });
+
+    can_ok $asset, 'update';
+    can_ok $asset, 'get';
+    can_ok $asset, 'set';
+
+    $asset->set( { title => 'asset title 2' } );
+    is $asset->title, 'asset title 2', '... set, direct accessor';
+    is $asset->get('title'), 'asset title 2', '... get accessor';
+}
+
+
+{
     note "assetId, getId";
     my $asset = WebGUI::Asset->new({session => $session, });
     can_ok $asset, qw/assetId getId/;
@@ -134,13 +148,19 @@ my $session = WebGUI::Test->session;
         session   => $session,
     });
     my $properties = $asset->get();
-    ok !exists $properties->{session}, 'no session';
-    ok  exists $properties->{keywords}, 'keywords';  ##Test for function later
-    ok  exists $properties->{assetId}, 'assetId';
-    ok  exists $properties->{revisionDate}, 'assetId';
-    ok  exists $properties->{parentId}, 'parentId';
-    ok  exists $properties->{lineage}, 'lineage';
+    ok $properties, 'get() returns properties';
+    ok !exists $properties->{session}, '... no session';
+    ok  exists $properties->{keywords}, '... keywords';
+    ok  exists $properties->{assetId}, '... assetId';
+    ok  exists $properties->{revisionDate}, '... assetId';
+    ok  exists $properties->{parentId}, '... parentId';
+    ok  exists $properties->{lineage}, '... lineage';
+
+    ok my @properties2 = $asset->getProperties, 'getProperties'; 
+    is join(', ', @properties2), 'title, menuTitle, url, isHidden, newWindow, encryptPage, ownerUserId, groupIdView, groupIdEdit, synopsis, extraHeadTags, extraHeadTagsPacked, usePackedHeadTags, isPackage, isPrototype, isExportable, inheritUrlFromParent, status, lastModified, assetSize, tagId, skipNotification, revisedBy', '... expected properties set';
+
 }
+
 
 {
     note "getClassById";
