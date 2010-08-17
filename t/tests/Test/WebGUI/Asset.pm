@@ -21,6 +21,22 @@ use WebGUI::Test;
 use WebGUI::Utility;
 use Data::Dumper;
 
+=head1 NAME
+
+t/test/tests/WebGUI/Asset.pm
+
+=head2 USAGE
+
+Run all tests:
+
+   perl /data/WebGUI/t/run_asset.t
+
+Run one test: 
+
+   perl /data/WebGUI/t/tests/Test/WebGUI/run_some_assets.pl Test::WebGUI::Asset::Template
+
+=cut
+
 # XXXX fix the Test(n) numbers to match reality
 
 sub constructorExtras {
