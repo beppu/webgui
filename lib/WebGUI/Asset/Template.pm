@@ -672,6 +672,7 @@ default template.
 =cut
 
 sub www_edit {
+die "XXX blargh";
     my $self = shift;
     return $self->session->privilege->insufficient() unless $self->canEdit;
     return $self->session->privilege->locked() unless $self->canEditIfLocked;
@@ -1083,6 +1084,7 @@ to viewing the template's container instead.
 =cut
 
 sub www_view {
+die "XXX blargh";
 	my $self = shift;
 	return $self->session->asset($self->getContainer)->www_view;
 }

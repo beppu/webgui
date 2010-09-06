@@ -15,7 +15,7 @@ builder {
     };
 
     # Reproduce URL handler functionality with middleware
-    enable '+WebGUI::Middleware::Snoop';
+    # enable '+WebGUI::Middleware::Snoop';
     enable 'Status', path => qr{^/uploads/dictionaries}, status => 401;
 
     # For PassThru, use Plack::Builder::mount
@@ -27,14 +27,17 @@ builder {
     # Open/close the WebGUI::Session at the outer-most onion layer
     enable '+WebGUI::Middleware::Session', config => $config;
 
-    enable '+WebGUI::Middleware::HTTPExceptions';
+    # enable '+WebGUI::Middleware::HTTPExceptions'; # XXX
 
-    enable 'ErrorDocument', 503 => $config->get('maintenancePage');
-    enable_if { ! $_[0]->{'webgui.debug'} } 'ErrorDocument', 500 => $config->get('maintenancePage');
+    # enable 'ErrorDocument', 503 => $config->get('maintenancePage'); # XXX
+    # enable_if { ! $_[0]->{'webgui.debug'} } 'ErrorDocument', 500 => $config->get('maintenancePage');
 
-    enable '+WebGUI::Middleware::Maintenance';
+    # enable '+WebGUI::Middleware::Maintenance';
 
-    enable_if { $_[0]->{'webgui.debug'} } 'StackTrace';
+    $_[0]->{'webgui.debug'} or warn "not debugging"; # XXXXXXXXXX
+    # enable 'StackTrace';
+    # enable_if { $_[0]->{'webgui.debug'} } '+WebGUI::Middleware::StackTrace';
+    enable '+WebGUI::Middleware::StackTrace'; # XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     enable_if { $_[0]->{'webgui.debug'} } 'Debug', panels => [
         'Timer',
         'Memory',
@@ -47,6 +50,7 @@ builder {
     ];
     enable_if { $_[0]->{'webgui.debug'} } '+WebGUI::Middleware::Debug::Environment';
     enable_if { $_[0]->{'webgui.debug'} } '+WebGUI::Middleware::Debug::Performance';
+    enable '+WebGUI::Middleware::Snoop'; # XXX testing
 
     # This one uses the Session object, so it comes after WebGUI::Middleware::Session
     mount $config->get('uploadsURL') => builder {
