@@ -141,6 +141,41 @@ sub assetDbProperties {
 	my $class = shift;
 	my $session = shift;
     my ($assetId, $className, $revisionDate) = @_;
+    my $ret;
+    use Time::HiRes 'gettimeofday';
+    my $one_time;
+    my $one = sub {
+        my $start_time = gettimeofday;
+        my $ret = $class->assetDbProperties1($session, $assetId, $className, $revisionDate);
+        my $end_time = gettimeofday;
+        $one_time += $end_time - $start_time;
+        return $ret;
+    };
+    my $two_time;
+    my $two = sub {
+        my $start_time = gettimeofday;
+        my $ret = $class->assetDbProperties2($session, $assetId, $className, $revisionDate);
+        my $end_time = gettimeofday;
+        $two_time += $end_time - $start_time;
+        return $ret;
+    };
+    our $flip_flop;  $flip_flop = ! $flip_flop;
+    if( $flip_flop ) {
+        # reverse the order every other time to avoid cache bias
+        $ret = $one->();
+        $two->();
+    } else {
+        $two->();
+        $ret = $one->();
+    }
+    warn "one time:  $one_time  two time: $two_time";
+    return $ret;
+}
+
+sub assetDbProperties1 {
+	my $class = shift;
+	my $session = shift;
+    my ($assetId, $className, $revisionDate) = @_;
     my $sql = "select * from asset";
     my $where = " where asset.assetId=?";
     my $placeHolders = [$assetId];
@@ -148,7 +183,58 @@ sub assetDbProperties {
         $sql .= ",".$definition->{tableName};
         $where .= " and (asset.assetId=".$definition->{tableName}.".assetId and ".$definition->{tableName}.".revisionDate=".$revisionDate.")";
     }
-    return $session->db->quickHashRef($sql.$where, $placeHolders);
+    my $ret = $session->db->quickHashRef($sql.$where, $placeHolders);
+warn "DBI came back with these k/vs: " . Data::Dumper::Dumper $ret;
+    return $ret;
+}
+
+sub assetDbProperties2 {
+	my $class = shift;
+	my $session = shift;
+    my ($assetId, $className, $revisionDate) = @_;
+    use Net::HandlerSocket;
+    our $hs ||= Net::HandlerSocket->new( { host => 'localhost', port => 9998 } );
+    our %sockets;
+
+    my %ret;
+
+    %ret = (); # closed over so it survives
+
+    foreach my $definition (@{$className->definition($session)}) {
+
+        my $tableName = $definition->{tableName};
+
+        $sockets{$tableName} ||= do {
+            our $hs_slot;
+            my $slot = $hs_slot;
+            $hs_slot++;
+            my @properties = ( 'assetId', 'revisionDate', keys %{ $definition->{properties} });
+            my $properties = join ',', @properties;
+warn "properties for $tableName: $properties";
+            $hs->open_index($slot, 'www_example_com', $tableName, 'PRIMARY', $properties) and die $hs->get_error;
+            sub { 
+                my $assetId = shift;
+                my $revisionDate = shift; 
+                #execute_single (index id, cond, cond value, max rows, offset)
+                my $res = $hs->execute_single($slot, '=', [ $assetId ], 1, 0);
+                my $status = shift @$res;  $status and die $hs->get_error;
+                for my $prop (@properties) {
+                    $ret{$prop} = shift @$res;
+                }
+            };
+        };
+
+        $sockets{$tableName}->($assetId, $revisionDate);
+
+        # XXX bloody revisionDate... bloody compound key!
+        # $where .= " and (asset.assetId=".$definition->{tableName}.".assetId and ".$definition->{tableName}.".revisionDate=".$revisionDate.")";
+
+    }
+
+warn "HandlerSocker came back with these k/vs: " . Data::Dumper::Dumper \%ret;
+
+    return { %ret };
+
 }
 
 #-------------------------------------------------------------------
