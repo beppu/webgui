@@ -762,23 +762,24 @@ sub dispatch {
     if (my $e = Exception::Class->caught('WebGUI::Error::ObjectNotFound::Template')) {
                                          #WebGUI::Error::ObjectNotFound::Template
         $session->log->error(sprintf "%s templateId: %s assetId: %s", $e->error, $e->templateId, $e->assetId);
+        $e->rethrow if $session->request->env->{'webgui.debug'};
     }
     elsif ($@) {
-        my $message = $@;
-        $session->log->error("Couldn't call method www_".$func." on asset for url: ".$session->url->getRequestedUrl." Root cause: ".$message);
+        $session->log->error("Couldn't call method www_".$func." on asset for url: ".$session->url->getRequestedUrl." Root cause: ".$@, $@);
+        $@->rethrow if blessed $@ and $@->can('rethrow') and $session->request->env->{'webgui.debug'};
     }
     return $output if $output || $viewing;
     ##No output, try the view method instead
     $output = eval { $self->www_view };
     if (my $e = Exception::Class->caught('WebGUI::Error::ObjectNotFound::Template')) {
         $session->log->error(sprintf "%s templateId: %s assetId: %s", $e->error, $e->templateId, $e->assetId);
-        return "chunked";
+        $e->rethrow if $session->request->env->{'webgui.debug'};
+        # return "chunked"; # XXX wth?
     }
     elsif ($@) {
-        warn "logged another warn: $@";
-        my $message = $@;
         $session->log->warn("Couldn't call method www_view on asset for url: ".$session->url->getRequestedUrl." Root cause: ".$@);
-        return "chunked";
+        $@->rethrow if blessed $@ and $@->can('rethrow') and $session->request->env->{'webgui.debug'};
+        # return "chunked"; # XXX wth?
     }
     return $output;
 }

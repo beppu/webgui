@@ -700,7 +700,7 @@ sub getLineageSql {
 	if (exists $rules->{joinClass}) {
 		my $className = $rules->{joinClass};
         (my $module = $className . '.pm') =~ s{::|'}{/}g;
-        if ( ! eval { require $module; 1 }) {
+        if ( ! eval { local $SIG{__DIE__}; require $module; 1 }) {
             $self->session->log->fatal("Couldn't compile asset package: ".$className.". Root cause: ".$@) if ($@);
         }
         foreach my $table ($className->meta->get_tables) {

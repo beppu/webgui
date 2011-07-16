@@ -146,6 +146,8 @@ use HTML::Packer;
 use JSON qw{ to_json from_json };
 use Try::Tiny;
 
+sub www_die { use Carp; Carp::cluck "www_die called"; $_[0]->session->log->fatal("test death"); }
+
 =head1 NAME
 
 Package WebGUI::Asset::Template
@@ -731,7 +733,7 @@ sub process {
     my $output;
     eval { $output = $parser->process($template, $self->param); };
     if (my $e = Exception::Class->caught) {
-        $session->log->error(sprintf "Error processing template: %s, %s, %s", $self->getUrl, $self->getId, $e->error);
+        $session->log->error(sprintf("Error processing template: %s, %s, %s", $self->getUrl, $self->getId, $e->error), $e);
         my $i18n = WebGUI::International->new($session, 'Asset_Template');
         $output = sprintf $i18n->get('template error').$e->error, $self->getUrl, $self->getId;
     }

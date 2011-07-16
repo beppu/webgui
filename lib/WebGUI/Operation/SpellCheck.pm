@@ -16,6 +16,7 @@ use File::Path qw(mkpath);
 my $spellerAvailable;
 BEGIN {
     eval {
+        local $SIG{__DIE__};
         require Text::Aspell;
     };
     $spellerAvailable = 1

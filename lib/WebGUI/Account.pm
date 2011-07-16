@@ -198,13 +198,7 @@ sub callMethod {
     }
    
     #Try to call the method
-    my $output = eval { $self->$method(@{$args}) };
-
-    #Croak on error
-    if($@) {
-        croak "Unable to run $method on $module: $@";
-        return undef;
-    }
+    my $output = $self->$method(@{$args});
 
     #Return the output from the method call
     return $output;

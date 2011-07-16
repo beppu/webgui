@@ -163,11 +163,20 @@ sub handle {
     for my $handler (@{$session->config->get("contentHandlers")}) {
         my $output = eval { WebGUI::Pluggable::run($handler, "handler", [ $session ] )};
         if ( my $e = WebGUI::Error->caught ) {
-            $session->log->error($e->package.":".$e->line." - ".$e->full_message);
-            $session->log->debug($e->package.":".$e->line." - ".$e->trace);
+warn "XXX error caught in WebGUI.pm";
+            # if( $session->request->env->{'webgui.debug'} ) {
+warn "XXX error caught in WebGUI.pm *and* we are debugging";
+                # keep propogating errors out towards whatever Middleware the developer has in place for viewing them
+                # $e->rethrow; # nope, sending exceptions up to plack is useless; likewise the eval { } around the $call in StackTrace must be useless XXX
+            # }
+            # XXX maybe this should happen unconditionally, but then there will be two or three entries in the log for the same error potentially; I guess I need to pick which one runs unconditionally, and it shouldn't be the one in WebGUI::Content::Asset; the other logical place would be in WebGUI::Middleware::StackTrace, but it won't always be enabled
+            $session->request->env->{'webgui.error'} = $e;
+            $session->log->error($e->package.":".$e->line." - ".$e->full_message, $@);
+            $session->log->debug($e->package.":".$e->line." - ".$e->trace, $@);
         }
         elsif ( $@ ) {
-            $session->log->error( $@ );
+            $session->log->error( $@, $@ );
+            $session->request->env->{'webgui.error'} = $@;
         }
         else {
             

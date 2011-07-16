@@ -32,7 +32,7 @@ builder {
     # Open/close the WebGUI::Session at the outer-most onion layer
     enable '+WebGUI::Middleware::Session', config => $config;
 
-    enable '+WebGUI::Middleware::HTTPExceptions';
+    # enable '+WebGUI::Middleware::HTTPExceptions'; # XXX only breaks stuff; not being used properly
 
     enable 'ErrorDocument', 503 => $config->get('maintenancePage');
     enable_if { ! $_[0]->{'webgui.debug'} } 'ErrorDocument', 500 => $config->get('maintenancePage');

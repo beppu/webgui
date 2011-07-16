@@ -155,7 +155,7 @@ sub findAndLoad {
     MODULE:
     for my $module ( @modules ) {
         # Try to load
-        if (!eval { load( $module ) }) {
+        if (!eval { local $SIG{__DIE__}; load( $module ) }) {
             if ( $options->{ onLoadFail } ) {
                 $options->{ onLoadFail }->( $module, $@ );
             }
@@ -192,7 +192,7 @@ object.
 
 sub instanciate {
     my ($module, $sub, $params) = @_;
-    if ( ! eval { load($module); 1 } ) {
+    if ( ! eval { local $SIG{__DIE__}; load($module); 1 } ) {
         if ( ref $@ ) {
             die $@;
         }
@@ -248,7 +248,7 @@ sub load {
         return 1;
     }
 
-    if (eval { require $modulePath; 1 }) {
+    if (eval { local $SIG{__DIE__}; require $modulePath; 1 }) {
         return 1;
     }
     else {
@@ -284,10 +284,11 @@ An array reference of parameters to pass in to the sub routine.
 
 sub run {
     my ($module, $sub, $params) = @_;
-    if (! eval { load($module); 1 }) {
+    if (! eval { local $SIG{__DIE__}; load($module); 1 }) {
         die $@
             if ref $@;
-        croak "Unable to run $sub on $module: $@";
+        # croak "Unable to run $sub on $module: $@";
+        WebGUI::Error::Compile->throw( class => $module, cause => $@ );
     }
     elsif (my $sub = $module->can($sub)) {
         # Let any other errors propagate

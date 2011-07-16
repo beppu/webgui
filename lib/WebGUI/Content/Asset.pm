@@ -79,15 +79,31 @@ sub dispatch {
             $fragment =~ s/$url//;
             $session->asset($asset);
             my $output = eval { $asset->dispatch($fragment); };
-            if ( $@ ) {
-                $session->log->error( "Problem with dispatching $url: " . $@ );
+warn "XXX Content::Asset has no output" if ! $output;
+warn "XXX Content::Asset has output" if $output;
+            if ( my $e = WebGUI::Error->caught('WebGUI::Error') ) {
+warn "XXX Content::Asset caught something";
+                if( $session->request->env->{'webgui.debug'} ) {
+                    if( blessed $e and $e->can('rethrow') ) {
+warn "XXX Content::Asset caught something and the error variable is blessed and we're debugging so we're going to rethrow";
+                        # Exception::Class objects have valuable stack traces in them; propogate this error outwards so that
+                        # developers get this trace
+                        $e->rethrow;
+                    } else
+                    {
+                        WebGUI::Error->throw( error => $@ ); # add a strack trace as soon as we can
+                    }
+                } else
+                {
+                    $session->log->error( "Problem with dispatching $url: " . $e, $e );
+                }
             }
             return $output if defined $output;
         }
     }
     $session->clearAsset;
     if ($session->isAdminOn) {
-        my $asset = WebGUI::Asset->newByUrl($session, $session->url->getRefererUrl) || WebGUI::Asset->getDefault($session);
+        my $asset = eval { WebGUI::Asset->newByUrl($session, $session->url->getRefererUrl) } || WebGUI::Asset->getDefault($session);
         return $asset->addMissing($assetUrl);
     }
     return undef;

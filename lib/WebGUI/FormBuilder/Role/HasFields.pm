@@ -59,7 +59,7 @@ sub addField {
         if ( $INC{'WebGUI/Form/'. ucfirst $file} || try { local $SIG{'__DIE__'}; require 'WebGUI/Form/' . ucfirst $file } ) {
             $type = 'WebGUI::Form::' . ucfirst $type;
         }
-        elsif ( !$INC{$file} && !try { require $file; } ) {
+        elsif ( !$INC{$file} && !try { local $SIG{__DIE__}; require $file; } ) {
             confess sprintf "Could not load form control class %s", $type;
         }
         $field = $type->new( $self->session, { @properties } );
