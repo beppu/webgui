@@ -90,13 +90,34 @@ sub generate {
     my $url     = $session->url;
     my $c       = $session->config;
     my $o       = $c->get('pdfGen');
+
     my $login   = WebGUI::Session->open($c->getWebguiRoot, $c->getFilename);
     my $guard   = guard { $login->var->end; $login->close };
+
     $login->user({ userId => $o->{userId} || 1 });
+
+    # build a GET string
+
+    my $all_params_hash = $session->form->paramsHashRef;
+    delete $all_params_hash->{op};
+    my $params_string = '';
+    for my $param ( keys %$all_params_hash ) {
+        $params_string .= ';' if length $params_string;
+        next if length( $all_params_hash->{$param} ) > 1024;
+        $params_string .= $param . '=' . $all_params_hash->{$param};
+    }
+
+    my $get_string = $url->append(
+        $url->getSiteURL . $url->gateway($url->getRequestedUrl),
+        $params_string
+    );
+
+    $session->log->warn("Debug: PDFGenerator came up with this GET URL: " . $get_string);
+
     my @args = (
         $o->{exe}, @{$o->{args} || []},
         '--cookie', $c->get('cookieName'), $login->getId,
-        $url->getSiteURL . $url->gateway($url->getRequestedUrl),
+        $get_string,
         '-'
     );
 
