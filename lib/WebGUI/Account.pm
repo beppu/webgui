@@ -172,12 +172,6 @@ sub callMethod {
         );
         return undef;
     }
-
-    unless ($self->canView) {
-        my $session = $self->session;
-        $session->output->print($session->privilege->insufficient);
-        return undef;
-    }
    
     #Try to call the method
     my $output = eval { $self->$method(@{$args}) };
@@ -241,7 +235,7 @@ sub displayContent {
             #Eval it as we don't want to fail if there's a problem with another method in the config file
             $instance = eval { WebGUI::Content::Account->createInstance($session,$identifier) };
             if (my $e = WebGUI::Error->caught) {
-                $session->log->warn("Couldn't instantiate Account Pluggin ".$account->{className}." ... skipping");
+                $session->log->warn("Couldn't instantiate Account Pluggin ".$account->{className}." because " . $e . " ... skipping");
                 next;
             }
             elsif(!$instance->isa('WebGUI::Account')) {

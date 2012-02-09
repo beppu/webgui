@@ -23,7 +23,6 @@ use WebGUI::Utility;
 use HTML::Parser;
 use URI::Escape;
 use WebGUI::Form;
-use WebGUI::Search;
 use Clone qw/clone/;
 
 #-------------------------------------------------------------------
@@ -990,7 +989,7 @@ sub www_search {
 		mostPopularUrl=>$self->getUrl("func=mostPopular"),
 		mostPopularLabel=>$i18n->get("mostPopularLabel"),
 		wikiHomeUrl=>$self->getUrl,
-		addPageUrl=>$self->getUrl("func=add;class=WebGUI::Asset::WikiPage;title=".$self->session->url->escape($queryString)),
+		addPageUrl=>$self->getUrl("func=add;class=WebGUI::Asset::WikiPage;title=".$queryString),
 		};
 	$self->appendSearchBoxVars($var, $queryString);
 	if (length $queryString) {

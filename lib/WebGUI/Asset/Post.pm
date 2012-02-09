@@ -403,26 +403,6 @@ sub disqualifyAsLastPost {
 
 #-------------------------------------------------------------------
 
-=head2 duplicate ( )
-
-Extend the base method to handle duplicate storage locations and groups.
-
-=cut
-
-sub duplicate {
-	my $self    = shift;
-    my $session = $self->session;
-    my $copy    = $self->SUPER::duplicate(@_);
-    if ($self->get('storageId')) {
-        my $storage        = $self->getStorageLocation;
-        my $copied_storage = $storage->copy;
-        $copy->update({storageId => $copied_storage->getId});
-    }
-    return $copy;
-}
-
-#-------------------------------------------------------------------
-
 =head2 DESTROY 
 
 Extend the base method to delete the locally cached thread object.
@@ -1019,9 +999,10 @@ sub notifySubscribers {
     my $returnAddress = $setting->get("mailReturnPath");
     my $companyAddress = $setting->get("companyEmail");
     my $listAddress = $cs->get("mailAddress");
-    my $posterAddress = $user->getProfileFieldPrivacySetting('email') eq "all"
-                      ? $user->profileField('email')
-                      : '';
+    my $posterAddress  = $companyAddress;
+    #my $posterAddress = $user->getProfileFieldPrivacySetting('email') eq "all"
+    #                  ? $user->profileField('email')
+    #                  : '';
     my $from = $posterAddress || $listAddress || $companyAddress;
     my $replyTo = $listAddress || $returnAddress || $companyAddress;
     my $sender = $listAddress || $companyAddress || $posterAddress;
@@ -1232,18 +1213,14 @@ Extend the base method to handle cleaning up storage locations.
 =cut
 
 sub purge {
-    my $self = shift;
-    my $purged = $self->next::method;
-    if ($purged) {
+        my $self = shift;
         my $sth = $self->session->db->read("select storageId from Post where assetId=".$self->session->db->quote($self->getId));
         while (my ($storageId) = $sth->array) {
-        my $storage = WebGUI::Storage->get($self->session, $storageId);
+		my $storage = WebGUI::Storage->get($self->session, $storageId);
                 $storage->delete if defined $storage;
         }
         $sth->finish;
-        $self->disqualifyAsLastPost;
-    }
-    return $purged;
+        return $self->next::method;
 }
 
 #-------------------------------------------------------------------
@@ -1703,12 +1680,8 @@ sub www_edit {
 			});
 		$var{'userDefined'.$x.'.form.htmlarea'} 
             = WebGUI::Form::HTMLArea($session, {
-			    name       =>  "userDefined".$x,
-			    value      =>  $userDefinedValue,
-                richEditId => ($self->isa("WebGUI::Asset::Post::Thread")
-                               ? $self->getThread->getParent->get("richEditor")
-                               : $self->getThread->getParent->get("replyRichEditor")
-                              ),
+			    name    => "userDefined".$x,
+			    value   => $userDefinedValue,
 			});
 		$var{'userDefined'.$x.'.form.float'} 
             = WebGUI::Form::Float($session, {

@@ -186,7 +186,10 @@ the one in this user's current session.
 sub validToken {
 	my ($self)  = @_;
     my $session = $self->session;
+    #$session->log->warn('HTTP method: '. $session->request->method);
+    #$session->log->warn('CSRF token: '. $session->scratch->get('webguiCsrfToken'));
     return 0 unless $session->request->method eq 'POST';
+    #$session->log->warn('Web token: '. $self->param('webguiCsrfToken'));
     return 0 unless $self->param('webguiCsrfToken') eq $session->scratch->get('webguiCsrfToken');
     return 1;
 }

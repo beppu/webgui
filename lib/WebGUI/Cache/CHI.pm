@@ -42,6 +42,7 @@ Delete multiple keys from the cache
 sub deleteChunk {
     my ( $self, $key ) = @_;
     $key = $self->parseKey( $key );
+    $self->session->log->info( "Cache: Deleting chunk " . $key );
     for my $checkKey ( $self->{_chi}->get_keys ) {
         if ( $checkKey =~ /^\Q$key/ ) {
             $self->{_chi}->remove( $checkKey );
@@ -93,13 +94,13 @@ sub new {
     my $chi;
     unless ( $chi = $session->stow->get( "CHI" ) ) {
         my $cacheConf    = $session->config->get('cache');
-        $cacheConf->{namespace}     = $namespace;
+        $cacheConf->{namespace}     ||= $namespace;
         $cacheConf->{is_size_aware} = 1;
 
         # Default values
         my $resolveConf = sub {
             my ($config) = @_;
-            if ( $config->{driver} =~ /DBI/ ) {
+            if ( $config->{driver} =~ /DBI/ or $config->{dbh} ) {
                 $config->{ dbh } = $session->db->dbh;
             }
             if ( $config->{driver} =~ /File|FastMmap|BerkeleyDB/ ) {
@@ -130,6 +131,7 @@ should live.
 
 sub set {
     my ( $self, $content, $ttl ) = @_;
+    $self->session->log->info( "SETTING " . $self->{_key} . " expires in " . $ttl );
     $ttl ||= 60;
     $self->{_chi}->set( $self->{_key}, $content, $ttl );
     return;

@@ -223,10 +223,6 @@ The "turn admin on" group which is group id 12.
 
 sub canAdd {
     my $className = shift;
-
-    # just in case we get called as object method
-    $className = $className->get('className') if blessed $className;
-
     my $session = shift;
     my $userId = shift || $session->user->userId;
     my $user = WebGUI::User->new($session, $userId);
@@ -1171,8 +1167,7 @@ sub setupFormField {
     my $overrideTab = delete $overrideParams{tab};
     $tab = $overrideTab if defined $overrideTab;
     foreach my $key (keys %overrideParams) {
-      (my $canon = $key) =~ s/^-//;
-      $params{$canon} = $overrideParams{$key};
+      $params{"-$key"} = $overrideParams{$key};
     }
   }
 
@@ -2258,13 +2253,10 @@ filter guidelines).
 
 sub packExtraHeadTags {
     my ( $self, $unpacked ) = @_;
-    # If no more unpacked tags, remove the packed tags
-    if ( !$unpacked ) {
-        $self->update({ extraHeadTagsPacked => $unpacked });
-        return;
-    }
+    return $unpacked if !$unpacked;
     my $packed  = $unpacked;
     HTML::Packer::minify( \$packed, {
+        remove_comments     => 1,
         remove_newlines     => 1,
         do_javascript       => "shrink",
         do_stylesheet       => "minify",
@@ -2418,7 +2410,6 @@ sub processTemplate {
             %{$self->{_properties}},
             'title'     => $self->getTitle,
             'menuTitle' => $self->getMenuTitle,
-            'keywords'  => $self->get('keywords'),
             %{$var},
         );
         return $template->process(\%vars);
@@ -2528,21 +2519,6 @@ sub purgeCache {
 
 #-------------------------------------------------------------------
 
-=head2 refused ( )
-
-Returns an error message to the user, wrapped in the user's style.  This is most useful for
-handling UI errors.  Privilege errors should be still be sent to $session->privilege.
-
-=cut
-
-sub refused {
-	my ($self) = @_;
-	return $self->{_session};
-}
-
-
-#-------------------------------------------------------------------
-
 =head2 session ( )
 
 Returns a reference to the current session.
@@ -2576,7 +2552,7 @@ sub setSize {
 	}
     my $size = length($sizetest) + $extra;
 	$self->session->db->write("update assetData set assetSize=".$size." where assetId=".$self->session->db->quote($self->getId)." and revisionDate=".$self->session->db->quote($self->get("revisionDate")));
-	$self->purgeCache;
+	#$self->purgeCache; # XXX REMOVED by Doug 04/05/2011 - Performance reasons
     $self->{_properties}{assetSize} = $size;
 }
 	
@@ -2867,7 +2843,7 @@ sub www_changeUrl {
 	my $i18n = WebGUI::International->new($self->session, "Asset");
 	my $f = WebGUI::HTMLForm->new($self->session, action=>$self->getUrl);
 	$f->hidden(name=>"func", value=>"changeUrlConfirm");
-	$f->hidden(name=>"proceed", value=>scalar($self->session->form->param("proceed")));
+	$f->hidden(name=>"proceed", value=>$self->session->form->param("proceed"));
 	$f->text(name=>"url", value=>$self->get('url'), label=>$i18n->get("104"), hoverHelp=>$i18n->get('104 description'));
 	$f->yesNo(name=>"confirm", value=>0, label=>$i18n->get("confirm change"), hoverHelp=>$i18n->get("confirm change url message"), subtext=>'<br />'.$i18n->get("confirm change url message"));
 	$f->submit;
@@ -2938,16 +2914,14 @@ sub www_editSave {
     my $isNewAsset = $session->form->process("assetId") eq "new" ? 1 : 0;
     return $session->privilege->locked() if (!$self->canEditIfLocked and !$isNewAsset);
     return $session->privilege->insufficient() unless $self->canEdit && $session->form->validToken;
-    if ($self->session->config->get("maximumAssets")) {
+    if ($self->session->config("maximumAssets")) {
         my ($count) = $self->session->db->quickArray("select count(*) from asset");
         my $i18n = WebGUI::International->new($self->session, "Asset");
-        return $self->session->style->userStyle($i18n->get("over max assets")) if ( $self->session->config->get("maximumAssets") <= $count && $isNewAsset );
+        return $self->session->style->userStyle($i18n->get("over max assets")) if ($self->session->config("maximumAssets") <= $count);
     }
     my $object;
     if ($isNewAsset) {
-        my $className = $session->form->process("class","className");
-        return $session->privilege->insufficient() if ($isNewAsset && !$className->canAdd($session));
-        $object = $self->addChild({className=> $className});	
+        $object = $self->addChild({className=>$session->form->process("class","className")});	
         return $self->www_view unless defined $object;
         $object->{_parent} = $self;
         $object->{_properties}{url} = undef;

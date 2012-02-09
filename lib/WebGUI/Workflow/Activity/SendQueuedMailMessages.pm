@@ -76,6 +76,7 @@ sub execute {
 		if (defined $message) {
 			unless ($message->send) {
 				# if the message fails to send, requeue it
+eval { warn "failed to send a message to " . $message->to; };
 				$message->queue;
 			}	
 		}

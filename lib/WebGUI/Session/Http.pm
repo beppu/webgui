@@ -17,7 +17,7 @@ package WebGUI::Session::Http;
 
 use strict;
 use WebGUI::Utility;
-use Scalar::Util qw( weaken blessed );
+use Scalar::Util qw( weaken );
 
 =head1 NAME
 
@@ -95,11 +95,16 @@ sub getCookies {
 	if ($self->session->request) {
 		# Have to require this instead of using it otherwise it causes problems for command-line scripts on some platforms (namely Windows)
 		require APR::Request::Apache2;
-		my $jarHashRef = eval { APR::Request::Apache2->handle($self->session->request)->jar(); };
-		return $jarHashRef if $jarHashRef;
-        if (blessed $@ and $@->isa('APR::Request::Error')) {
-            return $@->jar;
-        }
+		my $jarHashRef = eval{ APR::Request::Apache2->handle($self->session->request)->jar() };
+                if(ref $@ and $@->isa("APR::Request::Error")) {
+                   $jarHashRef = $@->jar;
+                }
+	        elsif($@) {
+                   use Data::Dumper;
+                   $self->session->log->error( "Could not get cookie jar: ". $self->session->request->jar_status ."\n".Dumper( $self->session->request->headers_in() ) );
+                   $jarHashRef = undef;
+                }
+                return $jarHashRef if $jarHashRef;
 		return {};
 	}
 	else {
