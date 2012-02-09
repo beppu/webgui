@@ -1,0 +1,2050 @@
+diff --git a/lib/Spectre/Admin.pm b/lib/Spectre/Admin.pm
+index 39da82d..ccc94f0 100644
+--- a/lib/Spectre/Admin.pm
++++ b/lib/Spectre/Admin.pm
+@@ -148,6 +148,7 @@ sub loadSiteData {
+         	$userAgent->agent("Spectre");
+         	$userAgent->timeout(30);
+ 		my $url = "http://".$configs->{$key}->get("sitename")->[0].":".$self->{_config}->get("webguiPort").$configs->{$key}->get("gateway")."?op=spectreGetSiteData";
++		# my $url = "http://127.0.0.1:".$self->{_config}->get("webguiPort").$configs->{$key}->get("gateway")."?op=spectreGetSiteData";
+         	my $request = new HTTP::Request (GET => $url);
+         	my $response = $userAgent->request($request);
+         	if ($response->is_error) {
+@@ -255,6 +256,7 @@ sub runTests {
+         	$userAgent->agent("Spectre");
+         	$userAgent->timeout(30);
+ 		my $url = "http://".$configs->{$key}->get("sitename")->[0].":".$config->get("webguiPort").$configs->{$key}->get("gateway")."?op=spectreTest";
++		# my $url = "http://127.0.0.1:".$config->get("webguiPort").$configs->{$key}->get("gateway")."?op=spectreTest";
+         	my $request = new HTTP::Request (GET => $url);
+         	my $response = $userAgent->request($request);
+         	if ($response->is_error) {
+diff --git a/lib/Spectre/Workflow.pm b/lib/Spectre/Workflow.pm
+index d265d13..b4f9c1e 100644
+--- a/lib/Spectre/Workflow.pm
++++ b/lib/Spectre/Workflow.pm
+@@ -448,7 +448,8 @@ sub runWorker {
+ 	$instance->{workingPriority}++;
+     $instance->{status} = 'running';
+     $self->updateInstance($instance);
+-	my $url = "http://".$instance->{sitename}.':'.$self->config->get("webguiPort").$instance->{gateway};
++	# my $url = 'http://127.0.0.1:'.$self->config->get("webguiPort").$instance->{gateway};
++        my $url = "http://".$instance->{sitename}.':'.$self->config->get("webguiPort").$instance->{gateway};
+ 	my $request = POST $url, [op=>"runWorkflow", instanceId=>$instance->{instanceId}];
+ 	my $cookie = $self->{_cookies}{$instance->{sitename}};
+ 	$request->header("Cookie",$instance->{cookieName}."=".$cookie) if (defined $cookie);
+diff --git a/lib/WebGUI.pm b/lib/WebGUI.pm
+index 205812c..3e1cb5e 100644
+--- a/lib/WebGUI.pm
++++ b/lib/WebGUI.pm
+@@ -1,7 +1,7 @@
+ package WebGUI;
+ 
+ 
+-our $VERSION = '7.9.34';
++our $VERSION = '7.9.13';
+ our $STATUS = 'stable';
+ 
+ 
+@@ -28,7 +28,6 @@ use Apache2::RequestUtil ();
+ use Apache2::ServerUtil ();
+ use APR::Request::Apache2;
+ use MIME::Base64 ();
+-use Scalar::Util qw/blessed/;
+ use WebGUI::Config;
+ use WebGUI::Pluggable;
+ use WebGUI::Session;
+@@ -94,15 +93,21 @@ sub authen {
+ 		}
+ 	}
+ 
++
+ 	$config ||= WebGUI::Config->new($server->dir_config('WebguiRoot'),$request->dir_config('WebguiConfig'));
+-	my $cookies = eval { APR::Request::Apache2->handle($request)->jar(); };
+-    if (blessed $@ && $@->isa('APR::Request::Error')) {
+-        $cookies = $@->jar;
+-    }
+-    else {
+-        $cookies = {};
+-    }
+-   
++
++
++	#my $handle = APR::Request::Apache2->handle( $request );
++	#my $cookies = $handle->jar;
++        #warn( "COOKIE: ". $handle->jar_status . "\n". Dumper( $request->headers_in() ) );
++
++	my $cookies = eval { APR::Request::Apache2->handle($request)->jar() };
++        if ($@) {
++           warn("Could not get cookies for session: $@");
++           return Apache2::Const::SERVER_ERROR;
++	}
++
++
+ 	# determine session id
+ 	my $sessionId = $cookies->{$config->getCookieName};
+ 	my $session = WebGUI::Session->open($server->dir_config('WebguiRoot'),$config->getFilename, $request, $server, $sessionId);
+@@ -143,7 +148,6 @@ sub authen {
+ 			}
+ 		}
+ 		$log->security($username." failed to login using HTTP Basic Authentication");
+-		$request->auth_type('Basic');
+ 		$request->note_basic_auth_failure;
+ 		return Apache2::Const::HTTP_UNAUTHORIZED;
+ 	}
+@@ -167,8 +171,8 @@ sub handler {
+ 	my $request = shift;	#start with apache request object
+     $request = Apache2::Request->new($request);
+ 	my $configFile = shift || $request->dir_config('WebguiConfig'); #either we got a config file, or we'll build it from the request object's settings
+-	my $server = Apache2::ServerUtil->server;	#instantiate the server api
+-	my $config = WebGUI::Config->new($server->dir_config('WebguiRoot'), $configFile); #instantiate the config object
++    my $server = Apache2::ServerUtil->server;	#instantiate the server api
++    my $config = WebGUI::Config->new($server->dir_config('WebguiRoot'), $configFile); #instantiate the config object
+     my $error = "";
+     my $matchUri = $request->uri;
+     my $gateway = $config->get("gateway");
+@@ -186,7 +190,6 @@ sub handler {
+ 	    $request->push_handlers(PerlAuthenHandler => sub { return WebGUI::authen($request, undef, undef, $config)});
+     }
+ 
+-	
+ 	# url handlers
+     WEBGUI_FATAL: foreach my $handler (@{$config->get("urlHandlers")}) {
+         my ($regex) = keys %{$handler};
+diff --git a/lib/WebGUI/Account.pm b/lib/WebGUI/Account.pm
+index 622283d..9762b1d 100644
+--- a/lib/WebGUI/Account.pm
++++ b/lib/WebGUI/Account.pm
+@@ -172,12 +172,6 @@ sub callMethod {
+         );
+         return undef;
+     }
+-
+-    unless ($self->canView) {
+-        my $session = $self->session;
+-        $session->output->print($session->privilege->insufficient);
+-        return undef;
+-    }
+    
+     #Try to call the method
+     my $output = eval { $self->$method(@{$args}) };
+@@ -241,7 +235,7 @@ sub displayContent {
+             #Eval it as we don't want to fail if there's a problem with another method in the config file
+             $instance = eval { WebGUI::Content::Account->createInstance($session,$identifier) };
+             if (my $e = WebGUI::Error->caught) {
+-                $session->log->warn("Couldn't instantiate Account Pluggin ".$account->{className}." ... skipping");
++                $session->log->warn("Couldn't instantiate Account Pluggin ".$account->{className}." because " . $e . " ... skipping");
+                 next;
+             }
+             elsif(!$instance->isa('WebGUI::Account')) {
+diff --git a/lib/WebGUI/Asset.pm b/lib/WebGUI/Asset.pm
+index d162d0e..dd9566b 100644
+--- a/lib/WebGUI/Asset.pm
++++ b/lib/WebGUI/Asset.pm
+@@ -223,10 +223,6 @@ The "turn admin on" group which is group id 12.
+ 
+ sub canAdd {
+     my $className = shift;
+-
+-    # just in case we get called as object method
+-    $className = $className->get('className') if blessed $className;
+-
+     my $session = shift;
+     my $userId = shift || $session->user->userId;
+     my $user = WebGUI::User->new($session, $userId);
+@@ -1171,8 +1167,7 @@ sub setupFormField {
+     my $overrideTab = delete $overrideParams{tab};
+     $tab = $overrideTab if defined $overrideTab;
+     foreach my $key (keys %overrideParams) {
+-      (my $canon = $key) =~ s/^-//;
+-      $params{$canon} = $overrideParams{$key};
++      $params{"-$key"} = $overrideParams{$key};
+     }
+   }
+ 
+@@ -2258,13 +2253,10 @@ filter guidelines).
+ 
+ sub packExtraHeadTags {
+     my ( $self, $unpacked ) = @_;
+-    # If no more unpacked tags, remove the packed tags
+-    if ( !$unpacked ) {
+-        $self->update({ extraHeadTagsPacked => $unpacked });
+-        return;
+-    }
++    return $unpacked if !$unpacked;
+     my $packed  = $unpacked;
+     HTML::Packer::minify( \$packed, {
++        remove_comments     => 1,
+         remove_newlines     => 1,
+         do_javascript       => "shrink",
+         do_stylesheet       => "minify",
+@@ -2418,7 +2410,6 @@ sub processTemplate {
+             %{$self->{_properties}},
+             'title'     => $self->getTitle,
+             'menuTitle' => $self->getMenuTitle,
+-            'keywords'  => $self->get('keywords'),
+             %{$var},
+         );
+         return $template->process(\%vars);
+@@ -2528,21 +2519,6 @@ sub purgeCache {
+ 
+ #-------------------------------------------------------------------
+ 
+-=head2 refused ( )
+-
+-Returns an error message to the user, wrapped in the user's style.  This is most useful for
+-handling UI errors.  Privilege errors should be still be sent to $session->privilege.
+-
+-=cut
+-
+-sub refused {
+-	my ($self) = @_;
+-	return $self->{_session};
+-}
+-
+-
+-#-------------------------------------------------------------------
+-
+ =head2 session ( )
+ 
+ Returns a reference to the current session.
+@@ -2576,7 +2552,7 @@ sub setSize {
+ 	}
+     my $size = length($sizetest) + $extra;
+ 	$self->session->db->write("update assetData set assetSize=".$size." where assetId=".$self->session->db->quote($self->getId)." and revisionDate=".$self->session->db->quote($self->get("revisionDate")));
+-	$self->purgeCache;
++	#$self->purgeCache; # XXX REMOVED by Doug 04/05/2011 - Performance reasons
+     $self->{_properties}{assetSize} = $size;
+ }
+ 	
+@@ -2867,7 +2843,7 @@ sub www_changeUrl {
+ 	my $i18n = WebGUI::International->new($self->session, "Asset");
+ 	my $f = WebGUI::HTMLForm->new($self->session, action=>$self->getUrl);
+ 	$f->hidden(name=>"func", value=>"changeUrlConfirm");
+-	$f->hidden(name=>"proceed", value=>scalar($self->session->form->param("proceed")));
++	$f->hidden(name=>"proceed", value=>$self->session->form->param("proceed"));
+ 	$f->text(name=>"url", value=>$self->get('url'), label=>$i18n->get("104"), hoverHelp=>$i18n->get('104 description'));
+ 	$f->yesNo(name=>"confirm", value=>0, label=>$i18n->get("confirm change"), hoverHelp=>$i18n->get("confirm change url message"), subtext=>'<br />'.$i18n->get("confirm change url message"));
+ 	$f->submit;
+@@ -2938,16 +2914,14 @@ sub www_editSave {
+     my $isNewAsset = $session->form->process("assetId") eq "new" ? 1 : 0;
+     return $session->privilege->locked() if (!$self->canEditIfLocked and !$isNewAsset);
+     return $session->privilege->insufficient() unless $self->canEdit && $session->form->validToken;
+-    if ($self->session->config->get("maximumAssets")) {
++    if ($self->session->config("maximumAssets")) {
+         my ($count) = $self->session->db->quickArray("select count(*) from asset");
+         my $i18n = WebGUI::International->new($self->session, "Asset");
+-        return $self->session->style->userStyle($i18n->get("over max assets")) if ( $self->session->config->get("maximumAssets") <= $count && $isNewAsset );
++        return $self->session->style->userStyle($i18n->get("over max assets")) if ($self->session->config("maximumAssets") <= $count);
+     }
+     my $object;
+     if ($isNewAsset) {
+-        my $className = $session->form->process("class","className");
+-        return $session->privilege->insufficient() if ($isNewAsset && !$className->canAdd($session));
+-        $object = $self->addChild({className=> $className});	
++        $object = $self->addChild({className=>$session->form->process("class","className")});	
+         return $self->www_view unless defined $object;
+         $object->{_parent} = $self;
+         $object->{_properties}{url} = undef;
+diff --git a/lib/WebGUI/Asset/Event.pm b/lib/WebGUI/Asset/Event.pm
+index 9f4bb91..c07f8d8 100644
+--- a/lib/WebGUI/Asset/Event.pm
++++ b/lib/WebGUI/Asset/Event.pm
+@@ -28,7 +28,6 @@ use WebGUI::Storage;
+ use Test::Deep::NoTest qw(eq_deeply);
+ use DateTime::Event::ICal;
+ use DateTime::Set;
+-use Data::ICal::Entry::Event;
+ 
+ use base 'WebGUI::Asset';
+ 
+@@ -75,54 +74,6 @@ sub addRevision {
+     return $newRev;
+ }
+ 
+-####################################################################
+-
+-=head2 add_to_calendar ($iCal)
+-
+-Build a Data::ICal::Entry::Event object that contains the information for this
+-event and add it to the Data::ICal calendar
+-
+-=head3 $iCal
+-
+-A Data::ICal object, representing the top-level calendar instance.
+-
+-=cut
+-
+-sub add_to_calendar {
+-    my $self     = shift;
+-    my $session  = $self->session;
+-    my $calendar = shift;
+-    my $event = Data::ICal::Entry::Event->new();
+-    $event->add_properties(
+-        'last-modified' => WebGUI::DateTime->new($session, $event->get("revisionDate"))->toIcal,
+-        created         => WebGUI::DateTime->new($session, $event->get("creationDate"))->toIcal,
+-        sequence        => $self->get('iCalSequenceNumber'),
+-        summary         => $self->get('title'),
+-        description     => $self->get('description'),
+-        location        => $self->get('location'),
+-        uid => $self->get('feedUid')
+-             ? $self->get('feedUid')
+-             : $self->get('assetId') . '@'. $session->config->get("sitename")->[0],
+-    );
+-    ##WebGUI Specific fields
+-    foreach my $prop (qw/groupIdView groupIdEdit url menuTitle timeZone/) {
+-        $event->add_property( 'x-webgui-'.lc($prop) => $self->get($prop));
+-    }
+-    my $eventStart = $self->getIcalStart;
+-    my $start_parameters = {};
+-    if (! $eventStart =~ /T/) {
+-        $start_parameters->{VALUE} = 'DATE';
+-    }
+-    $event->add_property(dtstart => [ $eventStart, $start_parameters ]);
+-    my $eventEnd = $self->getIcalEnd;
+-    my $end_parameters = {};
+-    if (! $eventEnd =~ /T/) {
+-        $end_parameters->{VALUE} = 'DATE';
+-    }
+-    $event->add_property(dtend => [ $eventEnd, $end_parameters ]);
+-    $calendar->add_entry($event);
+-}
+-
+ {
+ 
+ my %dayNamesToICal = (
+@@ -409,30 +360,6 @@ sub canEdit {
+ 
+ #-------------------------------------------------------------------
+ 
+-=head2 duplicate ( )
+-
+-Extend the super class to duplicate the storage location.
+-
+-=cut
+-
+-sub duplicate {
+-	my $self = shift;
+-	my $newAsset = $self->SUPER::duplicate(@_);
+-	my $newStorage = $self->getStorageLocation->copy;
+-	$newAsset->update({storageId=>$newStorage->getId});
+-    my $links = $self->getRelatedLinks();
+-    my $id    = $self->session->id;
+-    foreach my $link (@{ $links }) {
+-        $link->{new_event}   = 1;
+-        $link->{eventlinkId} = $id->generate;
+-        $link->{linkurl}     = $link->{linkURL};
+-    }
+-    $newAsset->setRelatedLinks($links);
+-	return $newAsset;
+-}
+-
+-#-------------------------------------------------------------------
+-
+ =head2 generateRecurrence (date)
+ 
+ Creates an recurrence event in the parent calendar for the given date
+@@ -452,11 +379,12 @@ sub generateRecurrence {
+     };
+     my $db = $self->session->db;
+     unless ($db->quickScalar($sql, [$self->get('recurId'), $sdb])) {
+-        my $child = $self->duplicate({skipAutoCommitWorkflows => 1});
+-        $child->update({
+-            startDate => $sdb,
+-            endDate   => $edb,
+-        });
++        my $child = $self->get;
++        $child->{startDate} = $sdb;
++        $child->{endDate}   = $edb;
++        $self->getParent->addChild(
++            $child, undef, undef, { skipAutoCommitWorkflows => 1 }
++        );
+     }
+ }
+ 
+@@ -1480,7 +1408,7 @@ sub processPropertiesFromFormPost {
+     my $assetId = $self->get('assetId');
+     my $revisionDate = $self->get('revisionDate');
+ 
+-    $session->db->write("UPDATE Event SET sequenceNumber =? WHERE assetId = ? AND revisionDate =?",[(scalar($form->param('sequenceNumber')) || $top_val), $assetId, $revisionDate]);
++    $session->db->write("UPDATE Event SET sequenceNumber =? WHERE assetId = ? AND revisionDate =?",[($form->param('sequenceNumber') || $top_val), $assetId, $revisionDate]);
+ 
+ 
+     # Pre-process Related Links and manage changes
+@@ -1638,18 +1566,14 @@ Extent the method from the super class to delete all storage locations.
+ =cut
+ 
+ sub purge {
+-    my $self    = shift;
+-    my $id      = $self->getId;
+-    my $session = $self->session;
+-    my @storageIds = $session->db->buildArray("select storageId from Event where assetId=?",[$id]);
+-    my $success    = $self->SUPER::purge;
+-    return 0 unless $success;
+-    foreach my $storageId (@storageIds) {
+-        my $storage = WebGUI::Storage->get($session, $storageId);
++    my $self = shift;
++    my $sth = $self->session->db->read("select storageId from Event where assetId=?",[$self->getId]);
++    while (my ($storageId) = $sth->array) {
++        my $storage = WebGUI::Storage->get($self->session,$storageId);
+         $storage->delete if defined $storage;
+     }
+-    $session->db->write('delete from Event_relatedlink where assetId=?',[$id]);
+-    return 1;
++    $sth->finish;
++    return $self->SUPER::purge;
+ }
+ 
+ #-------------------------------------------------------------------
+@@ -1796,37 +1720,8 @@ Wrap update so that isHidden is always set to be a 1.
+ =cut
+ 
+ sub update {
+-    my $self       = shift;
++    my $self = shift;
+     my $properties = shift;
+-    my $session    = $self->session;
+-    if (my $startTime = $properties->{startTime}) {
+-        my ($startHour, $startMinute, $startSecond) = $startTime =~ /^ (\d+) : (\d+) (?: :(\d+)) /x;
+-        if ($startHour > 23) {
+-            $startHour = 0;
+-            my $startDate = exists $properties->{startDate} ? $properties->{startDate} : $self->get('startDate');
+-            $session->log->warn('startDate: '. $startDate);
+-            my $startDt = WebGUI::DateTime->new($session, $startDate);
+-            $startDt->add(days => 1);
+-            $properties->{startDate} = $startDt->toMysqlDate;
+-            $session->log->warn('startDate: '. $properties->{startDate});
+-            $startSecond             = '00' if ! $startSecond;
+-            $properties->{startTime} = sprintf '%02d:%02d:%02d', $startHour, $startMinute, $startSecond;
+-        }
+-    }
+-    if (my $endTime = $properties->{endTime}) {
+-        my ($endHour, $endMinute, $endSecond) = $endTime =~ /^ (\d+) : (\d+) (?: :(\d+)) /x;
+-        if ($endHour > 23) {
+-            $endHour = 0;
+-            my $endDate = exists $properties->{endDate} ? $properties->{endDate} : $self->get('endDate');
+-            $session->log->warn('endDate: '. $endDate);
+-            my $endDt = WebGUI::DateTime->new($session, $endDate);
+-            $endDt->add(days => 1);
+-            $properties->{endDate} = $endDt->toMysqlDate;
+-            $session->log->warn('endDate: '. $properties->{endDate});
+-            $endSecond             = '00' if ! $endSecond;
+-            $properties->{endTime} = sprintf '%02d:%02d:%02d', $endHour, $endMinute, $endSecond;
+-        }
+-    }
+     return $self->SUPER::update({%$properties, isHidden => 1});
+ }
+ 
+@@ -2321,24 +2216,20 @@ sub www_edit {
+     # End
+     $var->{"formRecurEnd"}
+         = q|
+-        <div><input type="radio" name="recurEndType" id="recurEndType_none" value="none" |.(!$recur->{endDate} && !$recur->{endAfter} ? 'checked="checked"' : '').q| onclick="toggleRecurEnd()"/>
+-        <label for="recurEndType_none">|. $i18n->get('No end'). q|</label>
++        <div><input type="radio" name="recurEndType" id="recurEndType_none" value="none" |.(!$recur->{endDate} && !$recur->{endAfter} ? 'checked="checked"' : '').q|/>
++        <label for="recurEndType_none">|. $i18n->get('No end'). q|</label><br />
+ 
+-        <input type="radio" name="recurEndType" id="recurEndType_date" value="date" |.($recur->{endDate} ? 'checked="checked"' : '' ).q| onclick="toggleRecurEnd()"/>
+-        <label for="recurEndType_date">|. $i18n->get('By date'). q| </label>
+-        <div id="recurEndPattern_date"> |
++        <input type="radio" name="recurEndType" id="recurEndType_date" value="date" |.($recur->{endDate} ? 'checked="checked"' : '' ).q| />
++        <label for="recurEndType_date">|. $i18n->get('By date'). q| </label>|
+         . WebGUI::Form::date($session,{ name => "recurEndDate", value => $recur->{endDate}, defaultValue => $recur->{endDate} })
+         . q|
+         <br />
+-        </div>
+ 
+-        <input type="radio" name="recurEndType" id="recurEndType_after" value="after" |.($recur->{endAfter} ? 'checked="checked"' : '' ).q| onclick="toggleRecurEnd()"/>
++        <input type="radio" name="recurEndType" id="recurEndType_after" value="after" |.($recur->{endAfter} ? 'checked="checked"' : '' ).q| />
+         <label for="recurEndType_after">|. $i18n->get('After'). q| </label>
+-        <div id="recurEndPattern_after">
+         <input type="text" size="3" name="recurEndAfter" value="|.$recur->{endAfter}.q|" />
+         |. $i18n->get('occurences'). q|.
+         </div>
+-        </div>
+     |;
+ 
+     # Include
+@@ -2400,19 +2291,7 @@ sub www_edit {
+                 document.getElementById("recurPattern_yearly").style.display = "block";
+             }
+         }
+-
+-        function toggleRecurEnd() {
+-            document.getElementById("recurEndPattern_date").style.display = "none";
+-            document.getElementById("recurEndPattern_after").style.display = "none";
+-
+-            if (document.getElementById("recurEndType_date").checked) {
+-                document.getElementById("recurEndPattern_date").style.display = "block";
+-            }
+-            else if (document.getElementById("recurEndType_after").checked) {
+-                document.getElementById("recurEndPattern_after").style.display = "block";
+-            }
+-        }
+-        YAHOO.util.Event.onAvailable("recurPattern",function(e) { toggleRecur(); toggleRecurEnd(); });
++        YAHOO.util.Event.onAvailable("recurPattern",function(e) { toggleRecur(); });
+         </script>
+ ENDJS
+ 
+diff --git a/lib/WebGUI/Asset/Post.pm b/lib/WebGUI/Asset/Post.pm
+index a493e2d..91a38fd 100644
+--- a/lib/WebGUI/Asset/Post.pm
++++ b/lib/WebGUI/Asset/Post.pm
+@@ -403,26 +403,6 @@ sub disqualifyAsLastPost {
+ 
+ #-------------------------------------------------------------------
+ 
+-=head2 duplicate ( )
+-
+-Extend the base method to handle duplicate storage locations and groups.
+-
+-=cut
+-
+-sub duplicate {
+-	my $self    = shift;
+-    my $session = $self->session;
+-    my $copy    = $self->SUPER::duplicate(@_);
+-    if ($self->get('storageId')) {
+-        my $storage        = $self->getStorageLocation;
+-        my $copied_storage = $storage->copy;
+-        $copy->update({storageId => $copied_storage->getId});
+-    }
+-    return $copy;
+-}
+-
+-#-------------------------------------------------------------------
+-
+ =head2 DESTROY 
+ 
+ Extend the base method to delete the locally cached thread object.
+@@ -1019,9 +999,10 @@ sub notifySubscribers {
+     my $returnAddress = $setting->get("mailReturnPath");
+     my $companyAddress = $setting->get("companyEmail");
+     my $listAddress = $cs->get("mailAddress");
+-    my $posterAddress = $user->getProfileFieldPrivacySetting('email') eq "all"
+-                      ? $user->profileField('email')
+-                      : '';
++    my $posterAddress  = $companyAddress;
++    #my $posterAddress = $user->getProfileFieldPrivacySetting('email') eq "all"
++    #                  ? $user->profileField('email')
++    #                  : '';
+     my $from = $posterAddress || $listAddress || $companyAddress;
+     my $replyTo = $listAddress || $returnAddress || $companyAddress;
+     my $sender = $listAddress || $companyAddress || $posterAddress;
+@@ -1232,18 +1213,14 @@ Extend the base method to handle cleaning up storage locations.
+ =cut
+ 
+ sub purge {
+-    my $self = shift;
+-    my $purged = $self->next::method;
+-    if ($purged) {
++        my $self = shift;
+         my $sth = $self->session->db->read("select storageId from Post where assetId=".$self->session->db->quote($self->getId));
+         while (my ($storageId) = $sth->array) {
+-        my $storage = WebGUI::Storage->get($self->session, $storageId);
++		my $storage = WebGUI::Storage->get($self->session, $storageId);
+                 $storage->delete if defined $storage;
+         }
+         $sth->finish;
+-        $self->disqualifyAsLastPost;
+-    }
+-    return $purged;
++        return $self->next::method;
+ }
+ 
+ #-------------------------------------------------------------------
+@@ -1703,12 +1680,8 @@ sub www_edit {
+ 			});
+ 		$var{'userDefined'.$x.'.form.htmlarea'} 
+             = WebGUI::Form::HTMLArea($session, {
+-			    name       =>  "userDefined".$x,
+-			    value      =>  $userDefinedValue,
+-                richEditId => ($self->isa("WebGUI::Asset::Post::Thread")
+-                               ? $self->getThread->getParent->get("richEditor")
+-                               : $self->getThread->getParent->get("replyRichEditor")
+-                              ),
++			    name    => "userDefined".$x,
++			    value   => $userDefinedValue,
+ 			});
+ 		$var{'userDefined'.$x.'.form.float'} 
+             = WebGUI::Form::Float($session, {
+diff --git a/lib/WebGUI/Asset/Wobject/GalleryAlbum.pm b/lib/WebGUI/Asset/Wobject/GalleryAlbum.pm
+index 5e02fa4..4bc3184 100644
+--- a/lib/WebGUI/Asset/Wobject/GalleryAlbum.pm
++++ b/lib/WebGUI/Asset/Wobject/GalleryAlbum.pm
+@@ -146,9 +146,12 @@ sub addArchive {
+     $archive->extract( $tempdirName );
+ 
+     # Get all the files in the archive
+-    $outputSub->('Getting list of files for sorting purposes');
+-    my @files = map { File::Spec->catfile($tempdirName, $_); } $archive->files;
+-
++    my @files;
++    my $wanted      = sub { push @files, $File::Find::name; $outputSub->('Found file: %s', $File::Find::name); };
++    find( {
++        wanted      => $wanted,
++    }, $tempdirName );
++    
+     # Sort files by date
+     if ($sortBy eq 'date') {              
+         # Hash for storing last modified timestamps
+@@ -360,6 +363,10 @@ not a bug.
+ sub canView {
+     my $self        = shift;
+     my $userId      = shift || $self->session->user->userId;
++    if ( !$self->getParent ) {
++        $self->session->log->error(" CANT GET PARENT FOR ALBUM : " . $self->getId );
++    	return 0;
++    }
+     return $self->getParent->canView($userId);
+ }
+ 
+diff --git a/lib/WebGUI/Asset/Wobject/Thingy.pm b/lib/WebGUI/Asset/Wobject/Thingy.pm
+index ef38ffe..b343f1f 100644
+--- a/lib/WebGUI/Asset/Wobject/Thingy.pm
++++ b/lib/WebGUI/Asset/Wobject/Thingy.pm
+@@ -20,8 +20,6 @@ use WebGUI::Form::File;
+ use WebGUI::DateTime;
+ use base 'WebGUI::Asset::Wobject';
+ use Data::Dumper;
+-use PerlIO::eol qw/NATIVE/;
+-use WebGUI::ProgressBar;
+ 
+ 
+ #-------------------------------------------------------------------
+@@ -447,6 +445,8 @@ sub copyThingData {
+     return undef unless $self->canEditThingData($thingId, $thingDataId);
+ 
+     my $origCollateral = $self->getCollateral("Thingy_".$thingId, "thingDataId", $thingDataId);
++    use Data::Dumper;
++    $session->log->warn(Dumper $origCollateral);
+     $origCollateral->{thingDataId} = "new";
+     ##Get all fields
+     my $fields = $db->buildArrayRefOfHashRefs('select * from Thingy_fields where assetId=? and thingId=?'
+@@ -454,7 +454,7 @@ sub copyThingData {
+     my @storage_field_ids = ();
+     ##Check to see if any of them are File or Image
+     foreach my $field (@{ $fields }) {
+-        if ($self->field_isa($field->{fieldType}, 'WebGUI::Form::File')) {
++        if ($field->{fieldType} eq 'File' or $field->{fieldType} eq 'Image') {
+             push @storage_field_ids, $field->{fieldId};
+         }
+     }
+@@ -512,7 +512,7 @@ sub deleteThingData {
+     my @storage_field_ids = ();
+     ##Check to see if any of them are File or Image
+     foreach my $field (@{ $fields }) {
+-        if ($self->field_isa($field->{fieldType}, 'WebGUI::Form::File')) {
++        if ($field->{fieldType} eq 'File' or $field->{fieldType} eq 'Image') {
+             push @storage_field_ids, $field->{fieldId};
+         }
+     }
+@@ -556,9 +556,7 @@ sub deleteThing {
+ 
+ =head2 editThingDataSave ( )
+ 
+-Saves a row of thing data and triggers the appropriate workflow triggers.  Returns the id of the row created in
+-the database, and an array reference of errors from required fields and other sources.  In there are errors, no data
+-is saved in the database, and the id returned in the empty string.
++Saves a row of thing data and triggers the appropriate workflow triggers.
+ 
+ =head3 thingId
+ 
+@@ -602,7 +600,8 @@ sub editThingDataSave {
+         lastUpDated=>time(),
+     );
+     
+-    $fields = $self->getFields($thingId);
++    $fields = $session->db->read('select * from Thingy_fields where assetId = ? and thingId = ? order by sequenceNumber',
++        [$self->get("assetId"),$thingId]);
+     while (my $field = $fields->hashRef) {
+         my $fieldName = 'field_'.$field->{fieldId};
+         my $fieldValue;
+@@ -611,19 +610,17 @@ sub editThingDataSave {
+             $fieldType = "" if ($fieldType =~ m/^otherThing/x);
+             # Modify the defaultValue for certain field types. For most types we want to use
+             # the default in the database, for these we want the last known value for this thingData
+-            if ($self->field_isa($fieldType, 'WebGUI::Form::File')) {
++            my $control = eval { WebGUI::Pluggable::instanciate("WebGUI::Form::".$fieldType, "new", [ $session, () ]) };
++            if ( $control && $control->isa("WebGUI::Form::File") ) {
+                 $field->{ defaultValue } = $thingData{ "field_" . $field->{ fieldId } };
+             }
+-            elsif ($fieldType eq 'Date' or $fieldType eq 'DateTime') {  ##Must be in epoch format to be stored in the db.
+-                my $wdt = WebGUI::DateTime->new($session, $field->{defaultValue})->cloneToUserTimeZone;
+-                $field->{defaultValue} = $wdt->epoch;
+-            }
+             $fieldValue = $thingData->{$fieldName} || $session->form->process($fieldName,$fieldType,$field->{defaultValue},$field);
+         }
+         if ($field->{status} eq "required" && ($fieldValue =~ /^\s$/x || $fieldValue eq "" || !(defined $fieldValue))) {
+             push (@errors,{
+                 "error_message"=>$field->{label}." ".$i18n->get('is required error').".",
+                 });
++            #$hadErrors = 1;
+         }
+         if ($field->{status} eq "hidden") {
+             $fieldValue = $field->{defaultValue};
+@@ -636,9 +633,6 @@ sub editThingDataSave {
+         $thingData{$fieldName} = $fieldValue;
+     }
+ 
+-    if (@errors) {
+-        return ('', \@errors);
+-    }
+     $newThingDataId = $self->setCollateral("Thingy_".$thingId,"thingDataId",\%thingData,0,0);
+ 
+     # trigger workflow
+@@ -681,32 +675,6 @@ sub exportAssetData {
+ 
+ #-------------------------------------------------------------------
+ 
+-=head2 field_isa ( $fieldType, $isa )
+-
+-Builds a form field and does an isa check on it.
+-
+-=head2 $fieldType
+-
+-This is the type of a field to build.  It will have 'WebGUI::Form' prepended to it to form
+-a complete classname.
+-
+-=head2 $isa
+-
+-This is the class name to check against.
+-
+-=cut
+-
+-sub field_isa {
+-    my $self      = shift;
+-    my $session   = $self->session;
+-    my $fieldType = shift;
+-    my $isa       = shift;
+-    my $control   = eval { WebGUI::Pluggable::instanciate("WebGUI::Form::".$fieldType, "new", [ $session, () ]) };
+-    return ($control && $control->isa($isa));
+-}
+-
+-#-------------------------------------------------------------------
+-
+ =head2 _getDbDataType ( fieldType )
+ 
+ returns the database data type for a field based on the fieldType.
+@@ -942,23 +910,6 @@ sub getEditForm {
+ 
+ #-------------------------------------------------------------------
+ 
+-=head2 getFields  ( $thingId )
+-
+-Returns a result set with all the fields in a thing in this Thingy.
+-
+-=head3 $thingId
+-
+-The GUID for a thing
+-
+-=cut
+-
+-sub getFields {
+-    my ($self, $thingId) = @_;
+-    return $self->session->db->read("select * from Thingy_fields where assetId=? and thingId=? order by sequenceNumber",[$self->getId, $thingId]);
+-}
+-
+-#-------------------------------------------------------------------
+-
+ =head2 getFieldValue ( value, field )
+ 
+ Processes the field value for date(Time) fields and Other Thing fields.
+@@ -981,22 +932,18 @@ sub getFieldValue {
+     my $dateFormat = shift || "%z";
+     my $dateTimeFormat = shift;
+     my $processedValue = $value;    
+-    my $session = $self->session;
+-    my $dbh     = $session->db->dbh;
++    my $dbh = $self->session->db->dbh;
+ 
+-    my $fieldType = lc $field->{fieldType};
+-    if ($fieldType eq "date"){
+-        my $wdt = WebGUI::DateTime->new($session, $value);
+-        $processedValue = $wdt->cloneToUserTimeZone->webguiDate($dateFormat);
++    if (lc $field->{fieldType} eq "date"){
++        $processedValue = $self->session->datetime->epochToHuman($value,$dateFormat);
+     }
+-    elsif ($fieldType eq "datetime"){
+-        my $wdt = WebGUI::DateTime->new($session, $value);
+-        $processedValue = $wdt->cloneToUserTimeZone->webguiDate($dateTimeFormat);
++    elsif (lc $field->{fieldType} eq "datetime"){
++        $processedValue = $self->session->datetime->epochToHuman($value,$dateTimeFormat);
+     }
+     # TODO: The otherThing field type is probably also handled by getFormPlugin, so the elsif below can probably be
+     # safely removed. However, this requires more testing than I can provide right now, so for now this stays the
+     # way it was.
+-    elsif ($field->{fieldType} =~ m/^otherthing/x) {
++    elsif ($field->{fieldType} =~ m/^otherThing/x) {
+         my $otherThingId = $field->{fieldType};
+         $otherThingId =~ s/^otherThing_//x;
+         my $tableName = 'Thingy_'.$otherThingId;
+@@ -1218,29 +1165,6 @@ sub getThing {
+ 
+ #-------------------------------------------------------------------
+ 
+-=head2 getThingUrl  ( thingData )
+-
+-Returns a the URL to view a Thing in this Thingy
+-
+-=head3 thingData
+-
+-A hashref of properties for the Thing, as returned by getThing.  This is needed to extract the defaultView,
+-to get the right func, and the thingId.
+-
+-=cut
+-
+-sub getThingUrl {
+-    my ($self, $thing) = @_;
+-    if ($thing->{defaultView} eq "addThing") {
+-        return 'func=editThingData;thingId='.$thing->{thingId}.';thingDataId=new';
+-    }
+-    else{
+-        return 'func=search;thingId='.$thing->{thingId};
+-    }
+-}
+-
+-#-------------------------------------------------------------------
+-
+ =head2 getViewThingVars  (  )
+ 
+ Returns the field values of a thing instance and the title for its view screen in a tmpl var hashref. 
+@@ -1259,7 +1183,8 @@ sub getViewThingVars {
+         ." where thingDataId = ?",[$thingDataId]);
+ 
+     if (%thingData) {
+-        my $fields = $self->getFields($thingId);
++        my $fields = $db->read('select * from Thingy_fields where assetId = ? and thingId = ? order by sequenceNumber',
++            [$self->get('assetId'),$thingId]);
+         while (my %field = $fields->hash) {
+             next unless ($field{display} eq '1');
+             my $hidden = ($field{status} eq "hidden" && !$self->session->var->isAdminOn);
+@@ -1390,6 +1315,10 @@ sub importAssetCollateralData {
+     my $session = $self->session;
+     my $error = $session->errorHandler;
+     my $data = shift;
++    my $id = $data->{properties}{assetId};
++    my $class = $data->{properties}{className};
++    my $version = $data->{properties}{revisionDate};
++    my $assetExists = WebGUI::Asset->assetExists($self->session, $id, $class, $version);
+     
+     $error->info("Importing Things for Thingy ".$data->{properties}{title});
+     my @importThings;
+@@ -1397,7 +1326,7 @@ sub importAssetCollateralData {
+         push(@importThings,$thing->{thingId});
+         my ($thingIdExists) = $session->db->quickArray("select thingId from Thingy_things where thingId = ?",
+             [$thing->{thingId}]);
+-        if ($thingIdExists){
++        if ($assetExists && $thingIdExists){
+             # update existing thing
+             $error->info("Updating Thing, label: ".$thing->{label}.", id: ".$thing->{thingId});
+             $self->setCollateral("Thingy_things","thingId",$thing,0,0);
+@@ -1421,7 +1350,7 @@ sub importAssetCollateralData {
+         push(@importFields,$field->{fieldId});
+         my $dbDataType = $self->_getDbDataType($field->{fieldType});
+         my ($fieldIdExists) = $session->db->quickArray("select fieldId from Thingy_fields where fieldId = ? and thingId = ? ",[$field->{fieldId},$field->{thingId}]);
+-        if ($fieldIdExists){
++        if ($assetExists && $fieldIdExists){
+             # update existing field
+             $error->info("Updating Field, label: ".$field->{label}.", id: ".$field->{fieldId}.",seq :"
+                 .$field->{sequenceNumber});
+@@ -1817,7 +1746,7 @@ sub www_editThing {
+             exportMetaData=>undef, 
+             maxEntriesPerUser=>undef,
+         );
+-        $thingId = "new";
++        $thingId = $self->addThing(\%properties,0);
+     }
+     else{
+         %properties = %{$self->getThing($thingId)};
+@@ -1922,15 +1851,15 @@ sub www_editThing {
+                         ."  <td class='formDescription'>".$i18n->get('sort by label')."</td>\n"
+                         ."</tr>\n";
+     
+-    $fields = $self->getFields($thingId);
++    $fields = $self->session->db->read('select * from Thingy_fields where assetId = '.$self->session->db->quote($self->get("assetId")).' and thingId = '.$self->session->db->quote($thingId).' order by sequenceNumber');
+     while (my $field = $fields->hashRef) {
+         my $formElement;
+-        if ($self->field_isa($field->{fieldType}, 'WebGUI::Form::Image')) {
+-            $formElement = "<input type='file' name='image'>";
+-        }
+-        elsif ($self->field_isa($field->{fieldType}, 'WebGUI::Form::File')) {
++        if ($field->{fieldType} eq "File"){
+             $formElement = "<input type='file' name='file'>";
+         }
++        if ($field->{fieldType} eq "Image"){
++            $formElement = "<input type='file' name='image'>";
++        }
+         else{
+             $formElement = $self->getFormElement($field);     
+         }
+@@ -1945,12 +1874,11 @@ sub www_editThing {
+             ."\n<table>\n<tr>\n"
+             ."  <td style='width:100px;' valign='top' class='formDescription'>".$field->{label}."</td>\n"
+             ."  <td style='width:370px;'>".$formElement."</td>\n"
+-            ."  <td style='width:120px;' valign='top'> <input onClick=\"editListItem('"
+-            .$self->getUrl('func=editField;fieldId='.$field->{fieldId}.';thingId='.$thingId)
+-            ."','".$field->{fieldId}."')\" value='".$i18n->get('Edit','Icon')."' type='button'>"
+-            ." <input onClick=\"editListItem('"
+-            .$self->getUrl('func=editField;copy=1;fieldId='.$field->{fieldId}.';thingId='.$thingId)
+-            ."','".$field->{fieldId}."','copy')\" value='".$i18n->get('Copy','Icon')."' type='button'>"
++            ."  <td style='width:120px;' valign='top'> <input onClick=\"editListItem('".$self->session->url->page()
++            ."?func=editField;fieldId=".$field->{fieldId}.";thingId=".$thingId."','".$field->{fieldId}."')\" value='Edit' type='button'>"
++            ." <input onClick=\"editListItem('".$self->session->url->page()
++            ."?func=editField;copy=1;fieldId=".$field->{fieldId}.";thingId=".$thingId."','".$field->{fieldId}
++            ."','copy')\" value='Copy' type='button'>"
+             ."<input onClick=\"deleteListItem('".$self->session->url->page()."','".$field->{fieldId}."','".$thingId."')\" " 
+             ."value='".$i18n->get('Delete','Icon')."' type='button'></td>\n</tr>\n</table>\n</li>\n";
+ 
+@@ -2227,54 +2155,57 @@ database immediately.
+ =cut
+ 
+ sub www_editThingSave {
++
+     my $self = shift;
+     return $self->session->privilege->insufficient() unless $self->canEdit;
+-    my $form    = $self->session->form;
+-    my $thingId = $self->session->form->process("thingId");
+-    my $fields  = $self->getFields($thingId);
++    my $form = $self->session->form;
++    my ($thingId, $fields);
++    $thingId = $self->session->form->process("thingId");
+ 
++    $fields = $self->session->db->read('select * from Thingy_fields where assetId = '.$self->session->db->quote($self->get("assetId")).' and thingId = '.$self->session->db->quote($thingId).' order by sequenceNumber');
++
++        
++    $self->setCollateral("Thingy_things","thingId",{
++        thingId=>$thingId,
++        label=>$form->process("label"),
++        editScreenTitle=>$form->process("editScreenTitle"),
++        editInstructions=>$form->process("editInstructions"),
++        groupIdAdd=>$form->process("groupIdAdd"),
++        groupIdEdit=>$form->process("groupIdEdit"),
++        saveButtonLabel=>$form->process("saveButtonLabel"),
++        afterSave=>$form->process("afterSave"),
++        editTemplateId=>$form->process("editTemplateId") || 1,
++        onAddWorkflowId=>$form->process("onAddWorkflowId"),
++        onEditWorkflowId=>$form->process("onEditWorkflowId"),
++        onDeleteWorkflowId=>$form->process("onDeleteWorkflowId"),
++        groupIdView=>$form->process("groupIdView"),
++        viewTemplateId=>$form->process("viewTemplateId") || 1,
++        defaultView=>$form->process("defaultView"),
++        searchScreenTitle=>$form->process("searchScreenTitle"),
++        searchDescription=>$form->process("searchDescription"),
++        groupIdSearch=>$form->process("groupIdSearch"),
++        groupIdImport=>$form->process("groupIdImport"),
++        groupIdExport=>$form->process("groupIdExport"),
++        searchTemplateId=>$form->process("searchTemplateId") || 1,
++        thingsPerPage=>$form->process("thingsPerPage") || 25,
++        sortBy=>$form->process("sortBy") || '',
++        exportMetaData=>$form->process("exportMetaData") || '',
++        maxEntriesPerUser=>$form->process("maxEntriesPerUser") || '',
++        },0,1);
++    
+     if($fields->rows < 1){
+         $self->session->log->warn("Thing failed to create because it had no fields");
+         my $i18n = WebGUI::International->new($self->session, "Asset_Thingy");
+         return $self->www_editThing($i18n->get("thing must have fields"));
+     }
+-
+-    my $thing = {
+-        thingId            => $thingId,
+-        label              => $form->process("label"),
+-        editScreenTitle    => $form->process("editScreenTitle"),
+-        editInstructions   => $form->process("editInstructions"),
+-        groupIdAdd         => $form->process("groupIdAdd"),
+-        groupIdEdit        => $form->process("groupIdEdit"),
+-        saveButtonLabel    => $form->process("saveButtonLabel"),
+-        afterSave          => $form->process("afterSave"),
+-        editTemplateId     => $form->process("editTemplateId") || 1,
+-        onAddWorkflowId    => $form->process("onAddWorkflowId"),
+-        onEditWorkflowId   => $form->process("onEditWorkflowId"),
+-        onDeleteWorkflowId => $form->process("onDeleteWorkflowId"),
+-        groupIdView        => $form->process("groupIdView"),
+-        viewTemplateId     => $form->process("viewTemplateId") || 1,
+-        defaultView        => $form->process("defaultView"),
+-        searchScreenTitle  => $form->process("searchScreenTitle"),
+-        searchDescription  => $form->process("searchDescription"),
+-        groupIdSearch      => $form->process("groupIdSearch"),
+-        groupIdImport      => $form->process("groupIdImport"),
+-        groupIdExport      => $form->process("groupIdExport"),
+-        searchTemplateId   => $form->process("searchTemplateId") || 1,
+-        thingsPerPage      => $form->process("thingsPerPage") || 25,
+-        sortBy             => $form->process("sortBy") || '',
+-        exportMetaData     => $form->process("exportMetaData") || '',
+-        maxEntriesPerUser  => $form->process("maxEntriesPerUser") || '',
+-    };
+-    $self->setCollateral("Thingy_things", "thingId", $thing, 0, 1);
+-
++    
+     while (my $field = $fields->hashRef) {
+         my $display = $self->session->form->process("display_".$field->{fieldId}) || 0;
+         my $viewScreenTitle = $self->session->form->process("viewScreenTitle_".$field->{fieldId}) || 0;
+         my $displayInSearch = $self->session->form->process("displayInSearch_".$field->{fieldId}) || 0;
+         my $searchIn = $self->session->form->process("searchIn_".$field->{fieldId}) || 0;
+ 
+-        $self->session->db->write("update Thingy_fields set display = ?, viewScreenTitle = ?, displayinSearch = ?, searchIn = ? where fieldId = ? and thingId = ?",[$display, $viewScreenTitle, $displayInSearch, $searchIn, $field->{fieldId}, $thingId]);
++        $self->session->db->write("update Thingy_fields set display = ".$display.", viewScreenTitle = ".$viewScreenTitle.", displayinSearch = ".$displayInSearch.", searchIn = ".$searchIn." where fieldId = ".$self->session->db->quote($field->{fieldId})." and thingId = ".$self->session->db->quote($thingId));
+     }
+     return $self->www_manage;
+ }
+@@ -2294,7 +2225,6 @@ sub www_editField {
+     return $session->privilege->insufficient() unless $self->canEdit;
+     $fieldId = $session->form->process("fieldId");
+     $thingId = $session->form->process("thingId");
+-
+     %properties = $session->db->quickHash("select * from Thingy_fields where thingId=? and fieldId=? and assetId=?",
+         [$thingId,$fieldId,$self->get("assetId")]);
+     if($session->form->process("copy")){
+@@ -2335,8 +2265,6 @@ sub www_editFieldSave {
+     if ($fieldType =~ m/^otherThing/){
+         $defaultValue = $session->form->process("defaultFieldInThing");
+     }
+-	
+-	$thingId = $self->addThing({ thingId => 'new' },0) if $thingId eq 'new';
+     
+     $fieldId = $session->form->process("fieldId");
+     %properties = (
+@@ -2374,12 +2302,12 @@ sub www_editFieldSave {
+         $newFieldId = $self->setCollateral("Thingy_fields","fieldId",\%properties,1,1,"thingId",$thingId);
+     }
+ 
+-    if ($self->field_isa($properties{fieldType}, 'WebGUI::Form::Image')) {
+-        $formElement = "<input type='file' name='image'>";
+-    }
+-    elsif ($self->field_isa($properties{fieldType}, 'WebGUI::Form::File')) {
++    if ($properties{fieldType} eq "File"){ 
+         $formElement = "<input type='file' name='file'>";
+     }
++    elsif ($properties{fieldType} eq "Image"){ 
++        $formElement = "<input type='file' name='image'>";
++    }
+     else{
+         $formElement = $self->getFormElement(\%properties);
+     }
+@@ -2392,16 +2320,15 @@ sub www_editFieldSave {
+ 
+     $listItemHTML = "<table>\n<tr>\n<td style='width:100px;' valign='top' class='formDescription'>".$label."</td>\n"
+         ."<td style='width:370px;'>".$formElement."</td>\n"
+-        ."<td style='width:120px;' valign='top'> <input onClick=\"editListItem('"
+-        .$self->getUrl('func=editField;fieldId='.$newFieldId.';thingId='.$properties{thingId})
+-        ."','".$newFieldId."')\" value='".$i18n->get('Edit','Icon')."' type='button'>"
++        ."<td style='width:120px;' valign='top'> <input onClick=\"editListItem('".$session->url->page()
++        ."?func=editField;fieldId=".$newFieldId.";thingId=".$properties{thingId}."','".$newFieldId."')\" value='".$i18n->get('Edit','Icon')."' type='button'>"
+         ."<input onClick=\"deleteListItem('".$session->url->page()."','".$newFieldId
+         ."','".$properties{thingId}."')\" value='".$i18n->get('Delete','Icon')."' type='button'></td>\n</tr>\n</table>";
+ 
+     # Make sure we send debug information along with the field.
+     $log->preventDebugOutput;
+ 
+-    $session->output->print($thingId.$newFieldId.$listItemHTML);
++    $session->output->print($newFieldId.$listItemHTML);
+     return "chunked";
+ }
+ 
+@@ -2583,7 +2510,8 @@ sub editThingData {
+         ." where thingDataId = ?",[$thingDataId]);
+     }
+ 
+-    $fields = $self->getFields($thingId);
++    $fields = $session->db->read('select * from Thingy_fields where assetId = ? and thingId = ? order by sequenceNumber'
++        ,[$self->getId,$thingId]);
+     while (my %field = $fields->hash) {
+         my $fieldName = 'field_'.$field{fieldId};
+         $fieldValue = undef;
+@@ -2718,6 +2646,9 @@ sub www_editThingDataSaveViaAjax {
+     }
+ 
+     my $thingProperties = $self->getThing($thingId);
++    use Data::Dumper;
++    warn $thingId;
++    warn Dumper $thingProperties;
+     if ($thingProperties->{thingId}){
+         return $session->privilege->insufficient() unless $self->canEditThingData($thingId, $thingDataId
+             ,$thingProperties);
+@@ -2745,13 +2676,13 @@ sub www_editThingDataSaveViaAjax {
+ 
+ #-------------------------------------------------------------------
+ 
+-=head2 www_exportThing ( )
++=head2 www_export ( )
+ 
+-Exports one entire Thing as CSV.
++Exports search results as csv.
+ 
+ =cut
+ 
+-sub www_exportThing {
++sub www_export {
+     my $self = shift;
+     my $session = $self->session;
+     my ($query,$sth,$out,$fields,@fields,$fileName,@fieldLabels);
+@@ -2760,37 +2691,30 @@ sub www_exportThing {
+     my $thingProperties = $self->getThing($thingId);
+     return $session->privilege->insufficient() unless $self->hasPrivileges($thingProperties->{groupIdExport});
+    
+-    my $i18n = WebGUI::International->new($session, 'Asset_Thingy');
+-    my $pb = WebGUI::ProgressBar->new($session);
+-    $pb->start($i18n->get('export label').' '.$thingProperties->{label}, $session->url->extras('assets/thingy.gif'));
+-    $pb->update($i18n->get('Creating column headers'));
+-    my $tempStorage = WebGUI::Storage->createTemp($session);
+-    $fields = $self->getFields($thingId);
++    $fields = $session->db->read('select * from Thingy_fields where assetId =? and thingId = ? order by sequenceNumber',
++        [$self->get("assetId"),$thingId]);
+     while (my $field = $fields->hashRef) {
+-        push(@fields, {
+-            fieldId => $field->{fieldId},
+-            properties => $field,
+-	});
+-        push(@fieldLabels,$field->{label});
++        if ($field->{displayInSearch}){
++            push(@fields, {
++                fieldId => $field->{fieldId},
++                properties => $field,
++            });
++            push(@fieldLabels,$field->{label});
++        }
+     }
+-
+     my @metaDataFields = ('thingDataId','dateCreated','createdById','updatedById','updatedByName','lastUpdated','ipAddress');
+     if ($thingProperties->{exportMetaData}){
+         push(@fieldLabels,@metaDataFields)
+     }
+  
+-    $query = 'select * from '.$session->db->dbh->quote_identifier("Thingy_".$thingId);
++    $query = WebGUI::Cache->new($self->session,"query_".$thingId)->get;
+     $sth = $session->db->read($query);
+ 
+     ### Loop through the returned structure and put it through Text::CSV
+     # Column heads
+-    my $csv_filename = 'export_'.$thingProperties->{label}.'.csv';
+-    open my $CSV, '>', $tempStorage->getPath($csv_filename);
+-    print $CSV WebGUI::Text::joinCSV( @fieldLabels );
++    $out = WebGUI::Text::joinCSV(@fieldLabels);
+ 
+     # Data lines
+-    $pb->update($i18n->get('Writing data'));
+-    my $rowCounter = 0;
+     while (my $data = $sth->hashRef) {
+         my @fieldValues;
+         foreach my $field (@fields){
+@@ -2799,20 +2723,19 @@ sub www_exportThing {
+             my $value = $self->getFieldValue($data->{"field_".$fieldId},$field->{properties},"%y-%m-%d","%y-%m-%d %j:%n:%s");
+             push(@fieldValues, $value);
+         }
+-
+-	if ($thingProperties->{exportMetaData}) {
+-	    push(@fieldValues, @{$data}{@metaDataFields});
+-	}
+-
+-        print $CSV "\n".WebGUI::Text::joinCSV( @fieldValues );
+-        #if (! ++$rowCounter % 25) {
+-            $pb->update($i18n->get('Writing data'));
+-        #}
++        foreach my $metaDataField (@metaDataFields){
++            push(@fieldValues,$data->{$metaDataField});
++        }
++        $out .= "\n".WebGUI::Text::joinCSV(
++        @fieldValues
++        );
+     }
+-    close $CSV;
++    
++    $fileName = "export_".$thingProperties->{label}.".csv";
++    $self->session->http->setFilename($fileName,"application/octet-stream");
++    $self->session->http->sendHeader;
++    return $out;
+ 
+-    $pb->update(sprintf q|<a href="%s">%s</a>|, $self->getUrl($self->getThingUrl($thingProperties)), sprintf($i18n->get('Return to %s'), $thingProperties->{label}));
+-    return $pb->finish($tempStorage->getUrl($csv_filename));
+ }
+ 
+ #-------------------------------------------------------------------
+@@ -2845,7 +2768,8 @@ sub www_getThingViaAjax {
+             $thingProperties->{groupIdView});
+ 
+         my @field_loop;
+-        my $fields = $self->getFields($thingId);
++        my $fields = $session->db->read('select * from Thingy_fields where assetId=? and thingId=? order by sequenceNumber'
++        ,[$self->getId,$thingId]);
+         while (my $field = $fields->hashRef) {
+             $field->{formElement} = $self->getFormElement($field);
+             push(@field_loop,$field);
+@@ -2932,7 +2856,7 @@ sub www_import {
+         next unless ($storage->getFileExtension($file) eq "csv");
+         
+         $error->info("Found import file $file");
+-        open my $importFile,"<:raw:eol(NATIVE)",$storage->getPath($file);
++        open my $importFile,"<",$storage->getPath($file);
+         my $lineNumber = 0;
+         my @data = ();
+         
+@@ -3075,7 +2999,8 @@ sub www_importForm {
+         ."  <td>".$i18n->get("check duplicates label")."</td>"
+         ."</tr>";
+ 
+-    $fields = $self->getFields($thingId);
++    $fields = $db->read('select label, fieldId from Thingy_fields where assetId =? and thingId = ? order by sequenceNumber',
++        [$self->get("assetId"),$thingId]);
+     while (my $field = $fields->hashRef) {
+         $fieldOptions .= "<tr><td>".$field->{label}."</td><td>";
+         $fieldOptions .= WebGUI::Form::checkbox($self->session, {
+@@ -3322,12 +3247,13 @@ sub getSearchTemplateVars {
+     my $session = $self->session;
+     my $dbh = $session->db->dbh;
+     my $i18n = WebGUI::International->new($self->session,"Asset_Thingy");
++    my ($var,$url,$orderBy);
+     my ($fields,@searchFields_loop,@displayInSearchFields_loop,$query,@constraints);
+-    my (@searchResult_loop,$searchResults,@searchResults,@displayInSearchFields,$paginatePage,$p);
++    my (@searchResult_loop,$searchResults,@searchResults,@displayInSearchFields,$paginatePage,$currentUrl,$p);
+ 
+-    my $orderBy = $session->form->process("orderBy") || $thingProperties->{sortBy};
+-    my $var = $self->get;
+-    my $url = $self->getUrl;
++    $orderBy = $session->form->process("orderBy") || $thingProperties->{sortBy};
++    $var = $self->get;
++    $url = $self->getUrl;
+ 
+     $var->{canEditThings} = $self->canEdit;
+     $var->{"addThing_url"} = $session->url->append($url, 'func=editThing;thingId=new');
+@@ -3335,7 +3261,7 @@ sub getSearchTemplateVars {
+     $var->{"thing_label"} = $thingProperties->{label};
+ 
+     if ($self->hasPrivileges($thingProperties->{groupIdExport})){
+-        $var->{"export_url"} = $session->url->append($url, 'func=exportThing;thingId='.$thingId);
++        $var->{"export_url"} = $session->url->append($url, 'func=export;thingId='.$thingId);
+     }
+     if ($self->hasPrivileges($thingProperties->{groupIdImport})){
+         $var->{"import_url"} = $session->url->append($url, 'func=importForm;thingId='.$thingId);
+@@ -3346,18 +3272,21 @@ sub getSearchTemplateVars {
+     $var->{searchScreenTitle} = $thingProperties->{searchScreenTitle};    
+     $var->{searchDescription} = $thingProperties->{searchDescription};
+ 
+-    my $currentUrl;
+-    my $func = $session->form->process('func');
+-    $func = 'search' if $func eq 'editThingDataSave';
+-    $currentUrl = $self->getUrl('func='.$func.';thingId='.$thingId);
+-    ##Instead of blacklisting query params, they are whitelisted.  List is currently empty.
+-    FORM: foreach my $form (qw//) {
+-        my $param = $session->form->process($form);
+-        next FORM unless defined $param;
+-        $currentUrl = $session->url->append($currentUrl, $form.'='.$param);
++    $currentUrl = $self->getUrl();
++    foreach ($self->session->form->param) {
++                                 # if we just saved data from an edit, we do not want to keep any of the params
++        last if $_ eq 'func' and $self->session->form->process($_) eq 'editThingDataSave';
++
++        unless ($_ eq "pn" || $_ eq "op" || $_ =~ /identifier/xi || $_ =~ /password/xi || $_ eq "orderBy" ||
++$self->session->form->process($_) eq "") {
++            $currentUrl = $self->session->url->append($currentUrl,$self->session->url->escape($_)
++            .'='.$self->session->url->escape($self->session->form->process($_)));
++        }
+     }
+- 
+-    $fields = $self->getFields($thingId);
++    
++    $fields = $session->db->read('select * from Thingy_fields where assetId =
++'.$session->db->quote($self->get("assetId")).' and thingId = '.$session->db->quote($thingId).' order by
++sequenceNumber');
+     while (my $field = $fields->hashRef) {
+         if ($field->{searchIn}){
+             my $searchForm = $self->getFormPlugin($field, 1);
+@@ -3410,8 +3339,7 @@ sub getSearchTemplateVars {
+         }
+         $query .= join(", ",map {$dbh->quote_identifier('field_'.$_->{fieldId})} @displayInSearchFields);
+         $query .= " from ".$dbh->quote_identifier("Thingy_".$thingId);
+-        my $func = $session->form->process('func');
+-        if( $func eq 'search' || $func eq 'searchViaAjax' ){
++        if($session->form->process('func') eq 'search'){
+             # Don't add constraints when the search screen is displayed as an 'after save' option.
+             $query .= " where ".join(" and ",@constraints) if (scalar(@constraints) > 0);
+         }
+@@ -3424,6 +3352,9 @@ sub getSearchTemplateVars {
+         $noFields = 1;
+     }
+ 
++    # store query in cache for thirty minutes
++    WebGUI::Cache->new($self->session,"query_".$thingId)->set($query,30*60);
++
+     $paginatePage = $self->session->form->param('pn') || 1;
+     $currentUrl   = $self->session->url->append($currentUrl, "orderBy=".$orderBy) if $orderBy;
+ 
+@@ -3431,7 +3362,7 @@ sub getSearchTemplateVars {
+ 
+     my @visibleResults;
+     if (! $noFields) {
+-        my $sth = $self->session->db->read($query);
++        my $sth = $self->session->db->read($query) if ! $noFields;
+         while (my $result = $sth->hashRef){
+             if ($self->canViewThingData($thingId,$result->{thingDataId})){
+                 push(@visibleResults,$result);
+diff --git a/lib/WebGUI/Asset/Wobject/WikiMaster.pm b/lib/WebGUI/Asset/Wobject/WikiMaster.pm
+index 910bc95..b20fd77 100644
+--- a/lib/WebGUI/Asset/Wobject/WikiMaster.pm
++++ b/lib/WebGUI/Asset/Wobject/WikiMaster.pm
+@@ -23,7 +23,6 @@ use WebGUI::Utility;
+ use HTML::Parser;
+ use URI::Escape;
+ use WebGUI::Form;
+-use WebGUI::Search;
+ use Clone qw/clone/;
+ 
+ #-------------------------------------------------------------------
+@@ -990,7 +989,7 @@ sub www_search {
+ 		mostPopularUrl=>$self->getUrl("func=mostPopular"),
+ 		mostPopularLabel=>$i18n->get("mostPopularLabel"),
+ 		wikiHomeUrl=>$self->getUrl,
+-		addPageUrl=>$self->getUrl("func=add;class=WebGUI::Asset::WikiPage;title=".$self->session->url->escape($queryString)),
++		addPageUrl=>$self->getUrl("func=add;class=WebGUI::Asset::WikiPage;title=".$queryString),
+ 		};
+ 	$self->appendSearchBoxVars($var, $queryString);
+ 	if (length $queryString) {
+diff --git a/lib/WebGUI/AssetLineage.pm b/lib/WebGUI/AssetLineage.pm
+index edbc434..899c7b3 100644
+--- a/lib/WebGUI/AssetLineage.pm
++++ b/lib/WebGUI/AssetLineage.pm
+@@ -762,18 +762,33 @@ Returns a 6 digit number with leading zeros of the next rank a child will get.
+ 
+ =cut
+ 
++#-------------------------------------------------------------------
++
++=head2 getNextChildRank ( )
++
++Returns a 6 digit number with leading zeros of the next rank a child will get.
++
++=cut
++
+ sub getNextChildRank {
+-	my $self = shift;	
+-	my ($lineage) = $self->session->db->quickArray("select max(lineage) from asset where parentId=?",[$self->getId]);
+-	my $rank;
+-	if (defined $lineage) {
+-		$rank = $self->getRank($lineage);
+-		$self->session->errorHandler->fatal("Asset ".$self->getId." has too many children.") if ($rank >= 999998);
+-		$rank++;
+-	} else {
+-		$rank = 1;
+-	}
+-	return $self->formatRank($rank);
++    my $self = shift;
++
++    # Increment by steps for servers in multi-master DB setups
++    my $inc_step = $self->session->config->get('db/increment_step') || 1;
++    my $inc_offset = $self->session->config->get('db/increment_offset') || 0;
++
++    my ($lineage) = $self->session->db->quickArray("select max(lineage) from asset where parentId=?",[$self->getId]);
++    my $rank;
++    if (defined $lineage) {
++        $rank = $self->getRank($lineage);
++        # Increase rank to next step then add offset
++        $rank += ( $inc_step - $rank % $inc_step ) + $inc_offset;
++        $self->session->errorHandler->fatal("Asset ".$self->getId." has too many children.") if ($rank >= 999999); # Each lineage area is only 6 digits
++    }
++    else {
++        $rank = 1;
++    }
++    return $self->formatRank($rank);
+ }
+ 
+ 
+diff --git a/lib/WebGUI/Cache/CHI.pm b/lib/WebGUI/Cache/CHI.pm
+index 3f89e4e..200b2f5 100644
+--- a/lib/WebGUI/Cache/CHI.pm
++++ b/lib/WebGUI/Cache/CHI.pm
+@@ -42,6 +42,7 @@ Delete multiple keys from the cache
+ sub deleteChunk {
+     my ( $self, $key ) = @_;
+     $key = $self->parseKey( $key );
++    $self->session->log->info( "Cache: Deleting chunk " . $key );
+     for my $checkKey ( $self->{_chi}->get_keys ) {
+         if ( $checkKey =~ /^\Q$key/ ) {
+             $self->{_chi}->remove( $checkKey );
+@@ -93,13 +94,13 @@ sub new {
+     my $chi;
+     unless ( $chi = $session->stow->get( "CHI" ) ) {
+         my $cacheConf    = $session->config->get('cache');
+-        $cacheConf->{namespace}     = $namespace;
++        $cacheConf->{namespace}     ||= $namespace;
+         $cacheConf->{is_size_aware} = 1;
+ 
+         # Default values
+         my $resolveConf = sub {
+             my ($config) = @_;
+-            if ( $config->{driver} =~ /DBI/ ) {
++            if ( $config->{driver} =~ /DBI/ or $config->{dbh} ) {
+                 $config->{ dbh } = $session->db->dbh;
+             }
+             if ( $config->{driver} =~ /File|FastMmap|BerkeleyDB/ ) {
+@@ -130,6 +131,7 @@ should live.
+ 
+ sub set {
+     my ( $self, $content, $ttl ) = @_;
++    $self->session->log->info( "SETTING " . $self->{_key} . " expires in " . $ttl );
+     $ttl ||= 60;
+     $self->{_chi}->set( $self->{_key}, $content, $ttl );
+     return;
+diff --git a/lib/WebGUI/Group.pm b/lib/WebGUI/Group.pm
+index 35d29ac..2786f18 100644
+--- a/lib/WebGUI/Group.pm
++++ b/lib/WebGUI/Group.pm
+@@ -169,7 +169,7 @@ sub addUsers {
+ 	foreach my $uid (@{$users}) {
+ 		my ($isIn) = $self->session->db->quickArray("select count(*) from groupings where groupId=? and userId=?", [$self->getId, $uid]);
+ 		unless ($isIn) {
+-			$self->session->db->write("insert into groupings (groupId,userId,expireDate) values (?,?,?)", [$self->getId, $uid, (time()+$expireOffset)]);
++			$self->session->db->write("replace into groupings (groupId,userId,expireDate) values (?,?,?)", [$self->getId, $uid, (time()+$expireOffset)]);
+ 			$self->session->stow->delete("gotGroupsForUser");
+ 		} else {
+ 			$self->userGroupExpireDate($uid,(time()+$expireOffset));
+@@ -259,9 +259,7 @@ sub cacheGroupings {
+         $groupMembers->{$userId} = { isMember => $isInGroup };
+     }
+ 
+-    if ($self->groupCacheTimeout()) {
+-        $cache->set($groupMembers, $self->groupCacheTimeout);
+-    }
++    $cache->set($groupMembers, $self->groupCacheTimeout);
+ }
+ 
+ #-------------------------------------------------------------------
+@@ -632,9 +630,7 @@ sub getAllUsers {
+ 	}
+ 	my %users = map { $_ => 1 } @users;
+ 	@users = keys %users;
+-    if ($self->groupCacheTimeout()) {
+-        $cache->set(\@users, $self->groupCacheTimeout);
+-    }
++	$cache->set(\@users, $self->groupCacheTimeout);
+ 	return \@users;
+ }
+ 
+@@ -983,33 +979,24 @@ sub getUsersNotIn {
+     if($groupId eq "") {
+         return $self->getUsers($withoutExpired);
+     }
+-    my $selfWhere;
+-    if ( $self->getId ne '2' ) {
+-        $selfWhere  = "and groupId=" . $self->session->db->dbh->quote( $self->getId );
+-    }
+-    else {
+-        $selfWhere  = 'and userId != ' . $self->session->db->dbh->quote( "1" );
+-    }
+ 	
+     my $expireTime = 0;
+ 	if ($withoutExpired) {
+ 		$expireTime = time();
+ 	}
+ 
+-    my $sql = qq{
++    my $sql = q{
+         select
+             userId
+         from
+-            users
+-        left join
+-            groupings using (userId)
++            groupings
+         where
+             expireDate > ?
+-            $selfWhere
++            and groupId=?
+             and userId not in (select userId from groupings where expireDate > ? and groupId=?)
+     };
+ 
+-	my @users = $self->session->db->buildArray($sql, [$expireTime,$expireTime,$groupId]);
++	my @users = $self->session->db->buildArray($sql, [$expireTime,$self->getId,$expireTime,$groupId]);
+ 	return \@users;
+ 
+ }
+@@ -1610,7 +1597,6 @@ sub resetGroupFields {
+     ##Note, I did assets in SQL instead of using the API because you would have to
+     ##instanciate every version of the asset that used the group.  This should be much quicker
+     ASSET: foreach my $assetClass ($db->buildArray('SELECT DISTINCT className FROM asset')) {
+-        next ASSET unless $db->quickScalar( "SELECT COUNT(*) FROM asset WHERE className=?", [$assetClass] );
+         my $definition = WebGUI::Pluggable::instanciate($assetClass, 'definition', [$session]);
+         SUBDEF: foreach my $subdef (@{ $definition }) {
+             next SUBDEF if exists $tableCache->{$subdef->{tableName}}; 
+@@ -1660,11 +1646,7 @@ sub resetGroupFields {
+             push @activities, @{ $wfActivities };
+         }
+         foreach my $activity (@activities) {
+-            my $definition = eval { WebGUI::Pluggable::instanciate($activity, 'definition', [$session]) };
+-            if ( $@ ) {
+-                $session->log->warn( "Couldn't instanciate activity class $activity to reset groups, skipping..." );
+-                next;
+-            }
++            my $definition = WebGUI::Pluggable::instanciate($activity, 'definition', [$session]);
+             my $sth = $db->prepare('UPDATE WorkflowActivityData set value=3 where name=? and value=?');
+             SUBDEF: foreach my $subdef (@{ $definition }) {
+                 PROP: while (my ($fieldName, $properties) = each %{ $subdef->{properties} }) {
+@@ -2011,7 +1993,7 @@ sub vitalGroup {
+     if (! $groupId && ref $class ) {
+         $groupId = $class->getId;
+     }
+-    return isIn ( $groupId, (1..13), 15,16,17, qw/pbgroup000000000000015 pbgroup000000000000016 pbgroup000000000000017 / );
++    return isIn ( $groupId, (1..17), qw/pbgroup000000000000015 pbgroup000000000000016 pbgroup000000000000017 / );
+ }
+ 
+ 1;
+diff --git a/lib/WebGUI/Operation/VersionTag.pm b/lib/WebGUI/Operation/VersionTag.pm
+index a275420..35ba562 100644
+--- a/lib/WebGUI/Operation/VersionTag.pm
++++ b/lib/WebGUI/Operation/VersionTag.pm
+@@ -464,10 +464,8 @@ A reference to the current session.
+ 
+ sub www_leaveVersionTag {
+     my $session = shift;
+-	
+-    my $tag = $session->scratch()->get(q{versionTag});
+-    WebGUI::VersionTag->getWorking($session)->leaveTag if $tag;
+-	return www_manageVersions($session);
++    WebGUI::VersionTag->getWorking($session)->leaveTag;
++    return www_manageVersions($session);
+ }
+ 
+ #-------------------------------------------------------------------
+@@ -534,10 +532,10 @@ sub www_managePendingVersions {
+ 	$ac->addSubmenuItem($session->url->page('op=manageCommittedVersions'), $i18n->get("manage committed versions")) if canView($session);
+         my $output = '<table width="100%" class="content">
+         <tr><th>'.$i18n->get("version tag name").'</th></tr> ';
+-        my $sth = $session->db->read("select tagId,name,commitDate,committedBy from assetVersionTag where isCommitted=0 and isLocked=1");
+-        while (my ($id,$name) = $sth->array) {
++        my $sth = $session->db->read("select tagId,name,workflowInstanceId,commitDate,committedBy from assetVersionTag where isCommitted=0 and isLocked=1");
++        while (my ($id,$name,$workflowInstanceId) = $sth->array) {
+                 $output .= '<tr>
+-			<td><a href="'.$session->url->page("op=manageRevisionsInTag;tagId=".$id).'">'.$name.'</a></td>
++			<td><a href="'.$session->url->page("op=manageRevisionsInTag;workflowInstanceId=".$workflowInstanceId.";tagId=".$id).'">'.$name.'</a></td>
+ 			</tr>';
+         }
+         $sth->finish;
+@@ -657,9 +655,8 @@ sub www_manageRevisionsInTag {
+ 
+     # Process any actions
+     my $action     = lc $session->form->get('action');
+-    my $form       = $session->form;
+     my $validToken = $session->form->validToken;
+-    if ( $form->get('purge') && $validToken) {
++    if ( $action eq "purge" && $validToken) {
+         # Purge these revisions
+         my @assetInfo       = $session->form->get('assetInfo'); 
+         for my $assetInfo ( @assetInfo ) {
+@@ -674,7 +671,7 @@ sub www_manageRevisionsInTag {
+             return www_manageVersions( $session );
+         }
+     }
+-    elsif ( $form->get('moveto') && $validToken) {
++    elsif ( $action eq "move to:" && $validToken) {
+         # Get the new version tag
+         my $moveToTagId = $session->form->get('moveToTagId');
+         my $moveToTag;
+@@ -702,7 +699,7 @@ sub www_manageRevisionsInTag {
+             return www_manageVersions( $session );
+         }
+     }
+-    elsif ( $form->get('update') && $validToken) {
++    elsif ( $action eq "update version tag" && $validToken) {
+         my $startTime = WebGUI::DateTime->new($session,$session->form->process("startTime","dateTime"))->toDatabase;
+         my $endTime   = WebGUI::DateTime->new($session,$session->form->process("endTime","dateTime"))->toDatabase;
+         
+@@ -788,19 +785,19 @@ sub www_manageRevisionsInTag {
+             value => WebGUI::DateTime->new($session,$filterEndTime)->epoch,
+         })
+         . '<br />'
+-        . '<input type="submit" name="update" value="'. $i18n->get('manageRevisionsInTag update') . '" />'
++        . '<input type="submit" name="action" value="'. $i18n->get('manageRevisionsInTag update') . '" />'
+         . '</td>'
+         . '</tr>'
+         . '<tr><td colspan="5">&nbsp;</td></tr>'
+         . '<tr>'
+         . '<td colspan="5">'
+         . $i18n->get("manageRevisionsInTag with selected")
+-        . '<input type="submit" name="moveto" value="'. $i18n->get("manageRevisionsInTag move")  . '" />'
++        . '<input type="submit" name="action" value="'. $i18n->get("manageRevisionsInTag move")  . '" />'
+         . WebGUI::Form::SelectBox( $session, {
+             name        => 'moveToTagId',
+             options     => \%moveToTagOptions,
+         } )
+-        . '&nbsp;<input type="submit" name="purge" value="'. $i18n->get('manageRevisionsInTag purge') . '" class="red" />'
++        . '&nbsp;<input type="submit" name="action" value="'. $i18n->get('manageRevisionsInTag purge') . '" class="red" />'
+         . '</td>'
+         . '</tr>'
+         . '<tr>'
+diff --git a/lib/WebGUI/Session/ErrorHandler.pm b/lib/WebGUI/Session/ErrorHandler.pm
+index 9384e08..2ce87da 100644
+--- a/lib/WebGUI/Session/ErrorHandler.pm
++++ b/lib/WebGUI/Session/ErrorHandler.pm
+@@ -203,7 +203,8 @@ sub error {
+ 	my $message = shift;
+     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+ 	$self->getLogger->error($message);
+-	$self->getLogger->debug("Stack trace for ERROR ".$message."\n".$self->getStackTrace());
++	# $self->getLogger->debug("Stack trace for ERROR ".$message."\n".$self->getStackTrace);
++	print { $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{appender}->{fh} } "Stack trace for ERROR ".$message."\n".$self->getStackTrace() if $self->{_had_trace} or warn $@;
+         $self->{_debug_error} .= $message."\n";
+ }
+ 
+@@ -229,7 +230,8 @@ sub fatal {
+ 	#Apache2::RequestUtil->request->content_type('text/html') if ($self->session->request);
+ 	$self->session->request->content_type('text/html') if ($self->session->request);
+ 	$self->getLogger->fatal($message);
+-	$self->getLogger->debug("Stack trace for FATAL ".$message."\n".$self->getStackTrace());
++	# $self->getLogger->debug("Stack trace for FATAL ".$message."\n".$self->getStackTrace);
++	print { $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{appender}->{fh} } "Stack trace for FATAL ".$message."\n".$self->getStackTrace() if $self->{_had_trace} or warn $@;
+ 	$self->session->http->sendHeader if ($self->session->request);
+ 
+ 	if (! defined $self->session->db(1)) {
+@@ -279,17 +281,80 @@ Returns a text formatted message containing the current stack trace.
+ 
+ =cut
+ 
++# sub getStackTrace {
++# 	my $self = shift;
++# 	my $i = 2;
++# 	my $output;
++# 	while (my @data = caller($i)) {
++# 		$output .= "\t".join(",",@data)."\n";
++# 		$i++;
++# 	}
++# 	return $output;
++# }
++
+ sub getStackTrace {
+-	my $self = shift;
+-	my $i = 2;
+-	my $output;
+-	while (my @data = caller($i)) {
+-		$output .= "\t".join(",",@data)."\n";
+-		$i++;
+-	}
+-	return $output;
++    use Scalar::Util;
++    my $self = shift;
++    my $evil = shift;
++    my $i = 2;
++    # my $nl = $evil ? chr(27) . '[0\`' . chr(27) . '[E' : "\n";
++    my $nl = "\r\n";
++    my $msg = '';
++    $msg .= ' referer: ' . $ENV{HTTP_REFERER} || $ENV{HTTP_REFERRER};
++    $msg .= ' url: ' . $self->session->request->uri if $self->session->request;
++    while(1) {
++        my @stack;
++        do {
++            package DB;
++            @stack = caller($i) or last;
++        };
++        #                    ($package, $filename, $line, $subroutine, $hasargs, ...) = caller(n)
++        $msg .= '-' . $i . ': ' . $stack[3] . ' @ ' . $stack[1] . ' ' . $stack[2] . ' ';
++        my $asset = $DB::args[0];
++        if( $asset and Scalar::Util::blessed($asset) and $asset->isa('WebGUI::Asset') ) {
++            my $asset_title = $asset->get('title');
++            my $asset_id = $asset->getId;
++            my $asset_class = ref $asset;
++            $msg .= "AssetID: $asset_id Class: $asset_class Title: ``$asset_title''$nl";
++        } elsif( @DB::args and ! ref $DB::args[0]) {
++            # local $Data::Dumper::Maxdepth = 1; $msg .= Data::Dumper::Dumper(@DB::args) . $nl;
++            my $arg0 = $DB::args[0]; $arg0 = substr($arg0, 0, 10) . '...' if length $arg0 > 14;
++            $msg .= $arg0 . $nl;
++        } else {
++            $msg .= $nl;
++        }
++        # $msg .= ${"::_<$stack[1]"}[$stack[2]]; # apparently doesn't work in mod_perl
++        $msg .= "    " . _build_context($stack[1], $stack[2]) . $nl;
++        $i++;
++    }
++    return $msg;
+ }
+ 
++sub _build_context {
++    my $file    = shift;
++    my $linenum = shift;
++    my $code;
++    if (-f $file) {
++        #my $start = $linenum - 3;
++        #my $end   = $linenum + 3;
++        #$start = $start < 1 ? 1 : $start;
++        open my $fh, '<', $file
++            or die "cannot open $file:$!";
++        my $cur_line = 0;
++        while (my $line = <$fh>) {
++            ++$cur_line;
++        #    last if $cur_line > $end;
++        #    next if $cur_line < $start;
++            next if $cur_line < $linenum;
++            last if $cur_line > $linenum;
++            $line =~ s|\t|        |g;
++            chomp $line;
++            $code .= $line;
++        }
++        close $file;
++    }
++    return $code;
++}
+ 
+ 
+ #-------------------------------------------------------------------
+@@ -332,6 +397,11 @@ sub new {
+ 	my $logger = Log::Log4perl->get_logger($session->config->getFilename);
+ 	my $self = bless {_queryCount=>0, _logger=>$logger, _session=>$session}, $class;
+         weaken( $self->{_session} );
++# warn Data::Dumper::Dumper $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog};
++	# $self->{_had_trace} = delete $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{info_needed}->{T}; # can't just delete this key, btw
++	$self->{_had_trace} = $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{info_needed}->{T}; 
++	# $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{printformat} =~ s{\%s}{} if $self->{_had_trace}; # ffs
++        # my @new_format_stack = grep { $_->[0] ne 'T' } @{ $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{stack} };  $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{stack} = \@new_format_stack; # even doing this still leaves ->{printformat}
+         return $self;
+ }
+ 
+@@ -407,8 +477,8 @@ The message you wish to add to the log.
+ sub security {
+ 	my $self = shift;
+ 	my $message = shift;
+-	$self->warn($self->session->user->username." (".$self->session->user->userId.") connecting from "
+-	.$self->session->env->getIp." attempted to ".$message);
++	# $self->warn($self->session->user->username." (".$self->session->user->userId.") connecting from " .$self->session->env->getIp." attempted to ".$message); # so much spam! XXX
++# use Carp; Carp::cluck(">>>$message<<<"); # XXX
+ }
+ 
+ 
+@@ -479,11 +549,19 @@ sub warn {
+ 	my $self = shift;
+         return unless $self->canShowDebug || $self->getLogger->is_warn;
+ 	my $message = shift;
++	# $self->getLogger->debug("Stack trace for WARN ".$message."\n".$self->getStackTrace());
+     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
++        # no strict 'refs'; local *Carp::longmess = sub { $self->getStackTrace(1) }; 1; # for the purposes of the Log::Log4perl trace message, use our asset-aware stack dumper instead; no, can't do this inside of a block because then the temp stack would pop that local before we could use it
++# warn Data::Dumper::Dumper $Log::Log4perl::Logger::LOGGERS_BY_NAME;
++# warn Data::Dumper::Dumper \%Log::Log4perl::Logger::APPENDER_BY_NAME;
++	# warn "think fh is: " . $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{appender}->{fh};
++        no strict 'refs'; local *Carp::longmess = sub { '' } if $self->{_had_trace};  # okay, if we try to replace longmess's output, it'll just get the newlines removed and soupy mess made of it; so replace longmess's output with nothing and then re-add in our own trace
+ 	$self->getLogger->warn($message);
++	print { $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{appender}->{fh} } "Stack trace for WARN ".$message."\n".$self->getStackTrace() if $self->{_had_trace};
+         $self->{_debug_warn} .= $message."\n";
+ }
+ 
+ 
++
+ 1;
+ 
+diff --git a/lib/WebGUI/Session/Form.pm b/lib/WebGUI/Session/Form.pm
+index e96db19..49b745b 100644
+--- a/lib/WebGUI/Session/Form.pm
++++ b/lib/WebGUI/Session/Form.pm
+@@ -186,7 +186,10 @@ the one in this user's current session.
+ sub validToken {
+ 	my ($self)  = @_;
+     my $session = $self->session;
++    #$session->log->warn('HTTP method: '. $session->request->method);
++    #$session->log->warn('CSRF token: '. $session->scratch->get('webguiCsrfToken'));
+     return 0 unless $session->request->method eq 'POST';
++    #$session->log->warn('Web token: '. $self->param('webguiCsrfToken'));
+     return 0 unless $self->param('webguiCsrfToken') eq $session->scratch->get('webguiCsrfToken');
+     return 1;
+ }
+diff --git a/lib/WebGUI/Session/Http.pm b/lib/WebGUI/Session/Http.pm
+index c82e707..e8db742 100644
+--- a/lib/WebGUI/Session/Http.pm
++++ b/lib/WebGUI/Session/Http.pm
+@@ -17,7 +17,7 @@ package WebGUI::Session::Http;
+ 
+ use strict;
+ use WebGUI::Utility;
+-use Scalar::Util qw( weaken blessed );
++use Scalar::Util qw( weaken );
+ 
+ =head1 NAME
+ 
+@@ -95,11 +95,16 @@ sub getCookies {
+ 	if ($self->session->request) {
+ 		# Have to require this instead of using it otherwise it causes problems for command-line scripts on some platforms (namely Windows)
+ 		require APR::Request::Apache2;
+-		my $jarHashRef = eval { APR::Request::Apache2->handle($self->session->request)->jar(); };
+-		return $jarHashRef if $jarHashRef;
+-        if (blessed $@ and $@->isa('APR::Request::Error')) {
+-            return $@->jar;
+-        }
++		my $jarHashRef = eval{ APR::Request::Apache2->handle($self->session->request)->jar() };
++                if(ref $@ and $@->isa("APR::Request::Error")) {
++                   $jarHashRef = $@->jar;
++                }
++	        elsif($@) {
++                   use Data::Dumper;
++                   $self->session->log->error( "Could not get cookie jar: ". $self->session->request->jar_status ."\n".Dumper( $self->session->request->headers_in() ) );
++                   $jarHashRef = undef;
++                }
++                return $jarHashRef if $jarHashRef;
+ 		return {};
+ 	}
+ 	else {
+diff --git a/lib/WebGUI/Workflow/Activity.pm b/lib/WebGUI/Workflow/Activity.pm
+index b872d7b..d89c341 100644
+--- a/lib/WebGUI/Workflow/Activity.pm
++++ b/lib/WebGUI/Workflow/Activity.pm
+@@ -331,7 +331,7 @@ sub new {
+ 	my %data = (%{$main}, %{$sub});
+     for my $definition (reverse @{$class->definition($session)}) {
+         for my $property (keys %{$definition->{properties}}) {
+-            if(!defined $data{$property}) {
++            if(!defined $data{$property} || $data{$property} eq '' && $definition->{properties}{$property}{defaultValue}) {
+                 $data{$property} = $definition->{properties}{$property}{defaultValue};
+             }
+         }
+diff --git a/lib/WebGUI/Workflow/Activity/NotifyAboutVersionTag.pm b/lib/WebGUI/Workflow/Activity/NotifyAboutVersionTag.pm
+index 12b5007..dcff40c 100644
+--- a/lib/WebGUI/Workflow/Activity/NotifyAboutVersionTag.pm
++++ b/lib/WebGUI/Workflow/Activity/NotifyAboutVersionTag.pm
+@@ -19,7 +19,6 @@ use strict;
+ use base 'WebGUI::Workflow::Activity';
+ use WebGUI::VersionTag;
+ use WebGUI::Inbox;
+-use WebGUI::Asset;
+ 
+ =head1 NAME
+ 
+@@ -72,15 +71,8 @@ sub definition {
+ 				label=> $i18n->get("notify message"),
+ 				hoverHelp => $i18n->get("notify message help")
+ 				},
+-			templateId => {
+-				fieldType    =>"template",
+-				defaultValue => "lYhMheuuLROK_iNjaQuPKg",
+-                namespace    => 'NotifyAboutVersionTag',
+-				label        => $i18n->get("email template", 'Workflow_Activity_NotifyAboutVersionTag'),
+-				hoverHelp    => $i18n->get("email template help", 'Workflow_Activity_NotifyAboutVersionTag')
+-            },
+-        }
+-    });
++			}
++		});
+ 	return $class->SUPER::definition($session,$definition);
+ }
+ 
+@@ -101,20 +93,13 @@ sub execute {
+ 	if ($versionTag->getAssetCount) {
+ 		# if there's only one asset in the tag, we might as well give them a direct link to it
+ 		my $asset = $versionTag->getAssets->[0];	
+-		$urlOfSingleAsset = "\n\n".$self->session->url->getSiteURL().$asset->getUrl("func=view;revision=".$asset->get("revisionDate"));
++		$urlOfSingleAsset = $self->session->url->getSiteURL().$asset->getUrl("func=view;revision=".$asset->get("revisionDate"));
+ 	}
+-    my $var = {
+-        message  => $self->get('message'),
+-        comments => $versionTag->get('comments'),
+-        url      => $urlOfSingleAsset,
+-    };
+-    my $template   = WebGUI::Asset->newByDynamicClass($self->session, $self->get('templateId'));
+-    my $message    = $template->process($var);
+ 	my $properties = {
+ 		status=>"completed",
+ 		subject=>$versionTag->get("name"),
+-		message=>$message,
+-    };
++		message=>$self->get("message")."\n\n".$versionTag->get("comments").$urlOfSingleAsset,
++		};	
+ 	if ($self->get("who") eq "committer") {
+ 		$properties->{userId} = $versionTag->get("committedBy");
+ 	} elsif ($self->get("who") eq "creator") {
+diff --git a/lib/WebGUI/Workflow/Activity/SendQueuedMailMessages.pm b/lib/WebGUI/Workflow/Activity/SendQueuedMailMessages.pm
+index af5aad3..0afc9b1 100644
+--- a/lib/WebGUI/Workflow/Activity/SendQueuedMailMessages.pm
++++ b/lib/WebGUI/Workflow/Activity/SendQueuedMailMessages.pm
+@@ -76,6 +76,7 @@ sub execute {
+ 		if (defined $message) {
+ 			unless ($message->send) {
+ 				# if the message fails to send, requeue it
++eval { warn "failed to send a message to " . $message->to; };
+ 				$message->queue;
+ 			}	
+ 		}
+diff --git a/lib/WebGUI/Workflow/Instance.pm b/lib/WebGUI/Workflow/Instance.pm
+index a7a9cbb..cfebeef 100644
+--- a/lib/WebGUI/Workflow/Instance.pm
++++ b/lib/WebGUI/Workflow/Instance.pm
+@@ -104,7 +104,7 @@ sub delete {
+ 	my $self       = shift;
+     my $session    = $self->session;
+ 	my $skipNotify = shift;
+-
++    
+     if ( $self->hasNextActivity ) {
+         #We are deleting in the middle of a workflow - Get the current activity and call the cleanup routine
+         my $activity = $self->getNextActivity;
+@@ -676,9 +676,14 @@ sub start {
+ 	# hand off the workflow to spectre
+ 	$log->info('Could not complete workflow instance '.$self->getId.' in realtime, handing off to Spectre.');
+ 	my $spectre = WebGUI::Workflow::Spectre->new($self->session);
+-	my $success = $spectre->notify("workflow/addInstance", {cookieName=>$self->session->config->getCookieName, gateway=>$self->session->config->get("gateway"), sitename=>$self->session->config->get("sitename")->[0], instanceId=>$self->getId, priority=>$self->{_data}{priority}});
++	$spectre->notify("workflow/addInstance", {cookieName=>$self->session->config->getCookieName, gateway=>$self->session->config->get("gateway"), sitename=>$self->session->config->get("sitename")->[0], instanceId=>$self->getId, priority=>$self->{_data}{priority}});
++
++    my $spectreTest = WebGUI::Operation::Spectre::spectreTest($self->session);
++    if($spectreTest ne "success"){
++        return WebGUI::International->new($self->session, "Macro_SpectreCheck")->get($spectreTest);
++    }
+ 
+-	return $success ? undef : 'Could not connect to spectre';
++    return undef;
+ }
+ 
+ 1;
+diff --git a/sbin/findBrokenAssets.pl b/sbin/findBrokenAssets.pl
+index 9f07458..cf25586 100644
+--- a/sbin/findBrokenAssets.pl
++++ b/sbin/findBrokenAssets.pl
+@@ -21,9 +21,33 @@ BEGIN {
+     unshift @INC, File::Spec->catdir( $webguiRoot, 'lib' );
+ }
+ 
++foreach my $libDir ( readLines( "/data/WebGUI/sbin/preload.custom" ) ) {
++    if ( !-d $libDir ) {
++        warn "WARNING: Not adding lib directory '$libDir' from /data/WebGUI/sbin/preload.custom: Directory does not exist.\n";
++        next;
++    }
++    unshift @INC, $libDir;
++}
++
++sub readLines {
++    my $file = shift;
++    my @lines;
++    if (open(my $fh, '<', $file)) {
++        while (my $line = <$fh>) {
++            $line =~ s/#.*//;
++            $line =~ s/^\s+//;
++            $line =~ s/\s+$//;
++            next if !$line;
++            push @lines, $line;
++        }
++        close $fh;
++    }   
++    return @lines;
++}
++
+ $|++;    # disable output buffering
+ 
+-our ( $configFile, $help, $man, $fix, $delete, $no_progress );
++our ( $configFile, $help, $man, $fix, $delete );
+ use Pod::Usage;
+ use Getopt::Long;
+ use WebGUI::Session;
+@@ -35,21 +59,12 @@ GetOptions(
+     'man'          => \$man,
+     'fix'          => \$fix,
+     'delete'       => \$delete,
+-    'noProgress'   => \$no_progress,
+ );
+ 
+ pod2usage( verbose => 1 ) if $help;
+ pod2usage( verbose => 2 ) if $man;
+ pod2usage( msg => "Must specify a config file!" ) unless $configFile;
+ 
+-foreach my $libDir ( readLines( "preload.custom" ) ) {
+-    if ( !-d $libDir ) {
+-        warn "WARNING: Not adding lib directory '$libDir' from preload.custom: Directory does not exist.\n";
+-        next;
+-    }
+-    unshift @INC, $libDir;
+-}
+-
+ my $session = start( $webguiRoot, $configFile );
+ 
+ sub progress {
+@@ -66,14 +81,11 @@ my $totalAsset      = $session->db->quickScalar('SELECT COUNT(*) FROM asset');
+ my $totalAssetData  = $session->db->quickScalar('SELECT COUNT( DISTINCT( assetId ) ) FROM assetData' );
+ my $total   = $totalAsset >= $totalAssetData ? $totalAsset : $totalAssetData;
+ 
+-# Order by lineage to put corrupt parents before corrupt children
++# Order by to put corrupt parents before corrupt children
+ # Join assetData to get all asset and assetData
+ my $sql   = "SELECT * FROM asset LEFT JOIN assetData USING ( assetId ) GROUP BY assetId ORDER BY lineage ASC";
+ my $sth   = $session->db->read($sql);
+ 
+-##Guarantee that we get the most recent revisionDate
+-my $max_revision  = $session->db->prepare('select max(revisionDate) from assetData where assetId=?');
+-
+ my $count = 1;
+ my %classTables;            # Cache definition lookups
+ while ( my %row = $sth->hash ) {
+@@ -89,8 +101,6 @@ while ( my %row = $sth->hash ) {
+                 eval "require $row{className}";
+                 [ map { $_->{tableName} } reverse @{ $row{className}->definition($session) } ];
+             };
+-            $max_revision->execute([$row{assetId}]);
+-            ($row{revisionDate}) = $max_revision->array();
+             $row{revisionDate} ||= time;
+ 
+             for my $table ( @{$classTables} ) {
+@@ -109,15 +119,12 @@ while ( my %row = $sth->hash ) {
+             }
+             print "Fixed.\n";
+ 
+-            my $asset   = WebGUI::Asset->newByDynamicClass( $session, $row{assetId} );
+             # Make sure we have a valid parent
+-            unless ( $asset && WebGUI::Asset->newByDynamicClass( $session, $row{parentId} ) ) {
++            unless ( WebGUI::Asset->newByDynamicClass( $session, $row{parentId} ) ) {
++                my $asset   = WebGUI::Asset->newByDynamicClass( $session, $row{assetId} );
+                 $asset->setParent( WebGUI::Asset->getImportNode( $session ) );
+                 print "\tNOTE: Invalid parent. Asset moved to Import Node\n";
+             }
+-            if (!$asset) {
+-                print "\tWARNING.  Asset is still broken.\n";
+-            }
+ 
+         } ## end if ($fix)
+         elsif ($delete) {
+@@ -141,9 +148,6 @@ while ( my %row = $sth->hash ) {
+                 printf "%10s: %s\n", "revised", scalar( localtime $row{revisionDate} );
+             }
+ 
+-            # Classname
+-            printf "%10s: %s\n", "class", $row{className};
+-
+             # Parent
+             if ( my $parent = WebGUI::Asset->newByDynamicClass( $session, $row{parentId} ) ) {
+                 printf "%10s: %s (%s)\n", "parent", $parent->getTitle, $parent->getId;
+@@ -200,10 +204,8 @@ while ( my %row = $sth->hash ) {
+         } ## end else [ if ($fix) ]
+ 
+     } ## end if ( !$asset )
+-    progress( $total, $count++ ) unless $no_progress;
++    progress( $total, $count++ );
+ } ## end while ( my %row = $sth->hash)
+-$sth->finish;
+-$max_revision->finish;
+ 
+ finish($session);
+ print "\n";
+@@ -211,24 +213,6 @@ print "\n";
+ #----------------------------------------------------------------------------
+ # Your sub here
+ 
+-#-------------------------------------------------
+-sub readLines {
+-    my $file = shift;
+-    my @lines;
+-    if (open(my $fh, '<', $file)) {
+-        while (my $line = <$fh>) {
+-            $line =~ s/#.*//;
+-            $line =~ s/^\s+//;
+-            $line =~ s/\s+$//;
+-            next if !$line;
+-            push @lines, $line;
+-        }
+-        close $fh;
+-    }
+-    return @lines;
+-}
+-
+-
+ #----------------------------------------------------------------------------
+ sub start {
+     my $webguiRoot = shift;
+diff --git a/sbin/rebuildLineage.pl b/sbin/rebuildLineage.pl
+index aed1f0f..3e837ea 100755
+--- a/sbin/rebuildLineage.pl
++++ b/sbin/rebuildLineage.pl
+@@ -42,6 +42,8 @@ pod2usage() unless (defined($configFile) && $configFile ne '');
+ 
+ print "Starting..." unless ($quiet);
+ my $session = WebGUI::Session->open($webguiRoot,$configFile);
++# We might take a while
++$session->db->dbh->{mysql_auto_reconnect} = 1;
+ print "OK\n" unless ($quiet);
+ 
+ print "Looking for descendant replationships...\n" unless ($quiet);
