@@ -2576,7 +2576,7 @@ sub setSize {
 	}
     my $size = length($sizetest) + $extra;
 	$self->session->db->write("update assetData set assetSize=".$size." where assetId=".$self->session->db->quote($self->getId)." and revisionDate=".$self->session->db->quote($self->get("revisionDate")));
-	$self->purgeCache;
++	#$self->purgeCache; # XXX REMOVED by Doug 04/05/2011 - Performance reasons
     $self->{_properties}{assetSize} = $size;
 }
 	
