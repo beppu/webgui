@@ -3,6 +3,7 @@ package WebGUI::Cache::CHI;
 use strict;
 use base 'WebGUI::Cache';
 use File::Temp qw/tempdir/;
+use clone qw/clone/;
 use CHI;
 
 =head1 NAME
@@ -92,14 +93,20 @@ sub new {
     # Create CHI object from config
     my $chi;
     unless ( $chi = $session->stow->get( "CHI" ) ) {
-        my $cacheConf    = $session->config->get('cache');
+        my $cacheConf    = clone $session->config->get('cache');
         $cacheConf->{namespace}     = $namespace;
         $cacheConf->{is_size_aware} = 1;
 
         # Default values
         my $resolveConf = sub {
             my ($config) = @_;
-            if ( $config->{driver} =~ /DBI/ ) {
+            if (
+                $config->{driver} =~ /DBI/ or (
+                    $config->{args} and   # "args" : [ "dbh" ] in the "cache": { } block?
+                    ref $config->{args} eq 'ARRAY' and 
+                    grep($_ eq 'dbh', @{ $config->{args} })
+                )
+            ) {  
                 $config->{ dbh } = $session->db->dbh;
             }
             if ( $config->{driver} =~ /File|FastMmap|BerkeleyDB/ ) {
