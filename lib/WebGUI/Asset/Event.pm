@@ -28,6 +28,7 @@ use WebGUI::Storage;
 use Test::Deep::NoTest qw(eq_deeply);
 use DateTime::Event::ICal;
 use DateTime::Set;
+use Data::ICal::Entry::Event;
 
 use base 'WebGUI::Asset';
 
@@ -72,6 +73,54 @@ sub addRevision {
         $newRev->update({storageId => $newStorage->getId});
     }
     return $newRev;
+}
+
+####################################################################
+
+=head2 add_to_calendar ($iCal)
+
+Build a Data::ICal::Entry::Event object that contains the information for this
+event and add it to the Data::ICal calendar
+
+=head3 $iCal
+
+A Data::ICal object, representing the top-level calendar instance.
+
+=cut
+
+sub add_to_calendar {
+    my $self     = shift;
+    my $session  = $self->session;
+    my $calendar = shift;
+    my $event = Data::ICal::Entry::Event->new();
+    $event->add_properties(
+        'last-modified' => WebGUI::DateTime->new($session, $event->get("revisionDate"))->toIcal,
+        created         => WebGUI::DateTime->new($session, $event->get("creationDate"))->toIcal,
+        sequence        => $self->get('iCalSequenceNumber'),
+        summary         => $self->get('title'),
+        description     => $self->get('description'),
+        location        => $self->get('location'),
+        uid => $self->get('feedUid')
+             ? $self->get('feedUid')
+             : $self->get('assetId') . '@'. $session->config->get("sitename")->[0],
+    );
+    ##WebGUI Specific fields
+    foreach my $prop (qw/groupIdView groupIdEdit url menuTitle timeZone/) {
+        $event->add_property( 'x-webgui-'.lc($prop) => $self->get($prop));
+    }
+    my $eventStart = $self->getIcalStart;
+    my $start_parameters = {};
+    if (! $eventStart =~ /T/) {
+        $start_parameters->{VALUE} = 'DATE';
+    }
+    $event->add_property(dtstart => [ $eventStart, $start_parameters ]);
+    my $eventEnd = $self->getIcalEnd;
+    my $end_parameters = {};
+    if (! $eventEnd =~ /T/) {
+        $end_parameters->{VALUE} = 'DATE';
+    }
+    $event->add_property(dtend => [ $eventEnd, $end_parameters ]);
+    $calendar->add_entry($event);
 }
 
 {
@@ -360,6 +409,30 @@ sub canEdit {
 
 #-------------------------------------------------------------------
 
+=head2 duplicate ( )
+
+Extend the super class to duplicate the storage location.
+
+=cut
+
+sub duplicate {
+	my $self = shift;
+	my $newAsset = $self->SUPER::duplicate(@_);
+	my $newStorage = $self->getStorageLocation->copy;
+	$newAsset->update({storageId=>$newStorage->getId});
+    my $links = $self->getRelatedLinks();
+    my $id    = $self->session->id;
+    foreach my $link (@{ $links }) {
+        $link->{new_event}   = 1;
+        $link->{eventlinkId} = $id->generate;
+        $link->{linkurl}     = $link->{linkURL};
+    }
+    $newAsset->setRelatedLinks($links);
+	return $newAsset;
+}
+
+#-------------------------------------------------------------------
+
 =head2 generateRecurrence (date)
 
 Creates an recurrence event in the parent calendar for the given date
@@ -379,12 +452,11 @@ sub generateRecurrence {
     };
     my $db = $self->session->db;
     unless ($db->quickScalar($sql, [$self->get('recurId'), $sdb])) {
-        my $child = $self->get;
-        $child->{startDate} = $sdb;
-        $child->{endDate}   = $edb;
-        $self->getParent->addChild(
-            $child, undef, undef, { skipAutoCommitWorkflows => 1 }
-        );
+        my $child = $self->duplicate({skipAutoCommitWorkflows => 1});
+        $child->update({
+            startDate => $sdb,
+            endDate   => $edb,
+        });
     }
 }
 
@@ -1408,7 +1480,7 @@ sub processPropertiesFromFormPost {
     my $assetId = $self->get('assetId');
     my $revisionDate = $self->get('revisionDate');
 
-    $session->db->write("UPDATE Event SET sequenceNumber =? WHERE assetId = ? AND revisionDate =?",[($form->param('sequenceNumber') || $top_val), $assetId, $revisionDate]);
+    $session->db->write("UPDATE Event SET sequenceNumber =? WHERE assetId = ? AND revisionDate =?",[(scalar($form->param('sequenceNumber')) || $top_val), $assetId, $revisionDate]);
 
 
     # Pre-process Related Links and manage changes
@@ -1566,14 +1638,18 @@ Extent the method from the super class to delete all storage locations.
 =cut
 
 sub purge {
-    my $self = shift;
-    my $sth = $self->session->db->read("select storageId from Event where assetId=?",[$self->getId]);
-    while (my ($storageId) = $sth->array) {
-        my $storage = WebGUI::Storage->get($self->session,$storageId);
+    my $self    = shift;
+    my $id      = $self->getId;
+    my $session = $self->session;
+    my @storageIds = $session->db->buildArray("select storageId from Event where assetId=?",[$id]);
+    my $success    = $self->SUPER::purge;
+    return 0 unless $success;
+    foreach my $storageId (@storageIds) {
+        my $storage = WebGUI::Storage->get($session, $storageId);
         $storage->delete if defined $storage;
     }
-    $sth->finish;
-    return $self->SUPER::purge;
+    $session->db->write('delete from Event_relatedlink where assetId=?',[$id]);
+    return 1;
 }
 
 #-------------------------------------------------------------------
@@ -1720,8 +1796,37 @@ Wrap update so that isHidden is always set to be a 1.
 =cut
 
 sub update {
-    my $self = shift;
+    my $self       = shift;
     my $properties = shift;
+    my $session    = $self->session;
+    if (my $startTime = $properties->{startTime}) {
+        my ($startHour, $startMinute, $startSecond) = $startTime =~ /^ (\d+) : (\d+) (?: :(\d+)) /x;
+        if ($startHour > 23) {
+            $startHour = 0;
+            my $startDate = exists $properties->{startDate} ? $properties->{startDate} : $self->get('startDate');
+            $session->log->warn('startDate: '. $startDate);
+            my $startDt = WebGUI::DateTime->new($session, $startDate);
+            $startDt->add(days => 1);
+            $properties->{startDate} = $startDt->toMysqlDate;
+            $session->log->warn('startDate: '. $properties->{startDate});
+            $startSecond             = '00' if ! $startSecond;
+            $properties->{startTime} = sprintf '%02d:%02d:%02d', $startHour, $startMinute, $startSecond;
+        }
+    }
+    if (my $endTime = $properties->{endTime}) {
+        my ($endHour, $endMinute, $endSecond) = $endTime =~ /^ (\d+) : (\d+) (?: :(\d+)) /x;
+        if ($endHour > 23) {
+            $endHour = 0;
+            my $endDate = exists $properties->{endDate} ? $properties->{endDate} : $self->get('endDate');
+            $session->log->warn('endDate: '. $endDate);
+            my $endDt = WebGUI::DateTime->new($session, $endDate);
+            $endDt->add(days => 1);
+            $properties->{endDate} = $endDt->toMysqlDate;
+            $session->log->warn('endDate: '. $properties->{endDate});
+            $endSecond             = '00' if ! $endSecond;
+            $properties->{endTime} = sprintf '%02d:%02d:%02d', $endHour, $endMinute, $endSecond;
+        }
+    }
     return $self->SUPER::update({%$properties, isHidden => 1});
 }
 
@@ -2216,19 +2321,23 @@ sub www_edit {
     # End
     $var->{"formRecurEnd"}
         = q|
-        <div><input type="radio" name="recurEndType" id="recurEndType_none" value="none" |.(!$recur->{endDate} && !$recur->{endAfter} ? 'checked="checked"' : '').q|/>
-        <label for="recurEndType_none">|. $i18n->get('No end'). q|</label><br />
+        <div><input type="radio" name="recurEndType" id="recurEndType_none" value="none" |.(!$recur->{endDate} && !$recur->{endAfter} ? 'checked="checked"' : '').q| onclick="toggleRecurEnd()"/>
+        <label for="recurEndType_none">|. $i18n->get('No end'). q|</label>
 
-        <input type="radio" name="recurEndType" id="recurEndType_date" value="date" |.($recur->{endDate} ? 'checked="checked"' : '' ).q| />
-        <label for="recurEndType_date">|. $i18n->get('By date'). q| </label>|
+        <input type="radio" name="recurEndType" id="recurEndType_date" value="date" |.($recur->{endDate} ? 'checked="checked"' : '' ).q| onclick="toggleRecurEnd()"/>
+        <label for="recurEndType_date">|. $i18n->get('By date'). q| </label>
+        <div id="recurEndPattern_date"> |
         . WebGUI::Form::date($session,{ name => "recurEndDate", value => $recur->{endDate}, defaultValue => $recur->{endDate} })
         . q|
         <br />
+        </div>
 
-        <input type="radio" name="recurEndType" id="recurEndType_after" value="after" |.($recur->{endAfter} ? 'checked="checked"' : '' ).q| />
+        <input type="radio" name="recurEndType" id="recurEndType_after" value="after" |.($recur->{endAfter} ? 'checked="checked"' : '' ).q| onclick="toggleRecurEnd()"/>
         <label for="recurEndType_after">|. $i18n->get('After'). q| </label>
+        <div id="recurEndPattern_after">
         <input type="text" size="3" name="recurEndAfter" value="|.$recur->{endAfter}.q|" />
         |. $i18n->get('occurences'). q|.
+        </div>
         </div>
     |;
 
@@ -2291,7 +2400,19 @@ sub www_edit {
                 document.getElementById("recurPattern_yearly").style.display = "block";
             }
         }
-        YAHOO.util.Event.onAvailable("recurPattern",function(e) { toggleRecur(); });
+
+        function toggleRecurEnd() {
+            document.getElementById("recurEndPattern_date").style.display = "none";
+            document.getElementById("recurEndPattern_after").style.display = "none";
+
+            if (document.getElementById("recurEndType_date").checked) {
+                document.getElementById("recurEndPattern_date").style.display = "block";
+            }
+            else if (document.getElementById("recurEndType_after").checked) {
+                document.getElementById("recurEndPattern_after").style.display = "block";
+            }
+        }
+        YAHOO.util.Event.onAvailable("recurPattern",function(e) { toggleRecur(); toggleRecurEnd(); });
         </script>
 ENDJS
 

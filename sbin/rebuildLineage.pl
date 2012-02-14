@@ -42,8 +42,6 @@ pod2usage() unless (defined($configFile) && $configFile ne '');
 
 print "Starting..." unless ($quiet);
 my $session = WebGUI::Session->open($webguiRoot,$configFile);
-# We might take a while
-$session->db->dbh->{mysql_auto_reconnect} = 1;
 print "OK\n" unless ($quiet);
 
 print "Looking for descendant replationships...\n" unless ($quiet);

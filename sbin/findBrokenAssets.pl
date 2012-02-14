@@ -21,33 +21,9 @@ BEGIN {
     unshift @INC, File::Spec->catdir( $webguiRoot, 'lib' );
 }
 
-foreach my $libDir ( readLines( "/data/WebGUI/sbin/preload.custom" ) ) {
-    if ( !-d $libDir ) {
-        warn "WARNING: Not adding lib directory '$libDir' from /data/WebGUI/sbin/preload.custom: Directory does not exist.\n";
-        next;
-    }
-    unshift @INC, $libDir;
-}
-
-sub readLines {
-    my $file = shift;
-    my @lines;
-    if (open(my $fh, '<', $file)) {
-        while (my $line = <$fh>) {
-            $line =~ s/#.*//;
-            $line =~ s/^\s+//;
-            $line =~ s/\s+$//;
-            next if !$line;
-            push @lines, $line;
-        }
-        close $fh;
-    }   
-    return @lines;
-}
-
 $|++;    # disable output buffering
 
-our ( $configFile, $help, $man, $fix, $delete );
+our ( $configFile, $help, $man, $fix, $delete, $no_progress );
 use Pod::Usage;
 use Getopt::Long;
 use WebGUI::Session;
@@ -59,11 +35,20 @@ GetOptions(
     'man'          => \$man,
     'fix'          => \$fix,
     'delete'       => \$delete,
+    'noProgress'   => \$no_progress,
 );
 
 pod2usage( verbose => 1 ) if $help;
 pod2usage( verbose => 2 ) if $man;
 pod2usage( msg => "Must specify a config file!" ) unless $configFile;
+
+foreach my $libDir ( readLines( "preload.custom" ) ) {
+    if ( !-d $libDir ) {
+        warn "WARNING: Not adding lib directory '$libDir' from preload.custom: Directory does not exist.\n";
+        next;
+    }
+    unshift @INC, $libDir;
+}
 
 my $session = start( $webguiRoot, $configFile );
 
@@ -81,10 +66,13 @@ my $totalAsset      = $session->db->quickScalar('SELECT COUNT(*) FROM asset');
 my $totalAssetData  = $session->db->quickScalar('SELECT COUNT( DISTINCT( assetId ) ) FROM assetData' );
 my $total   = $totalAsset >= $totalAssetData ? $totalAsset : $totalAssetData;
 
-# Order by to put corrupt parents before corrupt children
+# Order by lineage to put corrupt parents before corrupt children
 # Join assetData to get all asset and assetData
 my $sql   = "SELECT * FROM asset LEFT JOIN assetData USING ( assetId ) GROUP BY assetId ORDER BY lineage ASC";
 my $sth   = $session->db->read($sql);
+
+##Guarantee that we get the most recent revisionDate
+my $max_revision  = $session->db->prepare('select max(revisionDate) from assetData where assetId=?');
 
 my $count = 1;
 my %classTables;            # Cache definition lookups
@@ -101,6 +89,8 @@ while ( my %row = $sth->hash ) {
                 eval "require $row{className}";
                 [ map { $_->{tableName} } reverse @{ $row{className}->definition($session) } ];
             };
+            $max_revision->execute([$row{assetId}]);
+            ($row{revisionDate}) = $max_revision->array();
             $row{revisionDate} ||= time;
 
             for my $table ( @{$classTables} ) {
@@ -119,11 +109,14 @@ while ( my %row = $sth->hash ) {
             }
             print "Fixed.\n";
 
+            my $asset   = WebGUI::Asset->newByDynamicClass( $session, $row{assetId} );
             # Make sure we have a valid parent
-            unless ( WebGUI::Asset->newByDynamicClass( $session, $row{parentId} ) ) {
-                my $asset   = WebGUI::Asset->newByDynamicClass( $session, $row{assetId} );
+            unless ( $asset && WebGUI::Asset->newByDynamicClass( $session, $row{parentId} ) ) {
                 $asset->setParent( WebGUI::Asset->getImportNode( $session ) );
                 print "\tNOTE: Invalid parent. Asset moved to Import Node\n";
+            }
+            if (!$asset) {
+                print "\tWARNING.  Asset is still broken.\n";
             }
 
         } ## end if ($fix)
@@ -147,6 +140,9 @@ while ( my %row = $sth->hash ) {
             if ( $row{revisionDate} ) {
                 printf "%10s: %s\n", "revised", scalar( localtime $row{revisionDate} );
             }
+
+            # Classname
+            printf "%10s: %s\n", "class", $row{className};
 
             # Parent
             if ( my $parent = WebGUI::Asset->newByDynamicClass( $session, $row{parentId} ) ) {
@@ -204,14 +200,34 @@ while ( my %row = $sth->hash ) {
         } ## end else [ if ($fix) ]
 
     } ## end if ( !$asset )
-    progress( $total, $count++ );
+    progress( $total, $count++ ) unless $no_progress;
 } ## end while ( my %row = $sth->hash)
+$sth->finish;
+$max_revision->finish;
 
 finish($session);
 print "\n";
 
 #----------------------------------------------------------------------------
 # Your sub here
+
+#-------------------------------------------------
+sub readLines {
+    my $file = shift;
+    my @lines;
+    if (open(my $fh, '<', $file)) {
+        while (my $line = <$fh>) {
+            $line =~ s/#.*//;
+            $line =~ s/^\s+//;
+            $line =~ s/\s+$//;
+            next if !$line;
+            push @lines, $line;
+        }
+        close $fh;
+    }
+    return @lines;
+}
+
 
 #----------------------------------------------------------------------------
 sub start {

@@ -203,8 +203,7 @@ sub error {
 	my $message = shift;
     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
 	$self->getLogger->error($message);
-	# $self->getLogger->debug("Stack trace for ERROR ".$message."\n".$self->getStackTrace);
-	print { $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{appender}->{fh} } "Stack trace for ERROR ".$message."\n".$self->getStackTrace() if $self->{_had_trace} or warn $@;
+	$self->getLogger->debug("Stack trace for ERROR ".$message."\n".$self->getStackTrace());
         $self->{_debug_error} .= $message."\n";
 }
 
@@ -230,8 +229,7 @@ sub fatal {
 	#Apache2::RequestUtil->request->content_type('text/html') if ($self->session->request);
 	$self->session->request->content_type('text/html') if ($self->session->request);
 	$self->getLogger->fatal($message);
-	# $self->getLogger->debug("Stack trace for FATAL ".$message."\n".$self->getStackTrace);
-	print { $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{appender}->{fh} } "Stack trace for FATAL ".$message."\n".$self->getStackTrace() if $self->{_had_trace} or warn $@;
+	$self->getLogger->debug("Stack trace for FATAL ".$message."\n".$self->getStackTrace());
 	$self->session->http->sendHeader if ($self->session->request);
 
 	if (! defined $self->session->db(1)) {
@@ -281,80 +279,17 @@ Returns a text formatted message containing the current stack trace.
 
 =cut
 
-# sub getStackTrace {
-# 	my $self = shift;
-# 	my $i = 2;
-# 	my $output;
-# 	while (my @data = caller($i)) {
-# 		$output .= "\t".join(",",@data)."\n";
-# 		$i++;
-# 	}
-# 	return $output;
-# }
-
 sub getStackTrace {
-    use Scalar::Util;
-    my $self = shift;
-    my $evil = shift;
-    my $i = 2;
-    # my $nl = $evil ? chr(27) . '[0\`' . chr(27) . '[E' : "\n";
-    my $nl = "\r\n";
-    my $msg = '';
-    $msg .= ' referer: ' . $ENV{HTTP_REFERER} || $ENV{HTTP_REFERRER};
-    $msg .= ' url: ' . $self->session->request->uri if $self->session->request;
-    while(1) {
-        my @stack;
-        do {
-            package DB;
-            @stack = caller($i) or last;
-        };
-        #                    ($package, $filename, $line, $subroutine, $hasargs, ...) = caller(n)
-        $msg .= '-' . $i . ': ' . $stack[3] . ' @ ' . $stack[1] . ' ' . $stack[2] . ' ';
-        my $asset = $DB::args[0];
-        if( $asset and Scalar::Util::blessed($asset) and $asset->isa('WebGUI::Asset') ) {
-            my $asset_title = $asset->get('title');
-            my $asset_id = $asset->getId;
-            my $asset_class = ref $asset;
-            $msg .= "AssetID: $asset_id Class: $asset_class Title: ``$asset_title''$nl";
-        } elsif( @DB::args and ! ref $DB::args[0]) {
-            # local $Data::Dumper::Maxdepth = 1; $msg .= Data::Dumper::Dumper(@DB::args) . $nl;
-            my $arg0 = $DB::args[0]; $arg0 = substr($arg0, 0, 10) . '...' if length $arg0 > 14;
-            $msg .= $arg0 . $nl;
-        } else {
-            $msg .= $nl;
-        }
-        # $msg .= ${"::_<$stack[1]"}[$stack[2]]; # apparently doesn't work in mod_perl
-        $msg .= "    " . _build_context($stack[1], $stack[2]) . $nl;
-        $i++;
-    }
-    return $msg;
+	my $self = shift;
+	my $i = 2;
+	my $output;
+	while (my @data = caller($i)) {
+		$output .= "\t".join(",",@data)."\n";
+		$i++;
+	}
+	return $output;
 }
 
-sub _build_context {
-    my $file    = shift;
-    my $linenum = shift;
-    my $code;
-    if (-f $file) {
-        #my $start = $linenum - 3;
-        #my $end   = $linenum + 3;
-        #$start = $start < 1 ? 1 : $start;
-        open my $fh, '<', $file
-            or die "cannot open $file:$!";
-        my $cur_line = 0;
-        while (my $line = <$fh>) {
-            ++$cur_line;
-        #    last if $cur_line > $end;
-        #    next if $cur_line < $start;
-            next if $cur_line < $linenum;
-            last if $cur_line > $linenum;
-            $line =~ s|\t|        |g;
-            chomp $line;
-            $code .= $line;
-        }
-        close $file;
-    }
-    return $code;
-}
 
 
 #-------------------------------------------------------------------
@@ -397,11 +332,6 @@ sub new {
 	my $logger = Log::Log4perl->get_logger($session->config->getFilename);
 	my $self = bless {_queryCount=>0, _logger=>$logger, _session=>$session}, $class;
         weaken( $self->{_session} );
-# warn Data::Dumper::Dumper $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog};
-	# $self->{_had_trace} = delete $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{info_needed}->{T}; # can't just delete this key, btw
-	$self->{_had_trace} = $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{info_needed}->{T}; 
-	# $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{printformat} =~ s{\%s}{} if $self->{_had_trace}; # ffs
-        # my @new_format_stack = grep { $_->[0] ne 'T' } @{ $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{stack} };  $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{layout}->{stack} = \@new_format_stack; # even doing this still leaves ->{printformat}
         return $self;
 }
 
@@ -477,8 +407,8 @@ The message you wish to add to the log.
 sub security {
 	my $self = shift;
 	my $message = shift;
-	# $self->warn($self->session->user->username." (".$self->session->user->userId.") connecting from " .$self->session->env->getIp." attempted to ".$message); # so much spam! XXX
-# use Carp; Carp::cluck(">>>$message<<<"); # XXX
+	$self->warn($self->session->user->username." (".$self->session->user->userId.") connecting from "
+	.$self->session->env->getIp." attempted to ".$message);
 }
 
 
@@ -549,18 +479,10 @@ sub warn {
 	my $self = shift;
         return unless $self->canShowDebug || $self->getLogger->is_warn;
 	my $message = shift;
-	# $self->getLogger->debug("Stack trace for WARN ".$message."\n".$self->getStackTrace());
     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-        # no strict 'refs'; local *Carp::longmess = sub { $self->getStackTrace(1) }; 1; # for the purposes of the Log::Log4perl trace message, use our asset-aware stack dumper instead; no, can't do this inside of a block because then the temp stack would pop that local before we could use it
-# warn Data::Dumper::Dumper $Log::Log4perl::Logger::LOGGERS_BY_NAME;
-# warn Data::Dumper::Dumper \%Log::Log4perl::Logger::APPENDER_BY_NAME;
-	# warn "think fh is: " . $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{appender}->{fh};
-        no strict 'refs'; local *Carp::longmess = sub { '' } if $self->{_had_trace};  # okay, if we try to replace longmess's output, it'll just get the newlines removed and soupy mess made of it; so replace longmess's output with nothing and then re-add in our own trace
 	$self->getLogger->warn($message);
-	print { $Log::Log4perl::Logger::APPENDER_BY_NAME{mainlog}->{appender}->{fh} } "Stack trace for WARN ".$message."\n".$self->getStackTrace() if $self->{_had_trace};
         $self->{_debug_warn} .= $message."\n";
 }
-
 
 
 1;

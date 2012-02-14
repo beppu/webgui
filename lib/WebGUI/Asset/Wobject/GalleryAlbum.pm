@@ -146,12 +146,9 @@ sub addArchive {
     $archive->extract( $tempdirName );
 
     # Get all the files in the archive
-    my @files;
-    my $wanted      = sub { push @files, $File::Find::name; $outputSub->('Found file: %s', $File::Find::name); };
-    find( {
-        wanted      => $wanted,
-    }, $tempdirName );
-    
+    $outputSub->('Getting list of files for sorting purposes');
+    my @files = map { File::Spec->catfile($tempdirName, $_); } $archive->files;
+
     # Sort files by date
     if ($sortBy eq 'date') {              
         # Hash for storing last modified timestamps
@@ -363,10 +360,6 @@ not a bug.
 sub canView {
     my $self        = shift;
     my $userId      = shift || $self->session->user->userId;
-    if ( !$self->getParent ) {
-        $self->session->log->error(" CANT GET PARENT FOR ALBUM : " . $self->getId );
-    	return 0;
-    }
     return $self->getParent->canView($userId);
 }
 

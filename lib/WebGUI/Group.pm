@@ -169,7 +169,7 @@ sub addUsers {
 	foreach my $uid (@{$users}) {
 		my ($isIn) = $self->session->db->quickArray("select count(*) from groupings where groupId=? and userId=?", [$self->getId, $uid]);
 		unless ($isIn) {
-			$self->session->db->write("replace into groupings (groupId,userId,expireDate) values (?,?,?)", [$self->getId, $uid, (time()+$expireOffset)]);
+			$self->session->db->write("insert into groupings (groupId,userId,expireDate) values (?,?,?)", [$self->getId, $uid, (time()+$expireOffset)]);
 			$self->session->stow->delete("gotGroupsForUser");
 		} else {
 			$self->userGroupExpireDate($uid,(time()+$expireOffset));
@@ -259,7 +259,9 @@ sub cacheGroupings {
         $groupMembers->{$userId} = { isMember => $isInGroup };
     }
 
-    $cache->set($groupMembers, $self->groupCacheTimeout);
+    if ($self->groupCacheTimeout()) {
+        $cache->set($groupMembers, $self->groupCacheTimeout);
+    }
 }
 
 #-------------------------------------------------------------------
@@ -630,7 +632,9 @@ sub getAllUsers {
 	}
 	my %users = map { $_ => 1 } @users;
 	@users = keys %users;
-	$cache->set(\@users, $self->groupCacheTimeout);
+    if ($self->groupCacheTimeout()) {
+        $cache->set(\@users, $self->groupCacheTimeout);
+    }
 	return \@users;
 }
 
@@ -979,24 +983,33 @@ sub getUsersNotIn {
     if($groupId eq "") {
         return $self->getUsers($withoutExpired);
     }
+    my $selfWhere;
+    if ( $self->getId ne '2' ) {
+        $selfWhere  = "and groupId=" . $self->session->db->dbh->quote( $self->getId );
+    }
+    else {
+        $selfWhere  = 'and userId != ' . $self->session->db->dbh->quote( "1" );
+    }
 	
     my $expireTime = 0;
 	if ($withoutExpired) {
 		$expireTime = time();
 	}
 
-    my $sql = q{
+    my $sql = qq{
         select
             userId
         from
-            groupings
+            users
+        left join
+            groupings using (userId)
         where
             expireDate > ?
-            and groupId=?
+            $selfWhere
             and userId not in (select userId from groupings where expireDate > ? and groupId=?)
     };
 
-	my @users = $self->session->db->buildArray($sql, [$expireTime,$self->getId,$expireTime,$groupId]);
+	my @users = $self->session->db->buildArray($sql, [$expireTime,$expireTime,$groupId]);
 	return \@users;
 
 }
@@ -1597,6 +1610,7 @@ sub resetGroupFields {
     ##Note, I did assets in SQL instead of using the API because you would have to
     ##instanciate every version of the asset that used the group.  This should be much quicker
     ASSET: foreach my $assetClass ($db->buildArray('SELECT DISTINCT className FROM asset')) {
+        next ASSET unless $db->quickScalar( "SELECT COUNT(*) FROM asset WHERE className=?", [$assetClass] );
         my $definition = WebGUI::Pluggable::instanciate($assetClass, 'definition', [$session]);
         SUBDEF: foreach my $subdef (@{ $definition }) {
             next SUBDEF if exists $tableCache->{$subdef->{tableName}}; 
@@ -1646,7 +1660,11 @@ sub resetGroupFields {
             push @activities, @{ $wfActivities };
         }
         foreach my $activity (@activities) {
-            my $definition = WebGUI::Pluggable::instanciate($activity, 'definition', [$session]);
+            my $definition = eval { WebGUI::Pluggable::instanciate($activity, 'definition', [$session]) };
+            if ( $@ ) {
+                $session->log->warn( "Couldn't instanciate activity class $activity to reset groups, skipping..." );
+                next;
+            }
             my $sth = $db->prepare('UPDATE WorkflowActivityData set value=3 where name=? and value=?');
             SUBDEF: foreach my $subdef (@{ $definition }) {
                 PROP: while (my ($fieldName, $properties) = each %{ $subdef->{properties} }) {
@@ -1993,7 +2011,7 @@ sub vitalGroup {
     if (! $groupId && ref $class ) {
         $groupId = $class->getId;
     }
-    return isIn ( $groupId, (1..17), qw/pbgroup000000000000015 pbgroup000000000000016 pbgroup000000000000017 / );
+    return isIn ( $groupId, (1..13), 15,16,17, qw/pbgroup000000000000015 pbgroup000000000000016 pbgroup000000000000017 / );
 }
 
 1;

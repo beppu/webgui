@@ -448,8 +448,7 @@ sub runWorker {
 	$instance->{workingPriority}++;
     $instance->{status} = 'running';
     $self->updateInstance($instance);
-	# my $url = 'http://127.0.0.1:'.$self->config->get("webguiPort").$instance->{gateway};
-        my $url = "http://".$instance->{sitename}.':'.$self->config->get("webguiPort").$instance->{gateway};
+	my $url = "http://".$instance->{sitename}.':'.$self->config->get("webguiPort").$instance->{gateway};
 	my $request = POST $url, [op=>"runWorkflow", instanceId=>$instance->{instanceId}];
 	my $cookie = $self->{_cookies}{$instance->{sitename}};
 	$request->header("Cookie",$instance->{cookieName}."=".$cookie) if (defined $cookie);

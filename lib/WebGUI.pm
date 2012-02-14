@@ -1,7 +1,7 @@
 package WebGUI;
 
 
-our $VERSION = '7.9.13';
+our $VERSION = '7.9.34';
 our $STATUS = 'stable';
 
 
@@ -28,6 +28,7 @@ use Apache2::RequestUtil ();
 use Apache2::ServerUtil ();
 use APR::Request::Apache2;
 use MIME::Base64 ();
+use Scalar::Util qw/blessed/;
 use WebGUI::Config;
 use WebGUI::Pluggable;
 use WebGUI::Session;
@@ -93,21 +94,15 @@ sub authen {
 		}
 	}
 
-
 	$config ||= WebGUI::Config->new($server->dir_config('WebguiRoot'),$request->dir_config('WebguiConfig'));
-
-
-	#my $handle = APR::Request::Apache2->handle( $request );
-	#my $cookies = $handle->jar;
-        #warn( "COOKIE: ". $handle->jar_status . "\n". Dumper( $request->headers_in() ) );
-
-	my $cookies = eval { APR::Request::Apache2->handle($request)->jar() };
-        if ($@) {
-           warn("Could not get cookies for session: $@");
-           return Apache2::Const::SERVER_ERROR;
-	}
-
-
+	my $cookies = eval { APR::Request::Apache2->handle($request)->jar(); };
+    if (blessed $@ && $@->isa('APR::Request::Error')) {
+        $cookies = $@->jar;
+    }
+    else {
+        $cookies = {};
+    }
+   
 	# determine session id
 	my $sessionId = $cookies->{$config->getCookieName};
 	my $session = WebGUI::Session->open($server->dir_config('WebguiRoot'),$config->getFilename, $request, $server, $sessionId);
@@ -148,6 +143,7 @@ sub authen {
 			}
 		}
 		$log->security($username." failed to login using HTTP Basic Authentication");
+		$request->auth_type('Basic');
 		$request->note_basic_auth_failure;
 		return Apache2::Const::HTTP_UNAUTHORIZED;
 	}
@@ -171,8 +167,8 @@ sub handler {
 	my $request = shift;	#start with apache request object
     $request = Apache2::Request->new($request);
 	my $configFile = shift || $request->dir_config('WebguiConfig'); #either we got a config file, or we'll build it from the request object's settings
-    my $server = Apache2::ServerUtil->server;	#instantiate the server api
-    my $config = WebGUI::Config->new($server->dir_config('WebguiRoot'), $configFile); #instantiate the config object
+	my $server = Apache2::ServerUtil->server;	#instantiate the server api
+	my $config = WebGUI::Config->new($server->dir_config('WebguiRoot'), $configFile); #instantiate the config object
     my $error = "";
     my $matchUri = $request->uri;
     my $gateway = $config->get("gateway");
@@ -190,6 +186,7 @@ sub handler {
 	    $request->push_handlers(PerlAuthenHandler => sub { return WebGUI::authen($request, undef, undef, $config)});
     }
 
+	
 	# url handlers
     WEBGUI_FATAL: foreach my $handler (@{$config->get("urlHandlers")}) {
         my ($regex) = keys %{$handler};

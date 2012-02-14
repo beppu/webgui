@@ -148,7 +148,6 @@ sub loadSiteData {
         	$userAgent->agent("Spectre");
         	$userAgent->timeout(30);
 		my $url = "http://".$configs->{$key}->get("sitename")->[0].":".$self->{_config}->get("webguiPort").$configs->{$key}->get("gateway")."?op=spectreGetSiteData";
-		# my $url = "http://127.0.0.1:".$self->{_config}->get("webguiPort").$configs->{$key}->get("gateway")."?op=spectreGetSiteData";
         	my $request = new HTTP::Request (GET => $url);
         	my $response = $userAgent->request($request);
         	if ($response->is_error) {
@@ -256,7 +255,6 @@ sub runTests {
         	$userAgent->agent("Spectre");
         	$userAgent->timeout(30);
 		my $url = "http://".$configs->{$key}->get("sitename")->[0].":".$config->get("webguiPort").$configs->{$key}->get("gateway")."?op=spectreTest";
-		# my $url = "http://127.0.0.1:".$config->get("webguiPort").$configs->{$key}->get("gateway")."?op=spectreTest";
         	my $request = new HTTP::Request (GET => $url);
         	my $response = $userAgent->request($request);
         	if ($response->is_error) {
