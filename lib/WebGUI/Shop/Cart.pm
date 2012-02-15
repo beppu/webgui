@@ -299,7 +299,6 @@ sub getI18nError {
     my $i18n   = WebGUI::International->new($self->session, 'Shop');
     return $error eq 'no billing address'     ? $i18n->get('no billing address')
          : $error eq 'no shipping address'    ? $i18n->get('no shipping address')
-         : $error eq 'billing label'          ? $i18n->get('billing label')
          : $error eq 'billing firstName'      ? $i18n->get('billing firstName')
          : $error eq 'billing lastName'       ? $i18n->get('billing lastName')
          : $error eq 'billing address1'       ? $i18n->get('billing address1')
@@ -308,7 +307,6 @@ sub getI18nError {
          : $error eq 'billing state'          ? $i18n->get('billing state')
          : $error eq 'billing country'        ? $i18n->get('billing country')
          : $error eq 'billing phoneNumber'    ? $i18n->get('billing phoneNumber')
-         : $error eq 'shipping label'         ? $i18n->get('shipping label')
          : $error eq 'shipping firstName'     ? $i18n->get('shipping firstName')
          : $error eq 'shipping lastName'      ? $i18n->get('shipping lastName')
          : $error eq 'shipping address1'      ? $i18n->get('shipping address1')
@@ -760,15 +758,16 @@ sub updateFromForm {
             $item->update({shippingAddressId => $itemAddressId});
         }
     }
-    if ($self->hasMixedItems) {
-         my $i18n = WebGUI::International->new($self->session, "Shop");
-        $error{id $self} = $i18n->get('mixed items warning');
-    }
-
     my @cartItemIds = $form->process('remove_item', 'checkList');
     foreach my $cartItemId (@cartItemIds) {
         my $item = eval { $self->getItem($cartItemId); };
         $item->remove if ! Exception::Class->caught();
+    }
+
+    ##Remove the items BEFORE we check to see if there are duplicates.
+    if ($self->hasMixedItems) {
+         my $i18n = WebGUI::International->new($self->session, "Shop");
+        $error{id $self} = $i18n->get('mixed items warning');
     }
 
     ##Visitor cannot have an address book, or set a payment gateway, so skip the rest of this.
@@ -1025,6 +1024,10 @@ sub www_view {
         return $session->style->userStyle($template->process(\%var));
     }
 
+    if ($self->hasMixedItems) {
+        $error{id $self} = $i18n->get('mixed items warning');
+    }
+
     my %var = (
         %{$self->get},
         formHeader              => WebGUI::Form::formHeader($session, { extras => q|id="wgCartId"|, })
@@ -1048,12 +1051,18 @@ sub www_view {
         shippableItemsInCart    => $self->requiresShipping,
     );
 
-
     # get the shipping address    
     my $address = eval { $self->getShippingAddress };
     if (my $e = WebGUI::Error->caught("WebGUI::Error::ObjectNotFound") && $self->get('shippingAddressId')) {
         # choose another address cuz we've got a problem
         $self->update({shippingAddressId=>''});
+    }
+
+    #get the billing address
+    my $billingAddress = eval { $self->getBillingAddress };
+    if (my $e = WebGUI::Error->caught("WebGUI::Error::ObjectNotFound") && $self->get('billingAddressId')) {
+        # choose another address cuz we've got a problem
+        $self->update({billingAddressId=>''});
     }
 
     # generate template variables for the items in the cart
@@ -1217,9 +1226,11 @@ sub www_view {
         $addressBook->appendAddressFormVars(\%var, 'shipping_', $shippingAddressData);
         $addressBook->appendAddressFormVars(\%var, 'billing_',  $billingAddressData);
 
+        my $has_billing_addr = $self->get('billingAddressId') ? 1 : 0;
+
         $var{sameShippingAsBilling} = WebGUI::Form::yesNo($session, {
             name => 'sameShippingAsBilling',
-            value => $self->get('billingAddressId') && $self->get('billingAddressId') eq $self->get('shippingAddressId'),
+            value => (($has_billing_addr && $self->get('billingAddressId') eq $self->get('shippingAddressId')) || !$has_billing_addr),
         });
     }
 

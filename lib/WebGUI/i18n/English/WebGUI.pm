@@ -126,6 +126,11 @@ our $I18N = {
 		context=>"Settings hover help"
 	},
 
+	'Addons title' => {
+		message => q|Addons|,
+		lastUpdated => 1285067064,
+		context => "Link title for addons link in adminconsole"
+	},
 	'purge workflow' => {
 		message => q|Purge Workflow|,
 		lastUpdated => 1162242500,
@@ -284,6 +289,11 @@ our $I18N = {
 		message => q|Rate Message|,
 		lastUpdated => 1065356764
 	},
+
+    'or' => {
+        message => q|or|,
+		lastUpdated => 1053804577,
+    },
 
 	'978' => {
 		message => q|User added successfully.|,
@@ -513,6 +523,11 @@ our $I18N = {
 	'487' => {
 		message => q|Select Box|,
 		lastUpdated => 1133087205
+	},
+
+	'Template Parser' => {
+		message => q|Template Parser|,
+		lastUpdated => 1301593691
 	},
 
 	'391' => {
@@ -1430,6 +1445,11 @@ You must be using mod_perl and configure <b>PerlSetEnv SYBASE /opt/sybase/11.0.2
                 lastUpdated => 1122093200,
         },
 
+        'override user email preference description' => {
+                message => q|Send mail regardless of the users' preferences about receiving inbox notifications|,
+                lastUpdated => 1302878213,
+        },
+
         '230 description' => {
                 message => q|The message that will be sent to all members of the group.  The message will be
 sent in HTML format. No attachments can be included.|,
@@ -2226,6 +2246,11 @@ This group could then be named "Employees in HMO 1", and would allow you to rest
 	'229' => {
 		message => q|Subject|,
 		lastUpdated => 1031514049
+	},
+
+	'override user email preference' => {
+		message => 'Override user email preference?',
+		lastUpdated => 1302878112,
 	},
 
 	'866' => {
@@ -3043,6 +3068,12 @@ or are under your current version tag.</p>
 		lastUpdated =>1092930637,
                 context => q|Label of the cancel button|
         },
+
+    'Cancel' => {
+        message => q|Cancel|,
+        lastUpdated =>1092930637,
+        context => q|Label of the cancel button, with capital C|
+    },
 
 	'trash' => {
 		message => q|Trash|,
@@ -4710,6 +4741,17 @@ Users may override this setting in their profile.
         message     => 'Add',
         lastUpdate  => 0,
         context     => 'Add, as in to append or add more',
+    },
+
+    'Enable Users after Anonymous Registration?' => {
+        message => 'Enable Users after Anonymous Registration?',
+        lastUpdated => 1311618346,
+    },
+
+    'enableUsersAfterAnonymousRegistration help' => {
+        message => 'If this is off, '
+            . 'users must be manually activated by a workflow or an admin.',
+        lastUpdated => 1311618419,
     },
 
 };

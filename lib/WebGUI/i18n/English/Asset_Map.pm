@@ -168,6 +168,7 @@ our $I18N = {
         lastUpdated => 0,
         context     => "Choose from the list of points that existon the map",
     },
+
     'assetName' => {
         message     => "Map",
         lastUpdated => 0,
@@ -260,6 +261,12 @@ our $I18N = {
 
     'workflowIdPoint' => {
         message     => "The GUID of the workflow for committing a Map Point.",
+        lastUpdated => 0,
+        context     => "template variable help",
+    },
+
+    'mapPoints' => {
+        message     => "A loop of map points.  See the MapPoint template variables for a list of available ones.",
         lastUpdated => 0,
         context     => "template variable help",
     },

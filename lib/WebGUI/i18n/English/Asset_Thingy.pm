@@ -659,6 +659,12 @@ Simply replace "key1"/"value1" with your own name/value pairs},
         context => q|Description of a tmpl_var for the template help.|,
     },
 
+    'searchResult_json' => {
+        message => q|JSON-encoded version of searchResult_loop so that you can access the data in Javascript|,
+        lastUpdated => 1285094918,
+        context => q|Description of a tmpl_var for the template help.|,
+    },
+
     'things_loop' => {
         message => q|A loop containing the Things that are defined for this Thingy Asset, with links to management
 functions for those Things|,
@@ -1136,6 +1142,30 @@ below/after the form element.|,
         message => q|Return to %s.|,
         lastUpdated => 1231180362,
         context => q|Status message in the Export Thingy progress bar. %s is the name of the Thing that is being exported.|,
+    },
+
+    'variables by label' => {
+        message => q|In addition to the <b>field_loop</b>, field values may be directly accessed via their label.  Please check the documentation for the template plugin that you are using to handle odd characters like spaces or quotes in the label.|,
+        lastUpdated => 1231180362,
+        context => q|Template variable help for getViewThingData|,
+    },
+
+    'unique label' => {
+        message => q|Unique|,
+        lastUpdated => 1308006166,
+        context => q|Label in the edit field screen.|,
+    },
+
+    'unique description' => {
+        message => q|Is this a unique field?  In simple terms, values in unique fields can't have any duplicates in other rows.|,
+        lastUpdated => 1308006162,
+        context => q|Hoverhelp for edit field screen|,
+    },
+
+    'callerAssetId' => {
+        message => q|When passed into the www_viewThingData, provides the assetId of the caller asset.  Used by RenderThingMacro.  See POD.|,
+        lastUpdated => 0,
+        context => q|Template variable help for www_viewThingData|,
     },
 
 };

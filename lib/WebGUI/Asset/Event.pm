@@ -1249,6 +1249,7 @@ sub getTemplateVars {
                 url         => $storage->getUrl($filename),
                 icon        => $storage->getFileIconUrl($filename),
                 filename    => $filename,
+		extension   => WebGUI::Storage->getFileExtension($filename),
                 thumbnail   => $storage->getThumbnailUrl($filename),
                 isImage     => $storage->isImage($filename),
             };
@@ -1804,11 +1805,9 @@ sub update {
         if ($startHour > 23) {
             $startHour = 0;
             my $startDate = exists $properties->{startDate} ? $properties->{startDate} : $self->get('startDate');
-            $session->log->warn('startDate: '. $startDate);
             my $startDt = WebGUI::DateTime->new($session, $startDate);
             $startDt->add(days => 1);
             $properties->{startDate} = $startDt->toMysqlDate;
-            $session->log->warn('startDate: '. $properties->{startDate});
             $startSecond             = '00' if ! $startSecond;
             $properties->{startTime} = sprintf '%02d:%02d:%02d', $startHour, $startMinute, $startSecond;
         }
@@ -1818,11 +1817,9 @@ sub update {
         if ($endHour > 23) {
             $endHour = 0;
             my $endDate = exists $properties->{endDate} ? $properties->{endDate} : $self->get('endDate');
-            $session->log->warn('endDate: '. $endDate);
             my $endDt = WebGUI::DateTime->new($session, $endDate);
             $endDt->add(days => 1);
             $properties->{endDate} = $endDt->toMysqlDate;
-            $session->log->warn('endDate: '. $properties->{endDate});
             $endSecond             = '00' if ! $endSecond;
             $properties->{endTime} = sprintf '%02d:%02d:%02d', $endHour, $endMinute, $endSecond;
         }
@@ -2478,10 +2475,11 @@ sub www_view {
     return $self->session->privilege->noAccess() unless $self->canView;
     my $check = $self->checkView;
     return $check if (defined $check);
-    $self->session->http->setCacheControl($self->get("visitorCacheTimeout")) if ($self->session->user->isVisitor);
+    my $calendar = $self->getParent;
+    $self->session->http->setCacheControl($calendar->get("visitorCacheTimeout")) if ($self->session->user->isVisitor);
     $self->session->http->sendHeader;
     $self->prepareView;
-    my $style = $self->getParent->processStyle($self->getSeparator);
+    my $style = $calendar->processStyle($self->getSeparator);
     my ($head, $foot) = split($self->getSeparator,$style);
     $self->session->output->print($head,1);
     $self->session->output->print($self->view);

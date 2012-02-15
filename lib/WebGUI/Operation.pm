@@ -76,6 +76,7 @@ Returns a hash reference containing operation and package names.
 
 sub getOperations {
 	return {
+		'fork' => 'Fork',
 		'killSession' => 'ActiveSessions',
 		'viewActiveSessions' => 'ActiveSessions',
 
@@ -129,6 +130,8 @@ sub getOperations {
 		'listGroups' => 'Group',
 		'manageGroupsInGroup' => 'Group',
 		'manageUsersInGroup' => 'Group',
+		'manageGroups' => 'Group',
+		'updateGroupUsers' => 'Group',
 
 		'viewHelp' => 'Help',
 		'viewHelpIndex' => 'Help',
@@ -198,6 +201,7 @@ sub getOperations {
         'ajaxDeleteUser' => 'User',
         'ajaxUpdateUser' => 'User',
 		'becomeUser' => 'User',
+		'confirmUserEmail' => 'User',
 		'deleteUser' => 'User',
 		'editUser' => 'User',
 		'editUserSave' => 'User',

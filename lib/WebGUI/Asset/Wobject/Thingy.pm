@@ -281,6 +281,24 @@ sub definition {
 
 #-------------------------------------------------------------------
 
+=head2 deleteThingIndex ( $thingId )
+
+Remove the entry about this Thing from the database, and for any rows for it that are indexed as well.
+
+=head3 $thingId
+
+The GUID of the Thing, used to pick out this record in the database.
+
+=cut
+
+sub deleteThingIndex {
+	my $self    = shift;
+    my $thingId = shift;
+    $self->session->db->write(q|delete from assetIndex where assetId=? and subId like CONCAT(?,'%')|,[$self->getId, $thingId]);
+}
+
+#-------------------------------------------------------------------
+
 =head2 duplicate ( )
 
 Duplicates a Thingy, including the definitions of the Things in this Thingy and their fields.
@@ -367,6 +385,8 @@ sub duplicateThing {
         $self->addField($field,0);
     }
 
+    $thingProperties->{thingId} = $newThingId;
+    $self->indexThing($thingProperties);
     return $newThingId;
 
 }
@@ -418,6 +438,7 @@ sub deleteField {
         $db->write("ALTER TABLE ".$db->dbh->quote_identifier("Thingy_".$thingId)." DROP "
             .$db->dbh->quote_identifier("field_".$fieldId));
     }
+    $self->reindexThings;
     $error->info("Deleted field: $fieldId in thing: $thingId.");
     return undef;
 }
@@ -468,6 +489,7 @@ sub copyThingData {
     }
     ##Update the copy
     $self->setCollateral("Thingy_".$thingId, "thingDataId", $origCollateral, 0, 0);
+    $self->indexThingData($thingId, $origCollateral);
 
     return undef;
 }
@@ -522,7 +544,26 @@ sub deleteThingData {
         $storage->delete;
     }
 
+    $self->deleteThingDataIndex($thingDataId);
     return undef;
+}
+
+#-------------------------------------------------------------------
+
+=head2 deleteThingDataIndex ( $thingDataId )
+
+Remove the entry about this Thing from the database, and for any rows for it that are indexed as well.
+
+=head3 $thingDataId
+
+The GUID of the thingData to remove, used to pick out this record in the database.
+
+=cut
+
+sub deleteThingDataIndex {
+	my $self        = shift;
+    my $thingDataId = shift;
+    $self->session->db->write(q|delete from assetIndex where assetId=? and subId like CONCAT('%-',?)|,[$self->getId, $thingDataId]);
 }
 
 #-------------------------------------------------------------------
@@ -549,6 +590,7 @@ sub deleteThing {
     $session->db->write("drop table if exists ".$session->db->dbh->quote_identifier("Thingy_".$thingId));
     
     $error->info("Deleted thing: $thingId.");
+    $self->deleteThingIndex($thingId);
     return undef;
 }
 
@@ -622,7 +664,7 @@ sub editThingDataSave {
         }
         if ($field->{status} eq "required" && ($fieldValue =~ /^\s$/x || $fieldValue eq "" || !(defined $fieldValue))) {
             push (@errors,{
-                "error_message"=>$field->{label}." ".$i18n->get('is required error').".",
+		"error_message"=>$field->{label}." ".$i18n->get('is required error').".", "field_name"=>$fieldName,
                 });
         }
         if ($field->{status} eq "hidden") {
@@ -633,6 +675,17 @@ sub editThingDataSave {
             $fieldValue = $field->{defaultValue};
             #WebGUI::Macro::process($self->session,\$fieldValue);
         }
+
+	if ($field->{isUnique}) {
+
+             unless ( $self->isUniqueEntry($thingId,$fieldName,$fieldValue,$thingDataId)) {
+               push (@errors,{
+                "error_message"=>$field->{label}. $i18n->get('needs to be unique error'),"field_name"=>$fieldName,
+                });
+             }
+	}
+
+
         $thingData{$fieldName} = $fieldValue;
     }
 
@@ -640,6 +693,7 @@ sub editThingDataSave {
         return ('', \@errors);
     }
     $newThingDataId = $self->setCollateral("Thingy_".$thingId,"thingDataId",\%thingData,0,0);
+    $self->indexThingData($thingId, \%thingData);
 
     # trigger workflow
     if($thingDataId eq "new"){
@@ -701,6 +755,7 @@ sub field_isa {
     my $session   = $self->session;
     my $fieldType = shift;
     my $isa       = shift;
+    $fieldType    = ucfirst $fieldType;
     my $control   = eval { WebGUI::Pluggable::instanciate("WebGUI::Form::".$fieldType, "new", [ $session, () ]) };
     return ($control && $control->isa($isa));
 }
@@ -815,7 +870,17 @@ sub getEditFieldForm {
         -value=>$field->{fieldType} || "Text",
         -options=>\%fieldTypes,
         -id=>$dialogPrefix."_fieldType_formId",
-        );
+    );
+
+    $f->yesNo(
+        -name=>'isUnique',
+        -label=>$i18n->get('unique label'),
+        -hoverHelp=>$i18n->get('unique description'),
+        -value=>$field->{isUnique},
+        -id=>$dialogPrefix."_isUnique_formId",
+    );
+
+
     $f->raw($self->getHtmlWithModuleWrapper($dialogPrefix."_fieldInThing_module"));
 
     $f->raw($self->getHtmlWithModuleWrapper($dialogPrefix."_defaultFieldInThing_module"));
@@ -996,7 +1061,7 @@ sub getFieldValue {
     # TODO: The otherThing field type is probably also handled by getFormPlugin, so the elsif below can probably be
     # safely removed. However, this requires more testing than I can provide right now, so for now this stays the
     # way it was.
-    elsif ($field->{fieldType} =~ m/^otherthing/x) {
+    elsif ($fieldType =~ m/^otherthing/x) {
         my $otherThingId = $field->{fieldType};
         $otherThingId =~ s/^otherThing_//x;
         my $tableName = 'Thingy_'.$otherThingId;
@@ -1294,6 +1359,7 @@ sub getViewThingVars {
             );
             push(@viewScreenTitleFields,$value) if ($field{viewScreenTitle});
             push(@field_loop, { map {("field_".$_ => $fieldProperties{$_})} keys(%fieldProperties) });
+            $var->{ $field{label} } = $value;
         }
         $var->{viewScreenTitle} = join(" ",@viewScreenTitleFields);
         $var->{field_loop} = \@field_loop;
@@ -1351,6 +1417,68 @@ sub hasEnteredMaxPerUser {
     }
 }
 
+
+#-------------------------------------------------------------------
+
+=head2 hasEnteredMaxEntries
+
+Check whether the the maximum number of entries allowed for this thing has been reached.
+
+=head3 thingId
+
+The unique id of a thing.
+
+=cut
+
+sub hasEnteredMaxEntries {
+    my ($self,$thingId) = @_;
+    my $session         = $self->session;
+    my $db       	= $session->db;
+
+    my $maxEntriesTotal = $db->quickScalar("select maxEntriesTotal from Thingy_things where thingId=?",[$thingId]);
+
+    return 0 unless $maxEntriesTotal;
+
+    my $numberOfEntries = $session->db->quickScalar("select count(*) "
+        ."from ".$session->db->dbh->quote_identifier("Thingy_".$thingId));
+
+    if($numberOfEntries < $maxEntriesTotal){
+        return 0;
+    }
+    else{
+        return 1;
+    }
+}
+
+
+
+
+#-------------------------------------------------------------------
+
+=head2 isUniqueEntry ( thingId,fieldName,fieldValue, thingDataId )
+
+Checks if the data entered in thingy record is unique
+
+=cut
+
+
+sub isUniqueEntry {
+
+   my ($self,$thingId,$fieldName,$fieldValue,$thingDataId) = @_;
+   my $session = $self->session;
+   my $db = $session->db;
+
+   my $nrOfEntries = $session->db->quickScalar("select count(*) "
+        ."from ".$session->db->dbh->quote_identifier("Thingy_".$thingId)." where " .
+        $session->db->dbh->quote_identifier($fieldName) ."=? and thingDataId !=?",[$fieldValue,$thingDataId]);
+   if ($nrOfEntries > 0) { return 0; }
+   return 1;
+}
+
+
+
+
+
 #-------------------------------------------------------------------
 
 =head2 hasPrivileges  ( groupId )
@@ -1406,6 +1534,7 @@ sub importAssetCollateralData {
             # add new thing
             $self->addThing($thing,1);
         }
+        $self->indexThing($thing);
     }
     # delete deleted things
     my $thingsInDatabase = $self->getThings;
@@ -1444,6 +1573,126 @@ sub importAssetCollateralData {
     }
 
     return undef;
+}
+
+
+#-------------------------------------------------------------------
+
+=head2 indexContent ( )
+
+Extend the base class to handle reindexing every Thing, and every row in every Thing.  We have
+to do a complete rework because the URL may have changed, and that affects everything that has
+been inserted into the AssetIndex.
+
+=cut
+
+sub indexContent {
+    my ($self)  = @_;
+    my $session = $self->session;
+    $self->SUPER::indexContent();
+    $self->reindexThings;
+}
+
+
+#-------------------------------------------------------------------
+
+=head2 indexThing ( $thing )
+
+Add an entry about this Thing into the AssetIndex so it can be found for searches.
+
+=head3 $thing
+
+A hashref of Thing properties, as returned by getThing
+
+=cut
+
+sub indexThing {
+    my ($self, $thing) = @_;
+    return unless $thing;
+    my $index = WebGUI::Search::Index->new($self);
+    $index->addRecord(
+        groupIdView => $thing->{groupIdView},
+        title       => $thing->{label},
+        subId       => $thing->{thingId},
+        keywords    => join(' ', @{$thing}{qw/label editScreenTitle editInstructions searchScreenTitle searchDescription/}),
+        url         => $self->session->url->append($self->get('url'), $self->getThingUrl($thing)),
+    );
+    ##Easy update of all thingData fields for this thing.  This is in lieu of deleting all records
+    ##And rebuilding them all.
+    $self->session->db->write(q|update assetIndex set title=?, groupIdView=? where assetId=? and subId like CONCAT(?, '%')|, [$thing->{label}, $thing->{groupIdView}, $self->getId, $thing->{thingId}]);
+}
+
+
+#-------------------------------------------------------------------
+
+=head2 indexThingData ( $thingId, $thingData )
+
+Add an entry about a row from this Thing into the AssetIndex so it can be found for searches.
+
+=head3 $thingId
+
+The GUID for a Thing.
+
+=head3 $thingData
+
+A hashref of ThingData properties
+
+=cut
+
+sub indexThingData {
+    my ($self, $thingId, $thingData) = @_;
+    my $session = $self->session;
+    return unless $thingId;
+    my $thing = $self->getThing($thingId);
+    my $index = WebGUI::Search::Index->new($self);
+    my $keywords;
+    ##Get the Thingy's fields
+    my $fields = $session->db->read('select * from Thingy_fields where assetId = ? and thingId = ?',
+        [$self->getId, $thingId]);
+    ##Walk the fields
+    my @viewScreenTitleFields = ();
+    FIELD: while (my %field = $fields->hash) {
+        my $fieldName = 'field_'.$field{fieldId};
+        $field{value} = $thingData->{$fieldName} || $field{defaultValue};
+        my $subkeywords = '';
+        my $value       = '';
+        if ($self->field_isa($field{fieldType}, 'WebGUI::Form::File')) {
+            my $storage = WebGUI::Storage->get($session, $field{value});
+            if ($storage) {
+                foreach my $file (@{$storage->getFiles()}) {
+                    $subkeywords =  $index->getKeywordsForFile($storage->getPath($file));
+                }
+            }
+        }
+        else {
+            $value = $self->getFieldValue($field{value}, \%field);
+            ##If it's a file type, then get keywords from the file.
+            ##Accumulate keywords
+            $subkeywords = $value;
+        }
+        if ($value && $field{viewScreenTitle}) {
+            push @viewScreenTitleFields, $value;
+        }
+        ##We don't index date fields, since they're unix epochs and they'd be different for everyone based on timezone.
+        next FIELD if $field{fieldType} eq 'date'
+                   || $field{fieldType} eq 'datetime'
+                   || $field{fieldType} eq 'time';
+        ##Don't show what shouldn't be shown
+        next FIELD unless $field{displayInSearch};
+        $keywords = join ' ', $keywords, $subkeywords;
+    }
+    return unless $keywords;  ##No sense indexing nothing;
+    my $title = join('', @viewScreenTitleFields)
+             || $thing->{label}
+             || $self->getTitle;
+    $index->addRecord(
+        assetId     => $self->getId,
+        url         => $session->url->append($self->get('url'), 'func=viewThingData;thingId='. $thing->{thingId} . ';thingDataId='. $thingData->{thingDataId}),
+        groupIdView => $thing->{groupIdView},
+        title       => $title,
+        subId       => $thing->{thingId} . '-' . $thingData->{thingDataId},
+        keywords    => $keywords,
+    );
 }
 
 
@@ -1494,6 +1743,30 @@ sub purge {
 
     return $self->SUPER::purge;
 }
+
+#-------------------------------------------------------------------
+
+=head2 reindexThings ( )
+
+Reindex every Thing, and every row in every Thing.
+
+=cut
+
+sub reindexThings {
+    my ($self)  = @_;
+    my $session = $self->session;
+    my $things = $self->getThings;
+    THING: while (my $thing = $things->hashRef) {
+        $self->deleteThingIndex($thing->{thingId});
+        $self->indexThing($thing);
+        my $sth = $session->db->read('select * from '. $session->db->dbh->quote_identifier('Thingy_'.$thing->{thingId}));
+        while (my $thingData = $sth->hashRef) {
+            $self->indexThingData($thing->{thingId}, $thingData);
+        }
+        $sth->finish;
+    }
+}
+
 
 #-------------------------------------------------------------------
 
@@ -1816,6 +2089,7 @@ sub www_editThing {
             thingsPerPage=>25,
             exportMetaData=>undef, 
             maxEntriesPerUser=>undef,
+            maxEntriesTotal=>undef,
         );
         $thingId = "new";
     }
@@ -2027,6 +2301,14 @@ sub www_editThing {
         -hoverHelp=> $i18n->get('max entries per user description'),
         -label => $i18n->get('max entries per user label')
     );
+
+    $tab->integer(
+        -name=> "maxEntriesTotal",
+        -value=> $properties{maxEntriesTotal},
+        -hoverHelp => $i18n->get('max entries total description'),
+        -label => $i18n->get('max entries total label')
+    );
+
     $tab->group(
         -name=> "groupIdAdd",
         -value=> $properties{groupIdAdd},
@@ -2265,6 +2547,7 @@ sub www_editThingSave {
         sortBy             => $form->process("sortBy") || '',
         exportMetaData     => $form->process("exportMetaData") || '',
         maxEntriesPerUser  => $form->process("maxEntriesPerUser") || '',
+        maxEntriesTotal    => $form->process("maxEntriesTotal") || '',
     };
     $self->setCollateral("Thingy_things", "thingId", $thing, 0, 1);
 
@@ -2276,6 +2559,7 @@ sub www_editThingSave {
 
         $self->session->db->write("update Thingy_fields set display = ?, viewScreenTitle = ?, displayinSearch = ?, searchIn = ? where fieldId = ? and thingId = ?",[$display, $viewScreenTitle, $displayInSearch, $searchIn, $field->{fieldId}, $thingId]);
     }
+    $self->indexThing($thing);
     return $self->www_manage;
 }
 #-------------------------------------------------------------------
@@ -2331,6 +2615,8 @@ sub www_editFieldSave {
     my $log     = $session->log;
     my $defaultValue = $session->form->process("defaultValue");
     my $fieldType    = $session->form->process("fieldType") || "ReadOnly";
+    my $uniqueField  = $session->form->process("isUnique");
+
 
     if ($fieldType =~ m/^otherThing/){
         $defaultValue = $session->form->process("defaultFieldInThing");
@@ -2338,12 +2624,14 @@ sub www_editFieldSave {
 	
 	$thingId = $self->addThing({ thingId => 'new' },0) if $thingId eq 'new';
     
+    $thingId = $self->addThing({ thingId => 'new' },0) if $thingId eq 'new';
     $fieldId = $session->form->process("fieldId");
     %properties = (
         fieldId             => $fieldId,
         thingId             => $thingId,
         label               => $label,
         fieldType           => $fieldType,
+        isUnique            => $uniqueField,
         defaultValue        => $defaultValue,
         possibleValues      => $session->form->process("possibleValues"),
         pretext             => $session->form->process("pretext"),
@@ -2561,7 +2849,7 @@ sub editThingData {
         $var->{"delete_confirm"} = "onclick=\"return confirm('".$i18n->get("delete thing data warning")."')\"";
     }
 
-    if($self->hasPrivileges($thingProperties->{groupIdAdd}) && !$self->hasEnteredMaxPerUser($thingId)){    
+    if($self->hasPrivileges($thingProperties->{groupIdAdd}) && !$self->hasEnteredMaxPerUser($thingId) && !$self->hasEnteredMaxEntries($thingId)){    
         $var->{"add_url"} = $session->url->append($url,'func=editThingData;thingId='.$thingId.';thingDataId=new');
     }
     if($self->hasPrivileges($thingProperties->{groupIdSearch})){
@@ -2627,6 +2915,15 @@ sub editThingData {
         delete $var->{field_loop};
         $var->{editInstructions} = $i18n->get("has entered max per user message");
     }
+    if($thingDataId eq 'new' && $self->hasEnteredMaxEntries($thingId)){
+        delete $var->{form_start};
+        delete $var->{form_end};
+        delete $var->{form_submit};
+        delete $var->{field_loop};
+        $var->{editInstructions} = $i18n->get("has entered max total message");
+    }
+
+
     return $self->processTemplate($var,$thingProperties->{editTemplateId});
 }
 
@@ -2656,6 +2953,10 @@ sub www_editThingDataSave {
     if($thingDataId eq 'new' && $self->hasEnteredMaxPerUser($thingId)){
         return $i18n->get("has entered max per user message");
     }
+    if($thingDataId eq 'new' && $self->hasEnteredMaxEntries($thingId)){
+        return $i18n->get("has entered max total message");
+    }
+
 
     ($newThingDataId,$errors) = $self->editThingDataSave($thingId,$thingDataId);
 
@@ -2726,6 +3027,10 @@ sub www_editThingDataSaveViaAjax {
             $session->http->setStatus("400", "Bad Request");
             return JSON->new->encode({message => $i18n->get("has entered max per user message")});
         }
+        if($thingDataId eq 'new' && $self->hasEnteredMaxEntries($thingId)){
+            $session->http->setStatus("400", "Bad Request");
+            return JSON->new->encode({message => $i18n->get("has entered max total message")});
+        }
 
     	my ($newThingDataId,$errors) = $self->editThingDataSave($thingId,$thingDataId);
 
@@ -2737,7 +3042,7 @@ sub www_editThingDataSaveViaAjax {
         return '{}';
     }
     else {
-        warn "thingId not found in thingProperties\n";
+        $session->log->warn("thingId ".$thingProperties->{thingId}." not found in thingProperties");
         $session->http->setStatus("404", "Not Found");
         return JSON->new->encode({message => "The thingId you requested can not be found."});
     }
@@ -2911,6 +3216,9 @@ sub www_import {
     my ($sql,$fields,@fields,$fileName,@insertColumns);
     my ($handleDuplicates,$newThingDataId);
 
+    my $i18n        = WebGUI::International->new($self->session, "Asset_Thingy");
+
+
     my $thingId = $session->form->process('thingId');
     my $thingProperties = $self->getThing($thingId);
     return $session->privilege->insufficient() unless $self->hasPrivileges($thingProperties->{groupIdImport});
@@ -3008,9 +3316,27 @@ sub www_import {
                 $error->info("Skipping line");
                 next;
             }
-            $thingData{lastUpdated} = time();
-            $thingData{updatedByName} = $session->user->username;
-            $thingData{updatedById} = $session->user->userId;
+
+	   # Is this a new record or are we updating an existing record?
+           if ($thingData{thingDataId} eq 'new') {
+            	$thingData{dateCreated} = time();
+            	$thingData{createdById} = $session->user->userId;
+           }
+           else {
+            	$thingData{lastUpdated} = time();
+            	$thingData{updatedByName} = $session->user->username;
+            	$thingData{updatedById} = $session->user->userId;
+           }
+
+           $thingData{ipAddress} = $session->env->getIp;
+
+           if($thingData{thingDataId} eq 'new' && $self->hasEnteredMaxPerUser($thingId)){
+             last;
+            }
+           if($thingData{thingDataId} eq 'new' && $self->hasEnteredMaxEntries($thingId)){
+	      last;
+            }
+
             $self->setCollateral("Thingy_".$thingId,"thingDataId",\%thingData,0,0) if ($thingData{thingDataId});
         }
         close $importFile;
@@ -3141,13 +3467,7 @@ sub www_manage {
             'thing_searchUrl' => $session->url->append($url, 'func=search;thingId='.$thing->{thingId}), 
         );
         # set the url for the view icon to the things default view
-        my $viewParams;
-        if ($thing->{defaultView} eq "addThing") {
-            $viewParams = 'func=editThingData;thingId='.$thing->{thingId}.';thingDataId=new';
-        }
-        else{
-            $viewParams = 'func=search;thingId='.$thing->{thingId};
-        }
+        my $viewParams = $self->getThingUrl($thing);
         $templateVars{'thing_viewIcon'} = $session->icon->view($viewParams);
         push (@things_loop, \%templateVars);
     }
@@ -3340,7 +3660,7 @@ sub getSearchTemplateVars {
     if ($self->hasPrivileges($thingProperties->{groupIdImport})){
         $var->{"import_url"} = $session->url->append($url, 'func=importForm;thingId='.$thingId);
     }
-    if ($self->hasPrivileges($thingProperties->{groupIdAdd}) && !$self->hasEnteredMaxPerUser($thingId)){
+    if ($self->hasPrivileges($thingProperties->{groupIdAdd}) && !$self->hasEnteredMaxPerUser($thingId) && !$self->hasEnteredMaxEntries($thingId) ){
         $var->{"add_url"} = $session->url->append($url,'func=editThingData;thingId='.$thingId.';thingDataId=new');
     }
     $var->{searchScreenTitle} = $thingProperties->{searchScreenTitle};    
@@ -3476,6 +3796,11 @@ sub getSearchTemplateVars {
         push(@searchResult_loop,\%templateVars);
     }
     $var->{searchResult_loop} = \@searchResult_loop;    
+    
+    # Also expose the search results in the template as a json-encoded string
+    # so that people can e.g. visualise the results via Javascript
+    $var->{searchResult_json} = JSON->new->encode(\@searchResult_loop);
+    
     $p->appendTemplateVars($var);
 
     $var->{"form_start"} = WebGUI::Form::formHeader($self->session,{action=>$self->getUrl,method=>'GET'})
@@ -3603,6 +3928,11 @@ The unique id of a thing.
 
 The unique id of a row of thing data.
 
+=head3 templateId
+
+Optional.  The unique id or url of the template to be used.  When specified, the style template is not used.
+If omitted, the thing data view template and style will be used.
+
 =cut
 
 sub www_viewThingData {
@@ -3611,7 +3941,8 @@ sub www_viewThingData {
     my $session     = $self->session;
     my $thingId     = shift || $session->form->process('thingId');
     my $thingDataId = shift || $session->form->process('thingDataId');
-    
+    my $templateId 	= shift || $session->form->process('templateId');
+	my $callerAssetId	= shift || $session->form->process('callerAssetId');
     my $var     = $self->get;
     my $url     = $self->getUrl;
     my $i18n    = WebGUI::International->new($self->session, "Asset_Thingy");
@@ -3624,6 +3955,7 @@ sub www_viewThingData {
     $var->{"addThing_url"}  = $session->url->append($url, 'func=editThing;thingId=new');
     $var->{"manage_url"}    = $session->url->append($url, 'func=manage');
     $var->{"thing_label"}   = $thingProperties->{label};
+	$var->{"callerAssetId"} = $callerAssetId;
 
     if($self->hasPrivileges($thingProperties->{groupIdEdit})){
         $var->{"edit_url"} = $session->url->append($url,'func=editThingData;thingId='
@@ -3632,7 +3964,7 @@ sub www_viewThingData {
         .$thingId.';thingDataId='.$thingDataId);
         $var->{"delete_confirm"} = "onclick=\"return confirm('".$i18n->get("delete thing data warning")."')\"";
     }
-    if($self->hasPrivileges($thingProperties->{groupIdAdd}) && !$self->hasEnteredMaxPerUser($thingId)){
+    if($self->hasPrivileges($thingProperties->{groupIdAdd}) && !$self->hasEnteredMaxPerUser($thingId) && !$self->hasEnteredMaxEntries($thingId) ){
         $var->{"add_url"} = $session->url->append($url, 'func=editThingData;thingId='.$thingId.';thingDataId=new');
     }
     if($self->hasPrivileges($thingProperties->{groupIdSearch})){    
@@ -3641,9 +3973,19 @@ sub www_viewThingData {
 
     $self->getViewThingVars($thingId,$thingDataId,$var);
     $self->appendThingsVars($var, $thingId);
+	
+	my $template;
+	if( $templateId )
+	{
+		$template = WebGUI::Asset::Template->newByUrl( $session, $templateId ) ||
+					WebGUI::Asset::Template->newByDynamicClass( $session, $templateId );
+	}
+	
     return $self->processStyle(
-        $self->processTemplate($var,$thingProperties->{viewTemplateId})
-    );
+		$self->processTemplate($var,$thingProperties->{viewTemplateId})
+    ) if !$template;
+	
+    return $self->processTemplate($var,$template->getId,$template);
 }
 
 #-------------------------------------------------------------------

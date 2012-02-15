@@ -21,7 +21,7 @@ use WebGUI::Cache;
 use WebGUI::Storage;
 use WebGUI::SQL;
 use WebGUI::Utility;
-
+use WebGUI::Event;
 
 =head1 NAME
 
@@ -228,6 +228,7 @@ sub exportWriteFile {
         WebGUI::Error->throw(error => "can't copy " . $self->getStorageLocation->getPath($self->get('filename'))
             . ' to ' . $dest->absolute->stringify . ": $!");
     }
+    fire $self->session, 'asset::export' => $dest;
 }
 
 #-------------------------------------------------------------------
@@ -676,6 +677,8 @@ sub view {
 	$var{fileUrl} = $self->getFileUrl;
 	$var{fileIcon} = $self->getFileIconUrl;
 	$var{fileSize} = formatBytes($self->get("assetSize"));
+	$var{extension} = WebGUI::Storage->getFileExtension( $self->get("filename"));
+
        	my $out = $self->processTemplate(\%var,undef,$self->{_viewTemplate});
 	if (!$self->session->var->isAdminOn && $self->get("cacheTimeout") > 10) {
 		WebGUI::Cache->new($self->session,"view_".$self->getId)->set($out,$self->get("cacheTimeout"));

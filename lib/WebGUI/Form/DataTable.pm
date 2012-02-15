@@ -345,6 +345,19 @@ sub getTableHtml {
 
 #-------------------------------------------------------------------
 
+=head2 headTags ()
+
+Set head tags for this form plugin
+
+=cut
+
+sub headTags {
+    my $self = shift;
+    $self->prepare;
+}
+
+#-------------------------------------------------------------------
+
 =head2 prepare ( )
 
 Load all the script and css files we need. Call this in prepareView() if needed.
@@ -378,6 +391,8 @@ sub prepare {
             )
         );
         $style->setLink( $url->extras('yui/build/container/assets/skins/sam/container.css'),
+            { rel => "stylesheet", type => "text/css" } );
+        $style->setLink( $url->extras( 'yui-webgui/build/form/datatable.css'),
             { rel => "stylesheet", type => "text/css" } );
         $style->setScript( $url->extras('yui/build/container/container-min.js') );
         $style->setScript( $url->extras('yui/build/button/button-min.js') );

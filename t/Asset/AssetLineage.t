@@ -17,7 +17,7 @@ use WebGUI::Session;
 use WebGUI::User;
 
 use WebGUI::Asset;
-use Test::More tests => 96; # increment this value for each test you create
+use Test::More tests => 99; # increment this value for each test you create
 use Test::Deep;
 
 # Test the methods in WebGUI::AssetLineage
@@ -234,6 +234,12 @@ is($root->getRank('100001'), '100001', "getRank: arbitrary lineage");
 is($folder->getNextChildRank,  '000008',  "getNextChildRank: folder with 8 snippets");
 is($folder2->getNextChildRank, '000002',  "getNextChildRank: empty folder");
 
+# Change the step and offset
+$session->config->set( 'db', { increment_step => 5, increment_offset => 3 } );
+is( $folder->getNextChildRank, '000013', "getNextChildRank: step 5, offset 3, folder with 8 snippets" );
+is( $folder2->getNextChildRank, '000008', "getNextChildRank: step 5, offset 3, empty folder" );
+$session->config->delete( 'db' );
+
 ####################################################
 #
 # swapRank
@@ -346,7 +352,7 @@ is($snippets[6]->getRank(), '5', 'setRank was able to set an arbitrary rank(lowe
 $lineageIds = $folder->getLineage(['descendants']);
 cmp_bag(\@snipIds, $lineageIds, 'setRank reordered the other siblings appropiately');
 
-$snippets[6]->setRank('000007');
+ok $snippets[6]->setRank('000007'), 'move snippet 6 to rank 7';
 is($snippets[6]->getRank(), '7', 'setRank: move the Asset back (higher rank)');
 
 @snipIds = map { $_->getId } @snippets;

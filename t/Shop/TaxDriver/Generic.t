@@ -41,7 +41,7 @@ my $addExceptions = getAddExceptions($session);
 my $tests = 80 + 2*scalar(@{$addExceptions});
 plan tests => $tests;
 
-WebGUI::Test->addToCleanup(SQL => 'delete from tax_generic_rates');
+#WebGUI::Test->addToCleanup(SQL => 'delete from tax_generic_rates');
 
 #----------------------------------------------------------------------------
 # put your tests here

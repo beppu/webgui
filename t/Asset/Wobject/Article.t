@@ -17,7 +17,10 @@ use lib "$FindBin::Bin/../../lib";
 
 use WebGUI::Test;
 use WebGUI::Session;
-use Test::More tests => 23; # increment this value for each test you create
+use Test::More tests => 24; # increment this value for each test you create
+use Test::Deep;
+use Test::MockObject;
+use Data::Dumper;
 use WebGUI::Asset::Wobject::Article;
 
 my $session = WebGUI::Test->session;
@@ -66,8 +69,9 @@ foreach my $newSetting (keys %{$newArticleSettings}) {
 }
 
 # Test the duplicate method... not for assets, just the extended duplicate functionality of the article wobject
-my $filename = "page_title.jpg";
+my $filename = "extensions.tar";
 my $pathedFile = WebGUI::Test->getTestCollateralPath($filename);
+
 
 # Use some test collateral to create a storage location and assign it to our article
 my $storage = WebGUI::Storage->create($session);
@@ -79,6 +83,10 @@ diag(join("\n", @{ $storage->getErrors })) unless $filenameOK;
 
 $article->update({storageId=>$storage->getId});
 my $storageOK = is($article->get('storageId'), $storage->getId, 'correct storage id stored');
+
+
+
+
 
 SKIP: {
 
@@ -122,6 +130,61 @@ $cachedOutput = WebGUI::Cache->new($session, 'view_'.$article->getId)->get;  # C
 isnt ($output, $cachedOutput, 'purgeCache method deletes cache');
 
 
+# lets test that our new template variable for the fileloop in the main view method returns the
+# right values for the new field in the attached files loop: <tmpl_var extension>
+# first we create a new template with only the <tmpl_var extension> field in it
+# --------------------------------------------------------------------------------------------------
+my $templateId = 'DUMMY_TEMPLATE________';
+
+my $templateMock = Test::MockObject->new({});
+$templateMock->set_isa('WebGUI::Asset::Template');
+$templateMock->set_always('getId', $templateId);
+my $templateVars;
+$templateMock->set_true('prepare', sub {  } );
+$templateMock->mock('process', sub { $templateVars = $_[1]; } );
+
+my @extTestFiles = ("rotation_test.png","littleTextFile","jquery.js","tooWide.gif");
+
+foreach my $f (@extTestFiles) {
+    my $pathedFile = WebGUI::Test->getTestCollateralPath($f);
+    my $storedFilename = $storage->addFileFromFilesystem($pathedFile);
+}
+
+$article->update({templateId=>$templateId});
+{
+    WebGUI::Test->mockAssetId($templateId, $templateMock);
+    $article->prepareView;
+    $article->view;
+    WebGUI::Test->unmockAssetId($templateId);
+}
+
+cmp_bag(
+    $templateVars->{attachment_loop},
+    [
+        superhashof({
+            filename  => 'rotation_test.png',
+            extension => 'png',
+        }),
+        superhashof({
+            filename  => 'littleTextFile',
+            extension => undef,
+        }),
+        superhashof({
+            filename  => 'jquery.js',
+            extension => 'js',
+        }),
+        superhashof({
+            filename  => 'tooWide.gif',
+            extension => 'gif',
+        }),
+        superhashof({
+            filename  => 'extensions.tar',
+            extension => 'tar',
+        }),
+    ],
+    'extensions in the attachment_loop are correct'
+) or diag Dumper($templateVars->{attachment_loop});
+
 TODO: {
         local $TODO = "Tests to make later";
         ok(0, 'Test exportAssetData method');
@@ -131,3 +194,7 @@ TODO: {
 	ok(0, 'Test www_deleteFile method');
 	ok(0, 'Test www_view method... maybe?');
 }
+
+
+
+

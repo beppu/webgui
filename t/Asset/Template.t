@@ -16,13 +16,15 @@ use WebGUI::Test;
 use WebGUI::Session;
 use WebGUI::Asset::Template;
 use Exception::Class;
-use Test::More tests => 57; # increment this value for each test you create
+use Test::More tests => 59; # increment this value for each test you create
 use Test::Deep;
 use Data::Dumper;
 use Test::Exception;
 use JSON qw{ from_json };
 
 my $session = WebGUI::Test->session;
+my $default = $session->config->get('defaultTemplateParser');
+my $ht      = 'WebGUI::Asset::Template::HTMLTemplate';
 
 my $list = WebGUI::Asset::Template->getList($session);
 cmp_deeply($list, {}, 'getList with no classname returns an empty hashref');
@@ -33,16 +35,19 @@ my %var = (
 	conditional=>1,
 	loop=>[{},{},{},{},{}]
 	);
-my $output = WebGUI::Asset::Template->processRaw($session,$tmplText,\%var);
+my $output = WebGUI::Asset::Template->processRaw($session,$tmplText,\%var, $ht);
 ok($output =~ m/\bAAAAA\b/, "processRaw() - variables");
 ok($output =~ m/true/, "processRaw() - conditionals");
 ok($output =~ m/\s(?:XY){5}\s/, "processRaw() - loops");
 
 my $importNode = WebGUI::Asset::Template->getImportNode($session);
-my $template = $importNode->addChild({className=>"WebGUI::Asset::Template", title=>"test", url=>"testingtemplates", template=>$tmplText, namespace=>'WebGUI Test Template'});
+
+my $template = $importNode->addChild({className=>"WebGUI::Asset::Template"});
+is($template->get('parser'), $default, "default parser is $default");
+
+$template = $importNode->addChild({className=>"WebGUI::Asset::Template", title=>"test", url=>"testingtemplates", template=>$tmplText, namespace=>'WebGUI Test Template',parser=>$ht});
 isa_ok($template, 'WebGUI::Asset::Template', "creating a template");
 
-is($template->get('parser'), 'WebGUI::Asset::Template::HTMLTemplate', 'default parser is HTMLTemplate');
 
 $var{variable} = "BBBBB";
 $output = $template->process(\%var);
@@ -51,7 +56,10 @@ ok($output =~ m/true/, "process() - conditionals");
 ok($output =~ m/\b(?:XY){5}\b/, "process() - loops");
 
 # See if template listens the Accept header
-$session->request->headers_in->{Accept} = 'application/json';
+my $request = $session->request;
+my $in      = $request->headers_in;
+my $out     = $request->headers_out;
+$in->{Accept} = 'application/json';
 
 my $json = $template->process(\%var);
 my $andNowItsAPerlHashRef = eval { from_json( $json ) };
@@ -61,6 +69,36 @@ cmp_deeply( \%var, $andNowItsAPerlHashRef, 'Accept = json, The correct JSON is r
 # Done, so remove the json Accept header.
 delete $session->request->headers_in->{Accept};
 
+# Testing the stuff-your-variables-into-the-body-with-delimiters header
+my $oldUser = $session->user;
+
+# log in as admin so we pass canEdit
+$session->user({ userId => 3 });
+my $hname = 'X-Webgui-Template-Variables';
+$in->{$hname} = $template->getId;
+
+# processRaw sets some session variables (including username), so we need to
+# re-do it.
+WebGUI::Asset::Template->processRaw($session,$tmplText,\%var);
+
+# This has to get called to set up the stow good and proper
+WebGUI::Asset::Template->processVariableHeaders($session);
+
+$template->process(\%var);
+
+my $output = WebGUI::Asset::Template->getVariableJson($session);
+
+delete $in->{$hname};
+my $start = delete $out->{"$hname-Start"};
+my $end   = delete $out->{"$hname-End"};
+my ($json) = $output =~ /\Q$start\E(.*)\Q$end\E/;
+$andNowItsAPerlHashRef = eval { from_json( $json ) };
+cmp_deeply( $andNowItsAPerlHashRef, \%var, "$hname: json returned correctly" )
+    or diag "output: $output";
+
+$session->user({ user => $oldUser });
+
+# done testing the header stuff
 
 my $newList = WebGUI::Asset::Template->getList($session, 'WebGUI Test Template');
 ok(exists $newList->{$template->getId}, 'Uncommitted template exists returned from getList');
@@ -78,6 +116,7 @@ my $template3 = $importNode->addChild({
     title     => 'headBlock test',
     headBlock => "tag1 tag2 tag3",
     template  => "this is a template",
+    parser    => $ht,
 }, undef, time()-5);
 
 ok(!$template3->get('headBlock'),    'headBlock is empty');
@@ -172,6 +211,7 @@ my $trashTemplate = $importNode->addChild({
     className => "WebGUI::Asset::Template",
     title     => 'Trash template',
     template  => q|Trash Trash Trash Trash|,
+    parser    => $ht,
 });
 
 $trashTemplate->trash;
@@ -196,6 +236,7 @@ my $brokenTemplate = $importNode->addChild({
     className => "WebGUI::Asset::Template",
     title     => 'Broken template',
     template  => q|<tmpl_if unclosedIf>If clause with no ending tag|,
+    parser    => $ht,
 });
 
 WebGUI::Test->interceptLogging;
@@ -218,6 +259,7 @@ my $userStyleTemplate = $importNode->addChild({
     url       => "ufs",
     template  => "user function style",
     namespace => 'WebGUI Test Template',
+    parser    => $ht,
 });
 
 my $someOtherTemplate = $importNode->addChild({
@@ -226,6 +268,7 @@ my $someOtherTemplate = $importNode->addChild({
     url       => "sot",
     template  => "some other template",
     namespace => 'WebGUI Test Template',
+    parser    => $ht,
 });
 
 $session->setting->set('userFunctionStyleId', $userStyleTemplate->getId);
@@ -267,4 +310,15 @@ throws_ok
     'WebGUI::Error::NotInConfig',
     'Parser not in config dies';
 isa_ok $class->getParser( $session, 'WebGUI::Asset::Template::HTMLTemplateExpr'), 'WebGUI::Asset::Template::HTMLTemplateExpr', 'parser in config is created';
+
+{
+use Test::MockObject::Extends;
+my $mockparser = Test::MockObject->new->mock( process => sub { $@ = "failed" } );
+my $mockTemplate = Test::MockObject::Extends->new( $class )
+        ->mock( get => sub { return '' } )
+        ->mock( session => sub { return $session } )
+        ->mock( getParser => sub { return $mockparser } )
+     ;
+is $mockTemplate->process, 'failed', 'handle non-reference exceeption';
+}
 

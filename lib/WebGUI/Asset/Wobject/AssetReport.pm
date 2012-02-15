@@ -159,9 +159,8 @@ sub getTemplateVars {
         $rules->{'whereClause'} .= qq{$prop $op $value};
     }
 
-    if($rules->{'whereClause'}) {
-        $rules->{'joinClass'}   = $settings->{className};
-    }
+    # Always join to the class, asset and assetData are excluded by getLineageSql
+    $rules->{'joinClass'}   = $settings->{className};
 
     #Build the order by condition
     my $order                 = $settings->{order};
@@ -191,7 +190,10 @@ sub getTemplateVars {
     my $data = $p->getPageData;
     foreach my $row (@{$data}) {
         my $returnAsset = WebGUI::Asset->new($session,$row->{assetId},$row->{className},$row->{revisionDate});
-        push(@{$var->{'asset_loop'}},$returnAsset->get);
+        push(@{$var->{'asset_loop'}}, {
+                %{$returnAsset->get}, 
+                %{$returnAsset->getMetaDataAsTemplateVariables}
+            });
     }
 
     #Append template variables

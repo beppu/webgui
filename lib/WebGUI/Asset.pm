@@ -37,6 +37,9 @@ use WebGUI::HTML;
 use WebGUI::HTMLForm;
 use WebGUI::Keyword;
 use WebGUI::ProgressBar;
+use WebGUI::ProgressTree;
+use Monkey::Patch;
+use WebGUI::Fork;
 use WebGUI::Search::Index;
 use WebGUI::TabForm;
 use WebGUI::Utility;
@@ -836,6 +839,58 @@ sub fixUrlFromParent {
     return $url;
 }
 
+#-------------------------------------------------------------------
+
+=head2 forkWithStatusPage ($args)
+
+Kicks off a WebGUI::Fork running $method with $args (from the args hashref)
+and redirects to a ProgressTree status page to show the progress. The
+following arguments are required in $args:
+
+=head3 method
+
+The name of the WebGUI::Asset method to call
+
+=head3 args
+
+The arguments to pass that method (see WebGUI::Fork)
+
+=head3 plugin
+
+The WebGUI::Operation::Fork plugin to render (e.g. ProgressTree)
+
+=head3 title
+
+An key in Asset's i18n hash for the title of the rendered console page
+
+=head3 redirect
+
+The full url to redirect to after the fork has finished.
+
+=cut
+
+sub forkWithStatusPage {
+    my ( $self, $args ) = @_;
+    my $session = $self->session;
+
+    my $process = WebGUI::Fork->start( $session, 'WebGUI::Asset', $args->{method}, $args->{args} );
+
+    if ( my $groupId = $args->{groupId} ) {
+        $process->setGroup($groupId);
+    }
+
+    my $method = $session->form->get('proceed') || 'manageTrash';
+    my $i18n = WebGUI::International->new( $session, 'Asset' );
+    my $pairs = $process->contentPairs(
+        $args->{plugin}, {
+            title   => $i18n->get( $args->{title} ),
+            icon    => 'assets',
+            proceed => $args->{redirect} || '',
+        }
+    );
+    $session->http->setRedirect( $self->getUrl($pairs) );
+    return 'redirect';
+} ## end sub forkWithStatusPage
 
 #-------------------------------------------------------------------
 
@@ -1773,6 +1828,19 @@ sub getContentLastModified {
 
 #-------------------------------------------------------------------
 
+=head2 getContentLastModifiedBy ( )
+
+Returns the userId that modified the content last.
+
+=cut
+
+sub getContentLastModifiedBy {
+        my $self = shift;
+        return $self->get("revisedBy");
+}
+
+#-------------------------------------------------------------------
+
 =head2 getValue ( key )
 
 Tries to look up C<key> in the asset object's property cache.  If it can't find it in there, then it
@@ -2580,6 +2648,33 @@ sub setSize {
     $self->{_properties}{assetSize} = $size;
 }
 	
+#-------------------------------------------------------------------
+
+=head2 setState ( $state )
+
+Updates the asset table with the new state of the asset.
+
+=cut
+
+sub setState {
+    my ($self, $state) = @_;
+    my $sql = q{
+        UPDATE asset
+        SET    state          = ?,
+               stateChangedBy = ?,
+               stateChanged   = ?
+        WHERE  assetId = ?
+    };
+    my @props = ($state, $self->session->user->userId, time);
+    $self->session->db->write(
+        $sql, [
+            @props,
+            $self->getId,
+        ]
+    );
+    @{$self->{_properties}}{qw(state stateChangedBy stateChanged)} = @props;
+    $self->purgeCache;
+}
 
 #-------------------------------------------------------------------
 
@@ -2796,20 +2891,51 @@ sub view {
 
 =head2 www_add ( )
 
-Adds a new Asset based upon the class of the current form. Returns the Asset calling method www_edit();  The
-new Asset will inherit security and style properties from the current asset, the parent.
+Create a new, unsaved asset with a parent of this asset from C<class>, C<url>, and optional C<prototype> parameters and present the
+edit screen for it.
+Calls C<get_add_instance> to configure the new asset; the default implementation inherits security and 
+style properties from the current asset, the parent.
 
 =cut
 
 sub www_add {
 	my $self = shift;
-	my %prototypeProperties;
     my $class = $self->loadModule($self->session, $self->session->form->process("class","className"));
+	my $prototype = $self->session->form->process('prototype');
+    my $url = scalar($self->session->form->param("url"));
+
     return undef unless (defined $class);
 	return $self->session->privilege->insufficient() unless ($class->canAdd($self->session));
-	if ($self->session->form->process('prototype')) {
-		my $prototype = WebGUI::Asset->new($self->session, $self->session->form->process("prototype"),$class);
-		foreach my $definition (@{$prototype->definition($self->session)}) { # cycle through rather than copying properties to avoid grabbing stuff we shouldn't grab
+
+    my $newAsset = $class->get_add_instance( $self->session, $self, $url, $prototype );
+
+	$newAsset->{_parent} = $self;
+	return $newAsset->www_edit();
+}
+
+#-------------------------------------------------------------------
+
+=head2 get_add_instance ( $session, $parentAsset, $url, $prototype )
+
+Class method.
+Called from C<www_add> by the parent asset on the class of the new asset being constructed.
+Configures the new asset with defaults, including inheriting security and style properties from the current asset.
+C<$prototype> is the optional assetId of an asset to initialize the new asset from.
+
+=cut
+
+sub get_add_instance {
+    my $class = shift;
+    my $session = shift;
+    my $parentAsset = shift;
+    my $url = shift;
+    my $prototype = shift;
+
+	my %prototypeProperties;
+
+	if ($prototype) {
+		my $prototype = WebGUI::Asset->new($session, $prototype, $class);
+		foreach my $definition (@{$prototype->definition($session)}) { # cycle through rather than copying properties to avoid grabbing stuff we shouldn't grab
 			foreach my $property (keys %{$definition->{properties}}) {
 				next if (isIn($property,qw(title menuTitle url isPrototype isPackage)));
 				next if ($definition->{properties}{$property}{noFormPost});
@@ -2817,24 +2943,25 @@ sub www_add {
 			}
 		}
 	}
-	my %properties = (
-		%prototypeProperties,
-		parentId => $self->getId,
-		groupIdView => $self->get("groupIdView"),
-		groupIdEdit => $self->get("groupIdEdit"),
-		ownerUserId => $self->get("ownerUserId"),
-		encryptPage => $self->get("encryptPage"),
-		styleTemplateId => $self->get("styleTemplateId"),
-		printableStyleTemplateId => $self->get("printableStyleTemplateId"),
-		isHidden => $self->get("isHidden"),
-		className=>$class,
-		assetId=>"new",
-		url=>scalar($self->session->form->param("url")),
-		);
-	$properties{isHidden} = 1 unless $self->session->config->get("assets/".$class."/isContainer");
-	my $newAsset = WebGUI::Asset->newByPropertyHashRef($self->session,\%properties);
-	$newAsset->{_parent} = $self;
-	return $newAsset->www_edit();
+
+    my %properties = (
+        %prototypeProperties,
+        parentId                 => $parentAsset->getId,
+        groupIdView              => $parentAsset->get("groupIdView"),
+        groupIdEdit              => $parentAsset->get("groupIdEdit"),
+        ownerUserId              => $parentAsset->get("ownerUserId"),
+        encryptPage              => $parentAsset->get("encryptPage"),
+        styleTemplateId          => $parentAsset->get("styleTemplateId"),
+        printableStyleTemplateId => $parentAsset->get("printableStyleTemplateId"),
+        isHidden                 => $parentAsset->get("isHidden"),
+        className                => $class,
+        assetId                  => "new",
+        url                      => $url,
+    );
+    $properties{isHidden} = 1 unless $session->config->get("assets/".$class."/isContainer");
+
+    return WebGUI::Asset->newByPropertyHashRef($session, \%properties);
+
 }
 
 #-------------------------------------------------------------------

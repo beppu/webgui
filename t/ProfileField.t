@@ -18,6 +18,7 @@ use strict;
 use lib "$FindBin::Bin/lib";
 use Test::More;
 use Data::Dumper;
+use File::Spec;
 use WebGUI::Test; # Must use this before any other WebGUI modules
 use WebGUI::Session;
 use WebGUI::Form::Text;
@@ -33,7 +34,7 @@ WebGUI::Test->addToCleanup($newUser);
 #----------------------------------------------------------------------------
 # Tests
 
-plan tests => 52;        # Increment this number for each test you create
+plan tests => 58;        # Increment this number for each test you create
 
 #----------------------------------------------------------------------------
 # Test the creation of ProfileField
@@ -50,6 +51,11 @@ isa_ok( $aliasField, 'WebGUI::ProfileField' );
 my $uilevelField;
 ok( $uilevelField = WebGUI::ProfileField->new( $session, 'uiLevel' ), 'field "uiLevel instantiated' );
 isa_ok( $uilevelField, 'WebGUI::ProfileField' );
+
+
+my $langField;
+ok( $langField = WebGUI::ProfileField->new( $session, 'language' ), 'field "language instantiated' );
+isa_ok( $langField, 'WebGUI::ProfileField' );
 
 #----------------------------------------------------------------------------
 # Test the formField method
@@ -78,6 +84,28 @@ $ffvalue    = undef;
 ok( $ff = $uilevelField->formField(undef, undef, $newUser), 'formField method returns something, uiLevel field, defaulted user' );
 $ffvalue = $newUser->profileField('uiLevel');
 like( $ff, qr/$ffvalue/, 'html returned contains value, uiLevel field, defaulted user' );
+
+
+
+$ff         = undef;
+$ffvalue    = undef;
+ok( $ff     = $langField->formField, 'formField method returns something, language field, session user' );
+$ffvalue    = $session->user->profileField('language');
+like( $ff, qr/value="$ffvalue"[^>]+selected/, 'html returned contains value, language field, session user' );
+
+installPigLatin();
+WebGUI::Test->addToCleanup(sub {
+	unlink File::Spec->catfile(WebGUI::Test->lib, qw/WebGUI i18n PigLatin WebGUI.pm/);
+	unlink File::Spec->catfile(WebGUI::Test->lib, qw/WebGUI i18n PigLatin.pm/);
+	rmdir File::Spec->catdir(WebGUI::Test->lib, qw/WebGUI i18n PigLatin/);
+});
+
+$ff         = undef;
+$ffvalue    = "PigLatin";
+$session->scratch->setLanguageOverride($ffvalue);
+ok( $ff     = $langField->formField, 'formField method returns something, language field, session user, languageOverride' );
+like( $ff, qr/value="$ffvalue"[^>]+selected/, 'html returned contains value, language field, session user, languageOverride' );
+$session->scratch->delete('language');
 
 ###########################################################
 #
@@ -205,4 +233,16 @@ is $extra_field->formProperties->{extras}, q|class="texted"|, 'extras available 
 
 $extra_field->delete;
 
+sub installPigLatin {
+    use File::Copy;
+	mkdir File::Spec->catdir(WebGUI::Test->lib, 'WebGUI', 'i18n', 'PigLatin');
+	copy( 
+		WebGUI::Test->getTestCollateralPath('WebGUI.pm'),
+		File::Spec->catfile(WebGUI::Test->lib, qw/WebGUI i18n PigLatin WebGUI.pm/)
+	);
+	copy(
+		WebGUI::Test->getTestCollateralPath('PigLatin.pm'),
+		File::Spec->catfile(WebGUI::Test->lib, qw/WebGUI i18n PigLatin.pm/)
+	);
+}
 

@@ -20,6 +20,7 @@ use WebGUI::Affiliate;
 use WebGUI::Exception;
 use WebGUI::Pluggable;
 use WebGUI::Session;
+use WebGUI::Asset::Template;
 
 =head1 NAME
 
@@ -63,12 +64,31 @@ to the user, instead of displaying the Page Not Found page.
 sub handler {
     my ($request, $server, $config) = @_;
     $request->push_handlers(PerlResponseHandler => sub {
+
+        my $request = shift;
+        $request = Apache2::Request->new($request);
+
         my $session = $request->pnotes('wgSession');
+
         WEBGUI_FATAL: {
             unless (defined $session) {
                 $session = WebGUI::Session->open($server->dir_config('WebguiRoot'), $config->getFilename, $request, $server);
                 return Apache2::Const::OK if ! defined $session;
             }
+
+            # if there's no session cookie but there is HTTP auth, try to log in using that
+            my $auth = $request->headers_in->{'Authorization'};
+            if( $session->user->isVisitor and $auth ) {
+                if( $auth =~ m/^Basic/ ) {
+                    $auth =~ s/Basic //;
+                    WebGUI::authen($request, split(":", MIME::Base64::decode_base64($auth), 2), $session);
+                }
+                else { # realm oriented
+                    $request->push_handlers(PerlAuthenHandler => sub { return WebGUI::authen($request, undef, undef, $session)}); 
+                } 
+            } 
+
+            WebGUI::Asset::Template->processVariableHeaders($session);
             foreach my $handler (@{$config->get("contentHandlers")}) {
                 my $output = eval { WebGUI::Pluggable::run($handler, "handler", [ $session ] )};
                 if ( my $e = WebGUI::Error->caught ) {
@@ -107,6 +127,9 @@ sub handler {
                 }
             }
         }
+        $session->output->print(
+            WebGUI::Asset::Template->getVariableJson($session), 1
+        );
         $session->close if defined $session;
         return Apache2::Const::OK;
     });

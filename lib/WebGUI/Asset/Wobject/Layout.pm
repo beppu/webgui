@@ -443,6 +443,36 @@ sub getContentLastModified {
 
 #-------------------------------------------------------------------
 
+=head2 getContentLastModifiedBy
+
+Extend the base class to include the userid of the person that made last modification.
+
+=cut
+
+sub getContentLastModifiedBy {
+    my $self      = shift;
+    my $mtime     = $self->SUPER::getContentLastModified;
+    my $userId    = $self->get('revisedBy');
+    my $childIter = $self->getLineageIterator(["children"],{excludeClasses=>['WebGUI::Asset::Wobject::Layout']});
+    while ( 1 ) {
+        my $child;
+        eval { $child = $childIter->() };
+        if ( my $x = WebGUI::Error->caught('WebGUI::Error::ObjectNotFound') ) {
+            $self->session->log->error($x->full_message);
+            next;
+        }
+        last unless $child;
+        my $child_mtime = $child->getContentLastModified;
+        if ($child_mtime > $mtime) {
+            $mtime = $child_mtime;
+            $userId = $child->get("revisedBy");
+        }
+    }
+    return $userId;
+}
+
+#-------------------------------------------------------------------
+
 =head2 www_view 
 
 Extend the base method to handle caching and ad rotation.
@@ -482,6 +512,36 @@ sub www_view {
     }
     $self->{_viewPrintOverride} = 1; # we do this to make it output each asset as it goes, rather than waiting until the end
     return $self->SUPER::www_view;
+}
+
+#-------------------------------------------------------------------
+
+=head2 get_add_instance ()
+
+Subclass the standard C<get_add_instance> to inherit 
+C<mobileStyleTemplateId> and C<mobileTemplateId> from the parent asset if it is an instance of
+L<WebGUI::Asset::Wobject::Layout>.
+
+=cut
+
+sub get_add_instance {
+    my $class = shift;
+    my $session = shift;
+    my $parentAsset = shift;
+    my $url = shift;
+    my $prototype = shift;
+
+    my $instance = $class->SUPER::get_add_instance( $session, $parentAsset, $url, $prototype, @_ );
+
+    if( $parentAsset->isa('WebGUI::Asset::Wobject::Layout') ) {
+        $instance->update({  
+            mobileStyleTemplateId => $parentAsset->get("mobileStyleTemplateId"),
+            mobileTemplateId      => $parentAsset->get("mobileTemplateId"),
+        });
+    }
+
+    return $instance;
+
 }
 
 1;

@@ -23,7 +23,9 @@ use WebGUI::Exception;
 use WebGUI::Utility ();
 use WebGUI::Session;
 use URI::URL;
-use Scope::Guard;
+use Scope::Guard qw(guard);
+use WebGUI::ProgressTree;
+use WebGUI::Event;
 
 =head1 NAME
 
@@ -154,6 +156,10 @@ This scratch variable is used by the Widget Macro.
 =back
 
 Takes a hashref of arguments, containing the following keys:
+
+=head3 depth
+
+How many levels deep to export.
 
 =head3 quiet
 
@@ -304,21 +310,53 @@ sub exportAsHtml {
 }
 
 sub exportBranch {
-    my $self = shift;
-    my $options = shift;
-    my $reportSession = shift;
+    my ($self, $options, $reportSession) = @_;
+    my $i18n = $reportSession &&
+        WebGUI::International->new($self->session, 'Asset');
 
     my $depth               = $options->{depth};
     my $indexFileName       = $options->{indexFileName};
     my $extrasUploadAction  = $options->{extrasUploadAction};
     my $rootUrlAction       = $options->{rootUrlAction};
-    my $exportedCount = 0;
+    my $report              = $options->{report};
 
-    my $i18n;
-    if ( $reportSession ) {
-        $i18n = WebGUI::International->new($self->session, 'Asset');
+    unless ($report) {
+        if ($reportSession) {
+            # We got a report session and no report coderef, so we'll print
+            # messages out.  NOTE: this is for backcompat, but I'm not sure we
+            # even need it any more.  I think the only thing using it was the
+            # old iframe-based export status report. --frodwith
+            my %reports = (
+                'bad user privileges' => sub {
+                    my $asset = shift;
+                    my $url = $asset->getUrl;
+                    $i18n->get('bad user privileges') . "\n$url"
+                },
+                'not exportable' => sub {
+                    my $asset = shift;
+                    my $fullPath = $asset->exportGetUrlAsPath;
+                    "$fullPath skipped, not exportable<br />";
+                },
+                'exporting page' => sub {
+                    my $asset = shift;
+                    my $fullPath = $asset->exportGetUrlAsPath;
+                    sprintf $i18n->get('exporting page'), $fullPath;
+                },
+                'collateral notes' => sub { pop },
+                'done' => sub { $i18n->get('done') },
+            );
+            $report = sub {
+                my ($asset, $key, @args) = @_;
+                my $code    = $reports{$key};
+                my $message = $asset->$code();
+                $reportSession->output->print($message, @args);
+            };
+        }
+        else {
+            $report = sub {};
+        }
     }
-
+    my $exportedCount = 0;
 
     my $exportAsset = sub {
         my ( $assetId ) = @_;
@@ -335,26 +373,18 @@ sub exportBranch {
 
         # skip this asset if we can't view it as this user.
         unless( $asset->canView ) {
-            if( $reportSession ) {
-                my $message = sprintf( $i18n->get('bad user privileges') . "\n") . $asset->getUrl;
-                $reportSession->output->print($message);
-            }
+            $asset->$report('bad user privileges');
             next;
         }
 
         # skip this asset if it's not exportable.
         unless ( $asset->exportCheckExportable ) {
-            if ( $reportSession ) {
-                $reportSession->output->print("$fullPath skipped, not exportable<br />");
-            }
+            $asset->$report('not exportable');
             next;
         }
 
         # tell the user which asset we're exporting.
-        if ( $reportSession ) {
-            my $message = sprintf $i18n->get('exporting page'), $fullPath;
-            $reportSession->output->print($message);
-        }
+        $asset->$report('exporting page');
 
         # try to write the file
         eval { $asset->exportWriteFile };
@@ -364,9 +394,24 @@ sub exportBranch {
 
         # next, tell the asset that we're exporting, so that it can export any
         # of its collateral or other extra data.
-        eval { $asset->exportAssetCollateral($asset->exportGetUrlAsPath, $options, $reportSession) };
-        if($@) {
-            WebGUI::Error->throw(error => "failed to export asset collateral for URL " . $asset->getUrl . ": $@");
+        {
+            # For backcompat we want to capture anything that
+            # exportAssetCollateral may have printed and report it to the
+            # coderef. We should get rid of this as soon as we're ready to
+            # break that api.
+            my $cs = $self->session->duplicate();
+            open my $handle, '>', \my $output;
+            $cs->output->setHandle($handle);
+            my $guard = guard {
+                close $handle;
+                $cs->close();
+                $asset->$report('collateral notes', $output) if $output;
+            };
+            my $path = $asset->exportGetUrlAsPath;
+            eval { $asset->exportAssetCollateral($path, $options, $cs) };
+            if($@) {
+                WebGUI::Error->throw(error => "failed to export asset collateral for URL " . $asset->getUrl . ": $@");
+            }
         }
 
         # we exported this one successfully, so count it
@@ -376,20 +421,13 @@ sub exportBranch {
         $self->session->db->write( "UPDATE asset SET lastExportedAs = ? WHERE assetId = ?",
             [ $fullPath, $asset->getId ] );
 
-        $self->updateHistory("exported");
+        $asset->updateHistory('exported');
 
         # tell the user we did this asset correctly
-        if ( $reportSession ) {
-            $reportSession->output->print($i18n->get('done'));
-        }
-
-        #use Devel::Cycle;
-        #warn "CHECKING on " . ref( $asset ) . ' ID: ' . $asset->getId . "\n";
-        #find_cycle( $asset );
+        $asset->$report('done');
     };
 
-
-    my $assetIds = $self->exportGetDescendants(undef, $depth);
+    my $assetIds = $self->exportGetAssetIds($options);
     foreach my $assetId ( @{$assetIds} ) {
         $exportAsset->( $assetId );
     }
@@ -473,6 +511,37 @@ sub exportCheckExportable {
 
     # passed checks, return 1
     return 1;
+}
+
+#-------------------------------------------------------------------
+
+=head2 exportGetAssetIds ( options )
+
+Gets the ids of all the assets to be exported in this run as an arrayref.
+Takes the same options spec as exportBranch.
+
+=cut
+
+sub exportGetAssetIds {
+    my ($self, $options) = @_;
+    my $session = $self->session;
+    my $ids     = $self->exportGetDescendants( undef, $options->{depth} );
+    return $ids unless $options->{exportRelated};
+
+    # We don't particularly care about the order of the assetIds. The only
+    # thing that might care is the ProgressTree page, and it computes the tree
+    # by looking at asset lineage anyway. We do want to follow chains of
+    # related assets though, so we'll use $ids as a queue and push related
+    # assets onto the end (unless, of course, they're already in the set).
+    my %set;
+    while (my $id = shift @$ids) {
+        my $asset = WebGUI::Asset->new($session, $id);
+        undef $set{$id};
+        for my $id (@{ $asset->exportGetRelatedAssetIds }) {
+            push(@$ids, $id) unless exists $set{$id};
+        }
+    }
+    return [ keys %set ];
 }
 
 #-------------------------------------------------------------------
@@ -561,6 +630,31 @@ sub exportGetDescendants {
 
 #-------------------------------------------------------------------
 
+=head2 exportGetRelatedAssetIds
+
+Normally all an asset's shorcuts and its container (via $asset->getContainer),
+but override if exporting your asset would invalidate other exported assets.
+If exportRelated is checked, this will be called and any assetIds it returns
+will be exported when your asset is exported.
+
+This method returns an arrayref, and IS ALLOWED to contain the same assetId
+more than once. Anyone calling this function should check for duplicates. No
+particular order should be assumed.
+
+=cut
+
+sub exportGetRelatedAssetIds {
+    my $self = shift;
+    my $related = WebGUI::Asset::Shortcut->getShortcutsForAssetId(
+        $self->session,
+        $self->getId
+    );
+    push @$related, $self->getContainer->getId;
+    return $related;
+}
+
+#-------------------------------------------------------------------
+
 =head2 exportGetUrlAsPath ( index )
 
 Translates an asset's URL into an appropriate path and filename for exporting. For
@@ -622,6 +716,45 @@ sub exportGetUrlAsPath {
         return Path::Class::File->new($exportPath, @pathComponents, $filename, $index);
     }
 }
+
+#-------------------------------------------------------------------
+
+=head2 exportInFork
+
+Intended to be called by WebGUI::Fork.  Runs exportAsHtml on the
+specified asset and keeps a json structure as the status.
+
+=cut
+
+sub exportInFork {
+    my ( $process, $args ) = @_;
+    my $session = $process->session;
+    my $self = WebGUI::Asset->new( $session, delete $args->{assetId} );
+    $args->{indexFileName} = delete $args->{index};
+    my $assetIds = $self->exportGetAssetIds($args);
+    my $tree = WebGUI::ProgressTree->new( $session, $assetIds );
+    $process->update( sub { $tree->json } );
+    my %reports = (
+        'done'                => sub { $tree->success(shift) },
+        'exporting page'      => sub { $tree->focus(shift) },
+        'collateral notes'    => sub { $tree->note(@_) },
+        'bad user privileges' => sub {
+            $tree->failure( shift, 'Bad User Privileges' );
+        },
+        'not exportable' => sub {
+            $tree->failure( shift, 'Not Exportable' );
+        },
+    );
+    $args->{report} = sub {
+        my ( $asset, $key, @args ) = @_;
+        my $code = $reports{$key};
+        $code->( $asset->getId, @args );
+        $process->update( sub { $tree->json } );
+    };
+    $self->exportAsHtml($args);
+    $tree->focus(undef);
+    $process->update( $tree->json );
+} ## end sub exportInFork
 
 #-------------------------------------------------------------------
 
@@ -836,6 +969,7 @@ sub exportWriteFile {
         $self->session->output->print($contents);
     }
     $fh->close;
+    fire $self->session, 'asset::export' => $dest;
 }
 
 #-------------------------------------------------------------------
@@ -875,6 +1009,12 @@ sub www_export {
         -hoverHelp      => $i18n->get('Depth description'),
         -name           => "depth",
         -value          => 99,
+    );
+    $f->yesNo(
+        -label          => $i18n->get('Export Related Assets'),
+        -hoverHelp      => $i18n->get('Export Related Assets description'),
+        -name           => "exportRelated",
+        -value          => '',
     );
     $f->selectBox(
         -label          => $i18n->get('Export as user'),
@@ -935,16 +1075,26 @@ Displays the export status page
 =cut
 
 sub www_exportStatus {
-    my $self        = shift;
-    return $self->session->privilege->insufficient() unless ($self->session->user->isInGroup(13));
-    my $i18n        = WebGUI::International->new($self->session, "Asset");
-    my $iframeUrl   = $self->getUrl('func=exportGenerate');
-    foreach my $formVar (qw/index depth userId extrasUploadsAction rootUrlAction exportUrl/) {
-        $iframeUrl  = $self->session->url->append($iframeUrl, $formVar . '=' . $self->session->form->process($formVar));
-    }
-
-    my $output      = '<iframe src="' . $iframeUrl . '" title="' . $i18n->get('Page Export Status') . '" width="100%" height="500"></iframe>';
-    $self->getAdminConsole->render($output, $i18n->get('Page Export Status'), "Asset");
+    my $self    = shift;
+    my $session = $self->session;
+    return $session->privilege->insufficient
+        unless $session->user->isInGroup(13);
+    my $form    = $session->form;
+    my @vars    = qw(index depth userId rootUrlAction exportUrl exportRelated);
+    $self->forkWithStatusPage({
+            plugin   => 'ProgressTree',
+            title    => 'Page Export Status',
+            method   => 'exportInFork',
+            groupId  => 13,
+            args     => {
+                # Note the difference in spelling...
+                #           v---no s                           s-----v
+                extrasUploadAction => scalar $form->get('extrasUploadsAction'),
+                assetId => $self->getId,
+                map { $_ => scalar $form->get($_) } @vars
+            }
+        }
+    );
 }
 
 #-------------------------------------------------------------------

@@ -183,6 +183,26 @@ sub getValueAsHtml {
 
 #-------------------------------------------------------------------
 
+=head2 headTags ( )
+
+Set the head tags for this form plugin
+
+=cut
+
+sub headTags {
+    my $self  = shift;
+    my $style = $self->session->style;
+    my $url   = $self->session->url;
+	$style->setScript($url->extras('inputCheck.js'),                          { type => 'text/javascript' });
+    $style->setScript($url->extras('yui/build/connection/connection-min.js'), { type => 'text/javascript'});
+    $style->setScript($url->extras('yui/build/event/event-min.js'),           { type => 'text/javascript' });
+    $style->setScript($url->extras('yui/build/json/json-min.js'),             { type => 'text/javascript' });
+    $style->setScript($url->extras('yui-webgui/build/i18n/i18n.js' ),         { type => 'text/javascript' });
+	$style->setScript($url->extras('form/timefield.js'),                      { type => 'text/javascript' });
+}
+
+#-------------------------------------------------------------------
+
 =head2 isDynamicCompatible ( )
 
 A class method that returns a boolean indicating whether this control is compatible with the DynamicField control.
@@ -205,15 +225,9 @@ sub toHtml {
     my $self = shift;
 	##JS expects formatted time
     $self->set('value', $self->getValueAsHtml);
-	my $i18n = WebGUI::International->new($self->session);
-	$self->session->style->setScript($self->session->url->extras('inputCheck.js'),{ type=>'text/javascript' });
-	$self->set("extras", $self->get('extras') . ' onkeyup="doInputCheck(document.getElementById(\''.$self->get("id").'\'),\'0123456789:\')"');
-	return $self->SUPER::toHtml
-		.WebGUI::Form::Button->new($self->session,
-			id=>$self->get('id'),
-			extras=>'style="font-size: 8pt;" onclick="window.timeField = document.getElementById(\''.$self->get("id").'\');clockSet = window.open(\''.$self->session->url->extras('timeChooser.html').'\',\'timeChooser\',\'WIDTH=230,HEIGHT=100\');return false"',
-			value=>$i18n->get(970)
-			)->toHtml;
+	#my $i18n = WebGUI::International->new($self->session);
+	$self->set("extras", $self->get('extras') . ' onblur="WebGUI.TimeField.munge(document.getElementById(\''.$self->get("id").'\'))" onkeyup="WebGUI.TimeField.check(document.getElementById(\''.$self->get("id").'\'));"');
+	return $self->SUPER::toHtml;
 }
 
 #-------------------------------------------------------------------

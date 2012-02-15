@@ -65,6 +65,27 @@ sub getName {
 
 #-------------------------------------------------------------------
 
+=head2 headTags ( )
+
+Set the head tags for this form plugin
+
+=cut
+
+sub headTags {
+    my $self = shift;
+    my $session = $self->session;
+    my $style = $session->style;
+    my $url = $session->url;
+
+    $style->setLink($url->extras("yui/build/autocomplete/assets/skins/sam/autocomplete.css"), {rel=>"stylesheet", type=>"text/css"});
+    $style->setScript($url->extras("yui/build/yahoo-dom-event/yahoo-dom-event.js"), {type=>"text/javascript"});
+    $style->setScript($url->extras("yui/build/datasource/datasource-min.js"), {type=>"text/javascript"});
+    $style->setScript($url->extras("yui/build/autocomplete/autocomplete-min.js"), {type=>"text/javascript"});
+    $style->setRawHeadTags('<style type="text/css">.yui-skin-sam.webgui-keywords-autocomplete .yui-ac-input { position: static; width: auto }</style>');
+}
+
+#-------------------------------------------------------------------
+
 =head2 isDynamicCompatible ( )
 
 A class method that returns a boolean indicating whether this control is compatible with the DynamicField control.
@@ -85,19 +106,10 @@ Returns a keyword pull-down field. A keyword pull down provides a select list th
 
 sub toHtml {
     my $self = shift;
-    my $session = $self->session;
-    my $style = $session->style;
-    my $url = $session->url;
-
-    $style->setLink($url->extras("yui/build/autocomplete/assets/skins/sam/autocomplete.css"), {rel=>"stylesheet", type=>"text/css"});
-    $style->setScript($url->extras("yui/build/yahoo-dom-event/yahoo-dom-event.js"), {type=>"text/javascript"});
-    $style->setScript($url->extras("yui/build/datasource/datasource-min.js"), {type=>"text/javascript"});
-    $style->setScript($url->extras("yui/build/autocomplete/autocomplete-min.js"), {type=>"text/javascript"});
-    $style->setRawHeadTags('<style type="text/css">.yui-skin-sam.webgui-keywords-autocomplete .yui-ac-input { position: static; width: auto }</style>');
 
     my $name = $self->generateIdParameter($self->get('name'));
     my $autocompleteDiv = $self->privateName('autocomplete');
-    my $pageUrl = $url->page;
+    my $pageUrl = $self->session->url->page;
     my $output
         = '<div class="yui-skin-sam webgui-keywords-autocomplete"><div>' . $self->SUPER::toHtml
         . '<div id="' . $autocompleteDiv . '"></div>'

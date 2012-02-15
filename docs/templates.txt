@@ -1,7 +1,7 @@
 This is a running list of template changes made during upgrades.  If you have copied the default
 templates, you will need to apply these changes manually to your copies.
 
-7.9.34
+7.10.22
   * Thingy CSS file - root/import/thingy-templates/thingy.css
     Add CSS to make sure that overflows are visible, to handle style that hide overflow by default.
 
@@ -15,40 +15,31 @@ templates, you will need to apply these changes manually to your copies.
   * Email Receipt (Default) - shopping-cart-collateral-items/email-receipt-default 
     Added code to prevent links to items with bad skus to both templates.
 
-7.9.27
+7.10.14
   * My Purchases Detail (Default) - shopping-cart-collateral-items/my-purchases-detail-default
   * Email Receipt (Default) - shopping-cart-collateral-items/email-receipt-default 
     Added code to prevent links to items with bad skus to both templates.
 
-7.9.26
+7.10.13
   * Cart (Default) - default-shopping-cart-template
-    In 7.9.17, hardcoded JavaScript was removed from the Cart code and should be migrated to the Cart template.  The list of Javascript and files which are needed is below.  Please add it to the Attachments or Extra Head Tags for any customized Cart templates.
+    In 7.10.7, hardcoded JavaScript was removed from the Cart code and migrated to the Cart template.  The list of Javascript and files which are needed is below.  Please add it to the Attachments or Extra Head Tags for any customized Cart templates.
     ^Extras(/yui/build/yahoo-dom-event/yahoo-dom-event.js);
     ^Extras(/yui/build/json/json-min.js);
     ^Extras(/yui/build/connection/connection-min.js);
     ^Extras(/underscore/underscore-min.js);
     ^Extras(/shop/cart.js);
 
-7.9.23
-
+7.10.11
   * Default View Thing Data Template - templates/thingy-default-view-thing
     Change how the title is rendered.  If no fields are set to be displayed in the title, show the internationalized word View.
     If fields are set, then display the viewScreenTitle variable instead.
 
-7.9.22
+7.10.9
 
   * Underground style template CSS - style-underground/css/underground-webgui-css
     Make labels render inline.
 
-7.9.21
-
-  * EU VAX Template
-    Internationalized the text in the template.
-
-  * Calendar Event List template - root/import/calendar-templates/default-calendar-list-view
-    Only display changes in new months, not months AND years AND days.
-
-7.9.20
+7.10.8
 
   * Friend Manager view template - root/import/account/friendmanager/view
     Add a div to hold the pagination.
@@ -57,7 +48,13 @@ templates, you will need to apply these changes manually to your copies.
     Add foreground/font color to the CSS for the details.
     Move border property to the table instead of assigning it to the body of the page.
 
-7.9.17
+  * EU VAX Template
+    Internationalized the text in the template.
+
+  * Calendar Event List template - root/import/calendar-templates/default-calendar-list-view
+    Only display changes in new months, not months AND years AND days.
+
+7.10.4
 
   * DataForm email template - default_email
     Do HTML escaping on field values.  Move table tags outside of the loops so only one table
@@ -66,6 +63,14 @@ templates, you will need to apply these changes manually to your copies.
   * Template Variable template
     The URL for that template has been changed from "help" to "root/import/adminconsole/help", making
     the short URL Help available for WebGUI content use.
+
+  * EMS Badge Listing template - root/import/ems/ems-badge-listing-default
+    Changed the javascript to use a custom formatter for the Badge price.
+
+7.10.3
+
+  * Carousel Default Template - root/import/carousel/carousel-default
+    Add a height parameter to the template.
 
   * survey.css
     Removed relative positioning and offset from top.
@@ -77,23 +82,18 @@ templates, you will need to apply these changes manually to your copies.
   * root/import/workflow-activity-templates
     Added a folder to hold the assorted Workflow Activity templates.
 
-7.9.16
+7.10.2
 
   * The Make Page Printable template has changed (as per bug #11857). The HTML
     is now consistent with other default Style templates. The Plain Black logo and
     copyright info have been removed and a stylesheet was added to provide very
     simple default formatting for text, header and footer (makepageprintable.css).
 
-  * Carousel Default Template - root/import/carousel/carousel-default
-    Add a height parameter to the template.
-    
-7.9.15
+7.10.1
 
   *  Profile templates - root/import/account/profile/default-view-profile-template
                        - root/import/account/profile/profile-account-layout
      Moved the "back to profile" link from the Profile View template to the Profile Layout template.
-
-7.9.14
 
   *  Asset Report Template - asset-report/asset-report-default-template
      Remove the empty template attachment
@@ -118,4 +118,38 @@ templates, you will need to apply these changes manually to your copies.
      </tmpl_unless>
      <tmpl_loop story_loop>
 
+  *  Thingy searchResults_json
+     This is a JSON-encoded version of searchResults_loop, which allows people to access Thingy search results
+     in Javascript/Flash/etc.. For example, you can use OpenFlashCharts2 (http://teethgrinder.co.uk/open-flash-chart-2)
+     and SWFObject to access the data and then display it as a pretty custom chart via the following:
+     
+        <tmpl_if searchResult_loop>
+            <div id="chart-container">
+                <div id="chart">Loading..</div>
+            </div>
+            <script type="text/javascript">
+                function open_flash_chart_data() {
+                    var data_json = "<tmpl_var searchResult_json ESCAPE=JS>";
+                    var data = YAHOO.lang.JSON.parse(data_json);
+                    var chart = {
+                        elements: [
+                            // populate dynamically from data object
+                        ]
+                    };
+                    return YAHOO.lang.JSON.stringify(chart);
+                }
+                // Embed the chart
+                swfobject.embedSWF(
+                    '/path/to/open-flash-chart.swf',         // url
+                    'chart',                                 // container element id
+                    '100%',                                  // width
+                    '100%',                                  // height
+                    '9.0.0',                                 // version
+                    '/path/to/swfobject/expressInstall.swf', // expressInstall
+                    { loading: 'Loading...' },               // flashvars
+                    {},                                      // params
+                    {}                                       // attributes
+                );
+            </script>
+        </tmpl_if>
 

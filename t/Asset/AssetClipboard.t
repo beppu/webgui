@@ -20,9 +20,12 @@ use WebGUI::Session;
 use WebGUI::Utility;
 use WebGUI::Asset;
 use WebGUI::VersionTag;
+use Test::MockObject;
+use Test::MockObject::Extends;
+use WebGUI::Fork;
 
 use Test::More; # increment this value for each test you create
-plan tests => 29;
+plan tests => 30;
 
 my $session = WebGUI::Test->session;
 $session->user({userId => 3});
@@ -148,12 +151,20 @@ sub copied {
     return undef;
 }
 
-my @methods = qw(Single Children Descendants);
+my $process = Test::MockObject->new->mock(update => sub {});
+my @methods = (
+    # single duplicate doesn't fork, so we can just test the www method to
+    # make sure it gets it right
+    sub { shift->www_copy },
+    sub { shift->duplicateBranch(1, 'clipboard') },
+    sub { shift->duplicateBranch(0, 'clipboard') },
+);
+my @prefixes = qw(single children descendants);
 for my $i (0..2) {
-    my $meth = "_wwwCopy$methods[$i]";
+    my $meth = $methods[$i];
     $root->$meth();
     my $clip = copied();
-    is_tree_of_folders($clip, $i+1, $meth);
+    is_tree_of_folders($clip, $i+1, @prefixes[$i]);
     $clip->purge;
 }
 
@@ -192,3 +203,35 @@ $page->cut;
 
 is $shortcut->paste($page->getId), 0, 'cannot paste below shortcuts';
 
+####################################################
+#
+# pasteInFork
+#
+####################################################
+
+$session->user({ userId => "3" });
+my $process = Test::MockObject::Extends->new( 'WebGUI::Fork' );
+$process->mock( "update" => sub { } ); # do nothing on update. we don't care
+$process->mock( "session" => sub { return $session } );
+
+
+# Try with a Collaboration and some Threads
+my $tag = WebGUI::VersionTag->getWorking( $session );
+WebGUI::Test->addToCleanup($tag);
+my $collab = $tempspace->addChild({
+    className => 'WebGUI::Asset::Wobject::Collaboration',
+    groupIdEdit => "3",
+    status => "pending",
+    tagId => $tag->getId,
+}, undef, undef, { skipAutoCommitWorkflows => 1, skipNotification => 1 });
+my $thread = $collab->addChild({
+    className => 'WebGUI::Asset::Post::Thread',
+    groupIdEdit => "3",
+    status => "pending",
+    tagId => $tag->getId,
+}, undef, undef, { skipAutoCommitWorkflows => 1, skipNotification => 1 });
+$tag->commit;
+$thread->cut;
+WebGUI::Asset::pasteInFork( $process, { assetId => $collab->getId, list => [ $thread->getId ] } );
+$thread = $thread->cloneFromDb;
+is( $thread->get('state'), 'published', 'thread is pasted' );

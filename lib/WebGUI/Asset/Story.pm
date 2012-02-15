@@ -231,6 +231,26 @@ sub exportAssetData {
 
 #-------------------------------------------------------------------
 
+=head2 exportGetRelatedAssetIds
+
+Overriden to include any topics in which this story would appear.
+
+=cut
+
+sub exportGetRelatedAssetIds {
+    my $self = shift;
+    my $rel  = $self->SUPER::exportGetRelatedAssetIds(@_);
+    push @$rel, @{
+        WebGUI::Keyword->new($self->session)->getMatchingAssets({
+            keywords => WebGUI::Keyword::string2list($self->get('keywords')),
+            isa      => 'WebGUI::Asset::Wobject::StoryTopic',
+        })
+    };
+    return $rel;
+}
+
+#-------------------------------------------------------------------
+
 =head2 formatDuration ( $lastUpdated )
 
 Format the time since this story was last updated.  If it is longer than 1 week, then
@@ -420,6 +440,9 @@ sub getEditForm {
                             value => $i18n->get('save and add another photo'),
                           }),
     };
+    if ($session->setting->get('metaDataEnabled')) {
+        $var->{metadata} = $self->getMetaDataAsFormFields;
+    }
     $var->{ photo_form_loop } = [];
     ##Provide forms for the existing photos, if any
     ##Existing photos get a delete Yes/No.
@@ -429,12 +452,16 @@ sub getEditForm {
     foreach my $photoIndex (1..$numberOfPhotos) {
         my $photo   = $photoData->[$photoIndex-1];
         my $storage = WebGUI::Storage->get($session, $photo->{storageId});
-        my $filename = $storage->getFiles->[0];
+        my $filename = $storage && $storage->getFiles->[0];
         push @{ $var->{ photo_form_loop } }, {
             hasPhoto       => $filename ? 1                                    : 0, 
             imgThumb       => $filename ? $storage->getThumbnailUrl($filename) : '', 
             imgUrl         => $filename ? $storage->getUrl($filename)          : '', 
             imgFilename    => $filename ? $filename                            : '',
+            imgRemoteUrlForm => WebGUI::Form::text($session, {
+                                 name  => 'imgRemoteUrl'.$photoIndex,
+                                 value => $photo->{remoteUrl},
+                              }),
             newUploadForm  => WebGUI::Form::file($session, {
                                 name => 'newPhoto' . $photoIndex,
                                 maxAttachments => 1,
@@ -466,6 +493,9 @@ sub getEditForm {
         };
     }
     push @{ $var->{ photo_form_loop } }, {
+        imgRemoteUrlForm => WebGUI::Form::text($session, {
+                             name  => 'imgRemoteUrl',
+                          }),
         newUploadForm  => WebGUI::Form::image($session, {
                              name           => 'newPhoto',
                              maxAttachments => 1,
@@ -599,16 +629,20 @@ sub processPropertiesFromFormPost {
     PHOTO: foreach my $photoIndex (1..$numberOfPhotos) {
         ##TODO: Deletion check and storage cleanup
         my $storageId = $photoData->[$photoIndex-1]->{storageId};
+        my $storage = $storageId && WebGUI::Storage->get($session, $storageId);
+        my $remote = $form->process("imgRemoteUrl$photoIndex");
         if ($form->process('deletePhoto'.$photoIndex, 'yesNo')) {
-            my $storage = WebGUI::Storage->get($session, $storageId);
             $storage->delete if $storage;
             splice @{ $photoData }, $photoIndex-1, 1;
             next PHOTO;
         }
+        ##Process photos with urls that replace existing photos
+        if ($remote) {
+            $storage->delete() if $storage;
+        }
         ##Process uploads that replace existing photos
-        if (my $uploadId = $form->process('newPhoto'.$photoIndex,'File')) {
+        elsif (my $uploadId = $form->process('newPhoto'.$photoIndex,'File')) {
             my $upload   = WebGUI::Storage->get($session, $uploadId);
-            my $storage  = WebGUI::Storage->get($session, $storageId);
             $storage->clear;
             my $filename = $upload->getFiles->[0];
             $storage->addFileFromFilesystem($upload->getPath($filename));
@@ -619,31 +653,43 @@ sub processPropertiesFromFormPost {
             $upload->delete;
         }
         my $newPhoto = {
-            storageId => $storageId,
             caption   => $form->process('imgCaption'.$photoIndex, 'text'),
             alt       => $form->process('imgAlt'    .$photoIndex, 'text'),
             title     => $form->process('imgTitle'  .$photoIndex, 'text'),
             byLine    => $form->process('imgByline' .$photoIndex, 'text'),
             url       => $form->process('imgUrl'    .$photoIndex, 'url' ),
         };
+        if ($remote) {
+            $newPhoto->{remoteUrl} = $remote;
+        }
+        else {
+            $newPhoto->{storageId} = $storageId;
+        }
         splice @{ $photoData }, $photoIndex-1, 1, $newPhoto;
     }
     my $newStorageId = $form->process('newPhoto', 'image');
-    if ($newStorageId) {
-        my $newStorage = WebGUI::Storage->get($session, $newStorageId);
-        my $photoName = $newStorage->getFiles->[0];
-        my ($width, $height) = $newStorage->getSizeInPixels($photoName);
-        if ($width > $self->getArchive->get('photoWidth')) {
-            $newStorage->resize($photoName, $self->getArchive->get('photoWidth'));
-        }
-        push @{ $photoData }, {
+    my $newRemote    = $form->process('imgRemoteUrl');
+    if ($newStorageId || $newRemote) {
+        my $newPhoto = {
             caption   => $form->process('newImgCaption', 'text'),
             alt       => $form->process('newImgAlt',     'text'),
             title     => $form->process('newImgTitle',   'text'),
             byLine    => $form->process('newImgByline',  'text'),
             url       => $form->process('newImgUrl',     'url'),
-            storageId => $newStorageId,
         };
+        if ($newRemote) {
+            $newPhoto->{remoteUrl} = $newRemote;
+        }
+        else {
+            my $newStorage = WebGUI::Storage->get($session, $newStorageId);
+            my $photoName = $newStorage->getFiles->[0];
+            my ($width, $height) = $newStorage->getSizeInPixels($photoName);
+            if ($width > $self->getArchive->get('photoWidth')) {
+                $newStorage->resize($photoName, $self->getArchive->get('photoWidth'));
+            }
+            $newPhoto->{storageId} = $newStorageId;
+        }
+        push @{ $photoData }, $newPhoto;
     }
     $self->setPhotoData($photoData);
     $self->{_parent} = $archive;  ##Restore archive, for URL and other calculations
@@ -685,8 +731,9 @@ Remove the storage locations for this revision of the Asset.
 sub purgeRevision {
 	my $self    = shift;
     my $session = $self->session;
-    foreach my $photo ( @{ $self->getPhotoData} ) {
-        my $storage = WebGUI::Storage->get($session, $self-$photo->{storageId});
+    PHOTO: foreach my $photo ( @{ $self->getPhotoData} ) {
+        my $id = $photo->{storageId} or next PHOTO;
+        my $storage = WebGUI::Storage->get($session, $id);
         $storage->delete if $storage;
     }
 	return $self->next::method;
@@ -896,11 +943,19 @@ sub viewTemplateVariables {
     $var->{photo_loop}       = [];
     my $photoCounter = 0;
     PHOTO: foreach my $photo (@{ $photoData }) {
-        next PHOTO unless $photo->{storageId};
-        my $storage  = WebGUI::Storage->get($session, $photo->{storageId});
-        my $file = $storage->getFiles->[0];
-        next PHOTO unless $file;
-        my $imageUrl = $storage->getUrl($file);
+        my $imageUrl;
+        if (my $remote = $photo->{remoteUrl}) {
+            $imageUrl = $remote;
+        }
+        elsif (my $id = $photo->{storageId}) {
+            my $storage  = WebGUI::Storage->get($session, $photo->{storageId});
+            my $file = $storage->getFiles->[0];
+            next PHOTO unless $file;
+            $imageUrl = $storage->getUrl($file);
+        }
+        else {
+            next PHOTO;
+        }
         push @{ $var->{photo_loop} }, {
             imageUrl     => $imageUrl,
             imageCaption => $photo->{caption},

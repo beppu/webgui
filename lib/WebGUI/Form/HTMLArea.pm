@@ -148,6 +148,21 @@ sub getValueAsHtml {
 
 #-------------------------------------------------------------------
 
+=head2 headTags ( )
+
+Set the head tags for this form plugin
+
+=cut
+
+sub headTags {
+    my $self = shift;
+    $self->session->style->setScript($self->session->url->extras('textFix.js'),{ type=>'text/javascript' });
+    $self->{_richEdit} ||= WebGUI::Asset::RichEdit->new($self->session,$self->get("richEditId")); 
+    $self->{_richEdit}->richedit_headTags if $self->{_richEdit};
+}
+
+#-------------------------------------------------------------------
+
 =head2 isDynamicCompatible ( )
 
 A class method that returns a boolean indicating whether this control is compatible with the DynamicField control.
@@ -172,10 +187,10 @@ sub toHtml {
     if ($self->session->style->mobileBrowser) {
         return $self->SUPER::toHtml;
     }
-	my $i18n = WebGUI::International->new($self->session);
-	my $richEdit = WebGUI::Asset::RichEdit->new($self->session,$self->get("richEditId"));
+    my $i18n = WebGUI::International->new($self->session);
+	my $richEdit = $self->{_richEdit};
+    $richEdit ||= WebGUI::Asset::RichEdit->new($self->session,$self->get("richEditId")); 
 	if (defined $richEdit) {
-       $self->session->style->setScript($self->session->url->extras('textFix.js'),{ type=>'text/javascript' });
 	   $self->set("extras", $self->get('extras') . q{ onblur="fixChars(this.form['}.$self->get("name").q{'])" mce_editable="true" });
 	   $self->set("resizable", 0);
 	   return $self->SUPER::toHtml.$richEdit->getRichEditor($self->get('id'));

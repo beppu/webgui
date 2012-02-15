@@ -16,12 +16,14 @@ use FindBin;
 use strict;
 use lib "$FindBin::Bin/../lib";
 use Test::More;
+use Monkey::Patch qw(patch_class);
 use WebGUI::Test; # Must use this before any other WebGUI modules
 use WebGUI::PseudoRequest;
 
 use WebGUI::Session;
 use WebGUI::Asset;
 use WebGUI::Exception;
+use WebGUI::Test::Event;
 
 use Cwd;
 use Exception::Class;
@@ -29,6 +31,7 @@ use File::Path;
 use File::Temp qw/tempfile tempdir/;
 use Path::Class;
 use Test::Deep;
+use Scope::Guard qw(guard);
 
 #----------------------------------------------------------------------------
 # Init
@@ -38,10 +41,26 @@ my $session             = WebGUI::Test->session;
 # Tests
 
 WebGUI::Test->originalConfig('exportPath');
+my @events;
 
 my $testRan = 1;
 
-plan tests => 126;        # Increment this number for each test you create
+plan tests => 124;        # Increment this number for each test you create
+
+sub export_ok {
+    my ($asset, $message) = @_;
+    subtest $message => sub {
+        plan tests => 3;
+        my $e;
+        my @events = trap {
+            eval { $asset->exportWriteFile() };
+            $e = $@;
+        } $asset->session, 'asset::export';
+        ok !$e, 'ran without exception';
+        is scalar @events, 1, 'event fired once';
+        is $events[0][2], $asset->exportGetUrlAsPath->absolute;
+    };
+}
 
 #----------------------------------------------------------------------------
 # exportCheckPath()
@@ -376,11 +395,7 @@ my $content;
 my $guid = $session->id->generate;
 my $guidPath = Path::Class::Dir->new($config->get('uploadsPath'), 'temp', $guid);
 $config->set('exportPath', $guidPath->absolute->stringify);
-eval { $parent->exportWriteFile() };
-is($@, '', "exportWriteFile works when creating exportPath");
-
-# ensure that the file was actually written
-ok(-e $parent->exportGetUrlAsPath->absolute->stringify, "exportWriteFile actually writes the file when creating exportPath");
+export_ok $parent, 'exportWriteFile works when creating exportPath';
 
 # now make sure that it contains the correct content
 eval { $content = WebGUI::Test->getPage($parent, 'exportHtml_view', { user => WebGUI::User->new($session, 1) } ) };
@@ -428,11 +443,7 @@ chmod 0755, $guidPath->stringify;
 $unwritablePath->remove;
 
 $session->http->setNoHeader(1);
-eval { $firstChild->exportWriteFile() };
-is($@, '', "exportWriteFile works for first_child");
-
-# ensure that the file was actually written
-ok(-e $firstChild->exportGetUrlAsPath->absolute->stringify, "exportWriteFile actually writes the first_child file");
+export_ok $firstChild, 'exportWriteFile works for first_child';
 
 # verify it has the correct contents
 eval { $content = WebGUI::Test->getPage($firstChild, 'exportHtml_view') };
@@ -444,11 +455,7 @@ $guidPath->rmtree;
 
 $session->http->setNoHeader(1);
 $session->user( { userId => 1 } );
-eval { $grandChild->exportWriteFile() };
-is($@, '', "exportWriteFile works for grandchild");
-
-# ensure that the file was written
-ok(-e $grandChild->exportGetUrlAsPath->absolute->stringify, "exportWriteFile actually writes the grandchild file");
+export_ok $grandChild, 'exportWriteFile works for grandchild';
 
 # finally, check its contents
 $session->style->sent(0);
@@ -459,17 +466,12 @@ is(scalar $grandChild->exportGetUrlAsPath->absolute->slurp, $content, "exportWri
 $guidPath->rmtree;
 $asset = WebGUI::Asset->new($session, 'ExportTest000000000001');
 $session->http->setNoHeader(1);
-eval { $asset->exportWriteFile() };
-is($@, '', 'exportWriteFile for perl file works');
 
-ok(-e $asset->exportGetUrlAsPath->absolute->stringify, "exportWriteFile actually writes the perl file");
+export_ok $asset, 'exportWriteFile for perl file works';
 
 $guidPath->rmtree;
 $asset = WebGUI::Asset->new($session, 'ExportTest000000000002');
-eval { $asset->exportWriteFile() };
-is($@, '', 'exportWriteFile for plain file works');
-
-ok(-e $asset->exportGetUrlAsPath->absolute->stringify, "exportWriteFile actuall writes the plain file");
+export_ok $asset, 'exportWriteFile for plain file works';
 
 $guidPath->rmtree;
 
@@ -480,8 +482,11 @@ $guidPath->rmtree;
 # permissions on something.
 $parent->update( { groupIdView => 3 } ); # admins
 $session->http->setNoHeader(1);
-eval { $parent->exportWriteFile() }; 
-$e = Exception::Class->caught();
+@events = trap {
+    eval { $parent->exportWriteFile() };
+    $e = Exception::Class->caught();
+} $session, 'asset::export';
+
 isa_ok($e, 'WebGUI::Error', "exportWriteFile throws when user can't view asset");
 cmp_deeply(
     $e,
@@ -495,6 +500,7 @@ cmp_deeply(
 # no directory or file written
 ok(!-e $parent->exportGetUrlAsPath->absolute->stringify, "exportWriteFile doesn't write file when user can't view asset");
 ok(!-e $parent->exportGetUrlAsPath->absolute->parent, "exportWriteFile doesn't write directory when user can't view asset");
+is scalar @events, 0, 'event not fired';
 
 # undo our viewing changes
 $parent->update( { groupIdView => 7 } ); # everyone
@@ -628,6 +634,42 @@ ok(-e $symlinkedRoot->stringify, 'exportSymlinkRoot sets up link correctly and s
 is(readlink $symlinkedRoot->stringify, $parentPath, 'exportSymlinkRoot sets up link correctly and supplies default index');
 unlink $symlinkedRoot->stringify;
 
+subtest exportRelated => sub {
+    my $old = WebGUI::VersionTag->getWorking($session, 'noCreate');
+    my $tag = WebGUI::VersionTag->create($session);
+    $tag->setWorking();
+    my $topic = $parent->addChild({
+        className => 'WebGUI::Asset::Wobject::StoryTopic',
+        keywords  => 'relatedAssetTesting'
+    });
+    my $archive = $parent->addChild({
+        className => 'WebGUI::Asset::Wobject::StoryArchive',
+    });
+    my $story  = $archive->addChild({
+        className => 'WebGUI::Asset::Story',
+        keywords  => 'relatedAssetTesting',
+    });
+    $tag->commit();
+    my $cleanup = guard { $tag->rollback; if ($old) { $old->setWorking(); } };
+
+    # This will include some folders, because of the way Archive works
+    my $expected = $archive->getLineage(['self', 'descendants']);
+    push @$expected, $topic->getId;
+
+    # getContainer should be included; since parent is a Layout, the
+    # upward-recursion will stop there.
+    push @$expected, $topic->getContainer->getId;
+
+    cmp_bag(
+        $archive->exportGetAssetIds({ depth => 99, exportRelated => 1}),
+        $expected,
+        'exporting archive includes topic with exportRelated'
+    );
+    is(0, scalar grep { $_ eq $topic->getId }
+        @{ $archive->exportGetAssetIds({ depth => 99 }) },
+        'but not without exportRelated'
+    );
+};
 
 #----------------------------------------------------------------------------
 # exportGetDescendants()
@@ -737,7 +779,22 @@ is($@, "orly? yarly! is not a valid depth", "exportAsHtml throws correct error w
 # the exportPath first to make sure there are no residuals from the tests
 # above.
 $exportPath->rmtree;
-eval { $message = $parent->exportAsHtml( { userId => 3, depth => 99, quiet => 1 } ) };
+eval {
+    my $ret;
+    # We can't just mock the object to test, because exportAsHtml
+    # re-instantiates with a new session.
+    my $patch = patch_class(ref $parent, exportGetAssetIds => sub {
+        my $orig = shift;
+        my $self = shift;
+        $ret = $self->$orig(@_);
+    });
+    $message = $parent->exportAsHtml(
+        { userId => 3, depth => 99, quiet => 1 }
+    );
+    cmp_bag($ret, [map { $_->getId} $parent, $firstChild, $grandChild],
+        'exportAsHtml lets exportGetAssetIds figure out which assets to export.'
+    );
+};
 is($@, '', "exportAsHtml on parent does not throw an error"); ##Note, string comparison
 
 # list of files that should exist. obtained by running previous known working

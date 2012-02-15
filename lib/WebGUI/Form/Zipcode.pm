@@ -92,13 +92,25 @@ An optional value to use instead of POST input.
 
 sub getValue {
 	my $self = shift;
-	my $value = $self->SUPER::getValue(@_);
+	my $value = uc $self->SUPER::getValue(@_);
 	$value =~ tr/\r\n//d;
-	$value =~ tr/a-z/A-Z/;
    	if ($value =~ /^[A-Z\d\s\-]+$/) {
 		return $value;
 	}
 	return undef;
+}
+
+#-------------------------------------------------------------------
+
+=head2 headTags ( )
+
+Set the head tags for this form plugin
+
+=cut
+
+sub headTags {
+    my $self = shift;
+	$self->session->style->setScript($self->session->url->extras('inputCheck.js'),{ type=>'text/javascript' });
 }
 
 #-------------------------------------------------------------------
@@ -123,7 +135,6 @@ Renders a zip code field.
 
 sub toHtml {
 	my $self = shift;
-	$self->session->style->setScript($self->session->url->extras('inputCheck.js'),{ type=>'text/javascript' });
 	$self->set("extras", $self->get('extras') . ' onkeyup="doInputCheck(document.getElementById(\''.$self->get("id").'\'),\'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz- \')"');
 	return $self->SUPER::toHtml;
 }

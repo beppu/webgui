@@ -152,6 +152,10 @@ our $HELP = {
                     { 'name' => 'field_pretext' },
                 ],
             },
+            {
+                'name' => 'variables by label',
+            },
+            { 'name' => 'callerAssetId' },
         ],
         related => [
             {   tag       => 'edit thing template',
@@ -235,6 +239,8 @@ our $HELP = {
                     ]
                     },
                 ]
+            },
+            {   'name'     => 'searchResult_json',
             },
         ],
         related => [

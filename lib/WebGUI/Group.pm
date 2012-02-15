@@ -137,7 +137,7 @@ sub addGroups {
 		my $group = WebGUI::Group->new($self->session, $gid);
 		my $recursive = isIn($self->getId, @{$group->getGroupsIn(1)});
         next GROUP if $recursive;
-        $self->session->db->write("insert into groupGroupings (groupId,inGroup) values (?,?)",[$gid, $self->getId]);
+        $self->session->db->write("REPLACE into groupGroupings (groupId,inGroup) values (?,?)",[$gid, $self->getId]);
 	}
 	$self->clearCaches();
 	return 1;
@@ -169,7 +169,7 @@ sub addUsers {
 	foreach my $uid (@{$users}) {
 		my ($isIn) = $self->session->db->quickArray("select count(*) from groupings where groupId=? and userId=?", [$self->getId, $uid]);
 		unless ($isIn) {
-			$self->session->db->write("insert into groupings (groupId,userId,expireDate) values (?,?,?)", [$self->getId, $uid, (time()+$expireOffset)]);
+			$self->session->db->write("REPLACE into groupings (groupId,userId,expireDate) values (?,?,?)", [$self->getId, $uid, (time()+$expireOffset)]);
 			$self->session->stow->delete("gotGroupsForUser");
 		} else {
 			$self->userGroupExpireDate($uid,(time()+$expireOffset));
@@ -1091,12 +1091,19 @@ Membership will always be false if no IpFilter has been set
 
 id of the user to check for membership
 
+=head3 sessionId
+
+id of the session to check for user data.  If no sessionId is passed in, then the
+group's session will be used to find one.
+
+
 =cut
 
 sub hasIpUser {
 	my $self    = shift;
-    my $userId  = shift;
     my $session = $self->session;
+    my $userId  = shift;
+    my $userSessionId  = shift || $session->getId;
     
     my $IpFilter = $self->ipFilter();
     return 0 unless ($IpFilter && $userId);
@@ -1104,9 +1111,9 @@ sub hasIpUser {
 	$IpFilter =~ s/\s//g;
 	my @filters = split /;/, $IpFilter;
 
-	my @ips = $session->db->buildArray(
-        q{ select lastIP from userSession where expires > ? and userId = ? }
-        ,[ time(), $userId ]
+    my @ips = $session->db->buildArray(
+        q{ select lastIP from userSession where expires > ? and userId = ? and sessionId=?}
+        ,[ time(), $userId, $userSessionId, ]
     );
 
 	foreach my $ip (@ips) {
@@ -1207,7 +1214,7 @@ sub hasLDAPUser {
 
 #-------------------------------------------------------------------
 
-=head2 hasScratchUser ( userId )
+=head2 hasScratchUser ( userId, [ $sessionId ] )
 
 Determine if the user passed in is a member of this group via session scratch
 variable settings and this group's scratchFilter.
@@ -1218,12 +1225,18 @@ If no scratchFilter has been set for this group, membership will always be false
 
 id of the user to check for membership
 
+=head3 sessionId
+
+id of the session for the user being checked for membership.  If no sessionId is passed in, then the
+group's session will be used to find one.
+
 =cut
 
 sub hasScratchUser {
 	my $self    = shift;
-    my $userId  = shift;
     my $session = $self->session; 
+    my $userId  = shift;
+    my $userSessionId = shift || $self->session;
 
 	my $scratchFilter = $self->scratchFilter();
 	return 0 unless ($scratchFilter && $userId);
@@ -1232,7 +1245,7 @@ sub hasScratchUser {
 	my @filters = split /;/, $scratchFilter;
 
 	my @scratchClauses      = ();
-	my @scratchPlaceholders = ( $userId, time() );
+	my @scratchPlaceholders = ( $userSessionId, $userId, time() );
 	foreach my $filter (@filters) {
 		my ($name, $value) = split /=/, $filter;
 		push @scratchClauses, "(s.name=? AND s.value=?)";
@@ -1246,6 +1259,7 @@ sub hasScratchUser {
         from
             userSession u, userSessionScratch s
         where
+            u.sessionId = ? AND
             u.sessionId=s.sessionId AND
             u.userId = ? AND
             u.expires > ? AND
@@ -1273,6 +1287,7 @@ sub hasUser {
 	my $self           = shift;
     my $session        = $self->session;
     my $user           = shift || WebGUI::User->new($session,3);      #Check the admin account if no user is passed in
+    my $uSessionId     = $user->session->getId;
 	my $gid            = $self->getId;
 	my $db             = $session->db;
 
@@ -1359,9 +1374,9 @@ sub hasUser {
 		my $groupToCheck = __PACKAGE__->new($session,$groupIdInGroup);
         ### Check the 'has' method for each of the 'other' group methods available for this user
         ### perform checks in a least -> most expensive manner.  If we find the user, stow the cache and return true
-		if( $groupToCheck->hasIpUser($uid)
+		if( $groupToCheck->hasIpUser($uid, $uSessionId)
 			|| $groupToCheck->hasKarmaUser($uid)
-			|| $groupToCheck->hasScratchUser($uid)
+			|| $groupToCheck->hasScratchUser($uid, $uSessionId)
 			|| $groupToCheck->hasDatabaseUser($uid)
 			|| $groupToCheck->hasLDAPUser($uid)
 		) {
@@ -1610,8 +1625,11 @@ sub resetGroupFields {
     ##Note, I did assets in SQL instead of using the API because you would have to
     ##instanciate every version of the asset that used the group.  This should be much quicker
     ASSET: foreach my $assetClass ($db->buildArray('SELECT DISTINCT className FROM asset')) {
-        next ASSET unless $db->quickScalar( "SELECT COUNT(*) FROM asset WHERE className=?", [$assetClass] );
-        my $definition = WebGUI::Pluggable::instanciate($assetClass, 'definition', [$session]);
+        my $definition = eval { WebGUI::Pluggable::instanciate($assetClass, 'definition', [$session]); };
+        if ($@) {
+            $session->log->error("Unable to load className: " . $assetClass . " when looking for asset definitions: " . $@);
+            next ASSET;
+        }
         SUBDEF: foreach my $subdef (@{ $definition }) {
             next SUBDEF if exists $tableCache->{$subdef->{tableName}}; 
             PROP: while (my ($fieldName, $properties) = each %{ $subdef->{properties} }) {

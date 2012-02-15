@@ -51,8 +51,21 @@ pod2usage( -verbose => 2 )
 pod2usage("$0: Must specify a configFile")
     if !$configFile;
 
-die "Config file '$configFile' does not exist!\n"
-    if !-f '../etc/' . $configFile;
+if( ! -e $configFile ) {
+    my $possible_configFile = File::Spec->catfile($webguiRoot, 'etc', $configFile);
+    $configFile = $possible_configFile if -e $possible_configFile;
+}
+
+die "Config file '$configFile' does not exist!\n" if ! -e $configFile;
+
+foreach my $libDir ( readLines( "preload.custom" ) ) {
+    if ( !-d $libDir ) {
+        warn "WARNING: Not adding lib directory '$libDir' from preload.custom: Directory does not exist.\n";
+        next;
+    }
+    unshift @INC, $libDir;
+}
+
 
 foreach my $libDir ( readLines( "preload.custom" ) ) {
     if ( !-d $libDir ) {
@@ -64,7 +77,7 @@ foreach my $libDir ( readLines( "preload.custom" ) ) {
 
 
 # Open the session
-my $session = WebGUI::Session->open( "..", $configFile );
+my $session = WebGUI::Session->open( $webguiRoot, $configFile );
 $session->user( { userId => 3 } );
 
 # Install or uninstall the asset
