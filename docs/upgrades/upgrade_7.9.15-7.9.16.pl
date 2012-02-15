@@ -32,7 +32,7 @@ my $quiet; # this line required
 my $session = start(); # this line required
 
 # upgrade functions go here
-pruneInboxMessagesFromDeletedUsers($session);
+#pruneInboxMessagesFromDeletedUsers($session);
 addTemplateToNotifyAboutVersionTag($session);
 addPasswordRecoveryEmailTemplate($session);
 
