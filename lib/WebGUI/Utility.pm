@@ -87,9 +87,8 @@ Returns a regex object that can be used to validate email addresses.
 
 =cut
 
-sub emailRegex {
-	return qr/^([0-9a-zA-Z]+[-._+&])*\w+@([-0-9a-zA-Z]+[.])+[a-zA-Z]{2,7}$/;
-}
+use constant emailRegex =>
+	qr/^([0-9a-zA-Z]+[-._+&'])*\w+@([-0-9a-zA-Z]+[.])+[a-zA-Z]{2,7}$/;
 
 
 #-------------------------------------------------------------------
