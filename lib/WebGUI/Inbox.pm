@@ -149,6 +149,7 @@ sub deleteMessagesForUser {
     my $messages = $self->getMessagesForUser($user, 1e10);
     my $userId  = $user->userId;
     foreach my $message (@{ $messages }) {
+        $message or next;
         $message->delete($userId);
     }
 }
