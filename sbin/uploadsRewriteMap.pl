@@ -20,7 +20,7 @@ unshift @INC, grep {
     }
 } readLines($root."/sbin/preload.custom");
 
-use constant DEBUG => 0;
+use constant DEBUG => 1;
 
 use WebGUI::Session;
 use CGI::Cookie;
@@ -66,9 +66,9 @@ sub checkUploads {
     else {
         print {$log} "new style\n" if DEBUG;
         my $privs = JSON->new->decode($fileContents);
-        @users = @{ $privs->{users} };
-        @groups = @{ $privs->{groups} };
-        @assets = @{ $privs->{assets} };
+        @users = @{ $privs->{users} || [ ] };
+        @groups = @{ $privs->{groups} || [ ] };
+        @assets = @{ $privs->{assets} || [ ] };
     }
     print {$log} "users : " . join(', ', @users) . "\n" if DEBUG;
     print {$log} "groups: " . join(', ', @groups) . "\n" if DEBUG;
