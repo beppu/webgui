@@ -2334,7 +2334,7 @@ sub packExtraHeadTags {
     my $packed  = $unpacked;
     HTML::Packer::minify( \$packed, {
         remove_newlines     => 1,
-        do_javascript       => "shrink",
+        do_javascript       => "minify",
         do_stylesheet       => "minify",
     } );
     $self->update({ extraHeadTagsPacked => $packed });

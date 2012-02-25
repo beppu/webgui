@@ -244,7 +244,7 @@ sub packSnippet {
 
     if ( $self->get('mimeType') eq "text/html" ) {
         HTML::Packer::minify( \$packed, {
-            do_javascript       => "shrink",
+            do_javascript       => "minify",
             do_stylesheet       => "minify",
         } );
     }
@@ -255,7 +255,7 @@ sub packSnippet {
     }
     elsif ( $self->get('mimeType') eq 'text/javascript' ) {
         JavaScript::Packer::minify( \$packed, {
-            compress            => "shrink",
+            compress            => "minify",
         });
     }
 
