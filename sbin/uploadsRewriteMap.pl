@@ -20,7 +20,7 @@ unshift @INC, grep {
     }
 } readLines($root."/sbin/preload.custom");
 
-use constant DEBUG => 1;
+use constant DEBUG => 0;
 
 use WebGUI::Session;
 use CGI::Cookie;
