@@ -1,0 +1,106 @@
+1. Unpack the archive.
+
+mkdir /data
+cd /data
+tar xvfz /path/to/wre-x.x.x-osname.tar.gz
+
+wG8 doesn't have to go into /data/ as 7 preferred to.  You may substitute whichever other directory you prefer whereever "/data/" appears in these docs.
+
+2. Add a "webgui" user to the system. Note that you can name this
+user whatever you want, but we recommend "webgui". On most systems
+you run a command similar to the following as the root user:
+
+adduser -s /sbin/nologin webgui
+            - or -
+useradd -s /sbin/nologin webgui
+
+    NOTE: If you're just using the WRE for development on your
+    machine, feel free to just use your own user account rather than
+    creating a new one.
+
+
+3. If you have an existing Apache or MySQL running please shut them
+down now. On most systems you can shut them down hard by running
+commands like this:
+
+    killall mysqld
+    killall httpd
+
+
+4. Install Percona mysql. See instructions in BUILD.redhat and BUILD.mac
+
+Leave in the test user and database, as they're needed for the WRE to see if
+mysql is up and running.
+
+
+5. If you have a MySQL config file at /etc/my.cnf please remove or
+rename it so that it doesn't interfere with the WRE MySQL.
+
+cp /data/wre/var/setupfiles//my.cnf /etc/my.cnf.old
+
+FIXME:  WRE mysql should be patched to not look in /etc/.
+
+Set up your MySQL root user and create a 'webgui' user.  Remember the password!  You have to put it in your WebGUI's config file in a few steps here.  FIXME:  Does one of the site-setup tools that comes with the WRE do this for you?
+
+* Create a MySQL user account for the domain WebGUI is to host
+  and share/create.sql into that database
+
+  $ mysql --password --user=root -e "create database www_example_com"
+  $ mysql --password --user=root -e "grant all privileges on www_example_com.*
+        to webgui@localhost identified by 'XXXXpasswordhereXXXX'"
+  $ mysql --password --user=webgui < share/create.sql
+
+8. Use the WRE environment
+
+    source /data/wre/sbin/setenvironment.sh  
+
+NOTE: You could add the following command to your profile so it
+executes every time you log in. However, on CentOS 5 servers
+this can interfere with yum running:
+
+    source /data/wre/sbin/setenvironment.sh
+
+You must always do this before interacting with WebGUI using any command line utilities -- running upgrades, editing assets, starting and stopping wG related services and other things all require this.
+
+* Get WebGUI8 from GitHub:
+
+  $ git clone https://github.com/plainblack/webgui.git
+
+* Setup your configuration files
+
+Copy WebGUI.conf.original to something named after the site's URL and
+ending in .conf, such as www.example.com.conf, and edit it, making sure
+to insert your site's URL and the database connection information.
+This is in the dbuser, dbpass, and dsn keys.  This file is JSON formatted
+and may not have trailing commas after the last item in a list (FIXME:  use JSON relaxed).
+
+Set uploadsPath in the .conf file to eg /data/domains/www.example.com/public/uploads/.
+
+If you're running WebGUI on a port other than 80, edit "etc/spectre.conf" to define port and worker settings for spectre.  
+
+9. Customize the WRE configuration file with database users, paths and other items.
+
+    vim /data/wre/etc/wre.conf
+
+* Setup your environment
+
+Set the WEBGUI_CONFIG environment variable to point at your new configuration file:
+
+  $ export WEBGUI_CONFIG='/data/WebGUI/etc/www.example.com.conf'
+
+You may want to set your shell to automatically do that for you by putting that command into your .bashrc file in your home directory.
+
+* Automatically install new Perl module dependencies:
+
+  $ sudo bash   
+  #  source /data/wre/sbin/setenvironment.sh
+  # export WEBGUI_CONFIG='/data/WebGUI/etc/www.example.com.conf'
+  # sbin/testEnvironment.pl
+
+FIXME:  testEnvironment shouldn't insist on being root when the current user can actually write to the perl libs directories in the wre.
+
+* wgd reset --uploads
+
+10. Run the WRE setup script to create base templates for nginx, logrotate and Spectre
+
+    /data/wre/sbin/wresetup.pl
