@@ -10,7 +10,9 @@ single, coherent set of install instructions.
 
 ======================================================================
 
-1. Unpack the archive.
+1. Get the latest WRE for your OS and unpack the WRE archive
+
+On sourceforge.net
 
   $ mkdir /data
   $ cd /data
@@ -114,18 +116,35 @@ mysql is up and running.
 7. Create a MySQL user account for the domain WebGUI is to host
 and load share/create.sql into that database
 
-Pick a database name.  Practise is to name it after the site.  If you're
+Pick a database name.  The practice is to name it after the site.  If you're
 hosting www.example.com, then "www_example_com" is a good database name
 for the site, and the config file will be 
 "/data/WebGUI/etc/www.example.com.conf".
 
+Create the new, empty database.  Change "www_example_com" here to whatever 
+yours is.
+
   $ mysql --password --user=root --password -e "create database www_example_com"
 
-Change "www_example_com" here to whatever yours is.
+Create the 'webgui' database user and set its password:
 
   $ mysql --password --user=root -e "grant all privileges on www_example_com.*
         to webgui@localhost identified by 'XXXXpasswordhereXXXX'"
+
+Load the database:
+
   $ mysql --password --user=webgui www_example_com < share/create.sql
+
+That may not work.  Newer versions of MySQL will give you "ERROR 1064 (42000)
+at line 19: You have an error in your SQL syntax; check the manual that
+corresponds to your MySQL server version for the right syntax to use near
+'TYPE=InnoDB CHARSET=utf8' at line 14".  If so, do this instead:
+
+  $ cat share/create.sql | \
+    sed -e 's!^) TYPE=\([A-Za-z]*\) CHARSET=utf8;$!) ENGINE=\1 CHARSET=utf8;!' | \
+    mysql --user=webgui --password www_example_com
+
+FIXME:  Future versions of share/create.sql will target MySQL 5.5.
 
 
 8. Use the WRE environment
