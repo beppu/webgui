@@ -42,7 +42,8 @@ FIXME:  WRE mysql should be patched to not look in /etc/.
 
 Set up your MySQL root user and create a 'webgui' user.  Remember the password!  You have to put it in your WebGUI's config file in a few steps here.  FIXME:  Does one of the site-setup tools that comes with the WRE do this for you?
 
-* Create a MySQL user account for the domain WebGUI is to host
+
+6. Create a MySQL user account for the domain WebGUI is to host
   and share/create.sql into that database
 
   $ mysql --password --user=root -e "create database www_example_com"
@@ -50,39 +51,46 @@ Set up your MySQL root user and create a 'webgui' user.  Remember the password! 
         to webgui@localhost identified by 'XXXXpasswordhereXXXX'"
   $ mysql --password --user=webgui < share/create.sql
 
-8. Use the WRE environment
+
+7. Use the WRE environment
 
     source /data/wre/sbin/setenvironment.sh  
 
-NOTE: You could add the following command to your profile so it
+NOTE: You could add that command to your profile so it
 executes every time you log in. However, on CentOS 5 servers
-this can interfere with yum running:
+this can interfere with yum running.
 
-    source /data/wre/sbin/setenvironment.sh
+You must always run this command before interacting with WebGUI using any
+command line utilities -- running upgrades, editing assets, starting and
+stopping wG related services and other things all require this.
 
-You must always do this before interacting with WebGUI using any command line utilities -- running upgrades, editing assets, starting and stopping wG related services and other things all require this.
 
-* Get WebGUI8 from GitHub:
+8. Get WebGUI8 from GitHub:
 
-  $ git clone https://github.com/plainblack/webgui.git
+  $ cd /data/
+  $ git clone https://github.com/plainblack/webgui.git WebGUI
 
-* Setup your configuration files
+
+9. Setup your configuration files
 
 Copy WebGUI.conf.original to something named after the site's URL and
 ending in .conf, such as www.example.com.conf, and edit it, making sure
 to insert your site's URL and the database connection information.
 This is in the dbuser, dbpass, and dsn keys.  This file is JSON formatted
-and may not have trailing commas after the last item in a list (FIXME:  use JSON relaxed).
+and may not have trailing commas after the last item in a list (FIXME:	use
+JSON relaxed).
 
 Set uploadsPath in the .conf file to eg /data/domains/www.example.com/public/uploads/.
 
 If you're running WebGUI on a port other than 80, edit "etc/spectre.conf" to define port and worker settings for spectre.  
 
-9. Customize the WRE configuration file with database users, paths and other items.
+
+10. Customize the WRE configuration file with database users, paths and other items.
 
     vim /data/wre/etc/wre.conf
 
-* Setup your environment
+
+11. Setup your environment
 
 Set the WEBGUI_CONFIG environment variable to point at your new configuration file:
 
@@ -90,7 +98,18 @@ Set the WEBGUI_CONFIG environment variable to point at your new configuration fi
 
 You may want to set your shell to automatically do that for you by putting that command into your .bashrc file in your home directory.
 
-* Automatically install new Perl module dependencies:
+
+12. Add WebGUI's libraries to Perl's library path:
+
+  $ export PERL5LIB='/data/WebGUI/lib:/data/WebGUI/t/lib'
+
+Previously, this would break Apache if it were set; now it's required for the
+stuff plackup loads to find the rest of WebGUI.
+
+This should probably go into your .bashrc, too.
+
+
+13. Automatically install new Perl module dependencies:
 
   $ sudo bash   
   #  source /data/wre/sbin/setenvironment.sh
@@ -99,8 +118,121 @@ You may want to set your shell to automatically do that for you by putting that 
 
 FIXME:  testEnvironment shouldn't insist on being root when the current user can actually write to the perl libs directories in the wre.
 
-* wgd reset --uploads
 
-10. Run the WRE setup script to create base templates for nginx, logrotate and Spectre
+14. Initialize your /data/domains/www.example.com/public directory with static content
+
+  wgd reset --uploads
+
+
+15. Run the WRE setup script to create base templates for nginx, logrotate and Spectre
 
     /data/wre/sbin/wresetup.pl
+
+16. Run upgrades!  Important!
+
+
+17. Add the following cron jobs to your server's cron tab.
+
+  0 0 * * * /data/wre/sbin/logrotate.pl
+  */3 * * * * /data/wre/sbin/wremonitor.pl
+  0 2 * * * /data/wre/sbin/backup.pl
+
+If you are using the demo system then add this:
+
+  0 0 * * * /data/wre/sbin/democleanup.pl
+
+
+18. Update the wgd WebGUI Developer's Utility:
+
+WebGUI has a new upgrades system for wgd to support. The old system silently
+ignores the new upgrade scripts.
+
+Get wgd from http://haarg.org/wgd, put in /data/wre/prereqs/bin/ (if you're
+using the WRE), /usr/local/bin, or ~/bin.
+
+Do chmod ugo+x wgd to make it executable.
+
+   $ wget http://haarg.org/wgd -O wgd
+   $ sudo chmod ugo+x wgd
+   $ sudo mv wgd /data/wre/prereqs/bin/
+
+
+19. Run Upgrades:
+
+This is needed even for new WebGUI 8 installs. The create.sql and
+WebGUI.conf.original are both from 7.10.x.
+
+  $ wgd reset --upgrade
+
+
+20. Copy new "extras" (images, CSS, JavaScript) over:
+
+  $ rsync -r -a (or cp -a) /data/WebGUI/www/extras \
+        /data/domains/www.example.com/public/
+
+
+21. Launch WebGUI 8:
+
+In /data/WebGUI:
+
+  $ plackup app.psgi
+
+... then connect your browser to the URL it advertises.
+
+You'll be guided through a few quick questions to setup an admin account.
+(Or, if you aren't but wanted to be, run wgd reset --starter to enable it.)
+ 
+
+22. Start Spectre:
+
+Spectre is the background processing daemon that runs workflows you configure
+or are already configured which do things like deliver email, clean out the
+trash, and so on.
+
+  $ cd /data/WebGUI/sbin
+  $ perl spectre.pl --daemon
+
+
+
+
+PLATFORM SPECIFIC NOTES
+-----------------------
+
+* Red Hat Linux
+
+This note applies to all linux' that use chkconfig to setup services. These
+include RHEL, Fedora, Mandrake, SuSE, CentOS, and others. You can set up the
+WRE to start automatically at system boot by running the following commands
+after the WRE is installed:
+
+ln -s /data/wre/sbin/services/redhat/webgui /etc/init.d/webgui
+chkconfig --add webgui
+chkconfig webgui on
+
+On RHEL 5 or higher you need to install the libgomp RPM.
+
+Installing Percona via yum:
+
+rpm -Uhv http://www.percona.com/downloads/percona-release/percona-release-0.0-1.i386.rpm
+yum install -y Percona-Server-{server,client,shared,devel}-55
+
+
+* SELinux
+
+The WRE contains no policies for configuring SELinux. If you distribution
+uses SELinux, you will need to disable it, set it into permissive mode,
+or write your own policies for SELinux.
+
+
+* Mac OS X
+
+There is no command line user add script on Mac OSX. Therefore you can either
+use the graphical "Accounts" manager in "System Preferences", or the really
+horrible "netinfo" command line utility. Alternatively, you can also download
+some free user utilities from this site:
+
+http://www.osxgnu.org/software/pkgdetail.html?project_id=231#4095
+
+To get the WRE to start automatically at boot run the following commands:
+
+ln -s /data/wre/sbin/services/osx/org.webgui.wre.plist /Library/LaunchDaemons/
