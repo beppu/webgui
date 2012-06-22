@@ -232,6 +232,30 @@ sub handle {
     return;
 }
 
+# trick Moose into building our constructor for us
+
+sub can {
+    return if $_[1] eq 'new';
+    return $_[0]->SUPER::can(@_);
+}
+
+# extending Plack::Component gives us a base class new which throws Moose for a loop
+# use one trick or the other XXX
+#
+#sub prepare_app { return }
+#
+#sub to_app {
+#    my $self = shift;
+#    $self->prepare_app;
+#    return sub { $self->call(@_) };
+#}
+#
+#
+#sub response_cb {
+#    my($self, $res, $cb) = @_;
+#    Plack::Util::response_cb($res, $cb);
+#}
+
 no Moose;
 __PACKAGE__->meta->make_immutable;
 
