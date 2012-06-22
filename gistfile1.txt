@@ -1,3 +1,15 @@
+
+================== Installing WebGUI 8 on the WRE ====================
+
+The WRE is the "WebGUI Runtime Environment".  It packages up a MySQL,
+Perl, and most of the Perl modules WebGUI needs to run.
+
+This document attempts to combine the install instructions that come
+with wG8 with the instructions that come with the WRE to create a
+single, coherent set of install instructions.
+
+======================================================================
+
 1. Unpack the archive.
 
 mkdir /data
