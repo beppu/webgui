@@ -29,6 +29,9 @@ WebGUI::Fork->init();
 
 builder {
     my $first_app;
+
+           enable 'Scrutiny';
+
     WebGUI::Paths->siteConfigs or die "no configuration files found";
     for my $config_file (WebGUI::Paths->siteConfigs) {
         my $config = WebGUI::Config->new($config_file) or die "failed to log configuration file: $config_file: $!";
