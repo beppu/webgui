@@ -12,13 +12,19 @@ single, coherent set of install instructions.
 
 1. Unpack the archive.
 
-mkdir /data
-cd /data
-tar xvfz /path/to/wre-x.x.x-osname.tar.gz
+  $ mkdir /data
+  $ cd /data
+  $ tar xvfz /path/to/wre-x.x.x-osname.tar.gz
 
 wG8 doesn't have to go into /data/ as 7 preferred to.  You may substitute whichever other directory you prefer whereever "/data/" appears in these docs.
 
-2. Add a "webgui" user to the system. Note that you can name this
+2. Get WebGUI8 from GitHub:
+
+  $ cd /data
+  $ git clone https://github.com/plainblack/webgui.git WebGUI
+
+
+3. Add a "webgui" user to the system. Note that you can name this
 user whatever you want, but we recommend "webgui". On most systems
 you run a command similar to the following as the root user:
 
@@ -31,40 +37,98 @@ useradd -s /sbin/nologin webgui
     creating a new one.
 
 
-3. If you have an existing Apache or MySQL running please shut them
-down now. On most systems you can shut them down hard by running
-commands like this:
+4. Shut down httpd and mysql if they are installed but not used
+
+If you have an existing Apache or MySQL running that you aren't using,
+please shut them down now.
+
+If you are using MySQL, then *stop*.  Do not use the WRE on this system.
+Do the "source install" process, but use the existing MySQL, creating
+a new database and user on it.
+
+If you are using the existing httpd, proceed, but do not kill it.
+WebGUI will have to listen on a different port and the existing httpd
+will have be configured to proxy to it, or else WebGUI will have to be
+set to listen on a different IP address.  Consult your httpd's manual
+for further instructions.
+
+On most systems you can shut them down hard by running commands like this:
 
     killall mysqld
     killall httpd
 
+If you have a MySQL config file at /etc/my.cnf please remove or rename it so
+that it doesn't interfere with the WRE MySQL.
 
-4. Install Percona mysql. See instructions in BUILD.redhat and BUILD.mac
+  $ mv /etc/my.cnf /etc/my.cnf.old
+
+Remove them from your operating system's startup.  FIXME:  provide details
+or a reference.
+
+FIXME:  WRE mysql should be patched to not look in /etc/.
+
+
+6. Initialize MySQL, set a MySQL root password and create a MySQL "webgui"
+   account
+
+Make sure that you're initializing database in the WRE, not another one.
+
+  $ which mysql_install_d
+
+That should output "/data/wre/prereqs/bin/mysql_install_db"
+
+  $ mysql_install_db --user=webgui
+
+That sets mysql to run as the "webgui" user previously created.
+
+Start the mysqld server daemon:
+
+  $ sudo mysqld_safe --user=webgui &
+
+Get into the mysql command shell:
+
+  $ mysql --user=root
+
+Set the root users (plural!) passwords:
+
+  mysql> SET PASSWORD FOR 'root' = PASSWORD('XXXnewpasswdXXX');
+  mysql> SET PASSWORD FOR 'root'@'localhost' = PASSWORD('XXXnewpasswdXXX');
+  mysql> SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('XXXnewpasswdXXX');
+
+Or else drop root users you don't want.
+
+Remember the password!  You have to put it in your WebGUI's config file in a 
+few steps here.  FIXME:  Does one of the site-setup tools that comes with the
+WRE do this for you?
+
+Pick your own password instead of "XXXnewpasswdXXX".
+
+Get rid of the anonymous user:
+
+  mysql> drop user '';
 
 Leave in the test user and database, as they're needed for the WRE to see if
 mysql is up and running.
 
 
-5. If you have a MySQL config file at /etc/my.cnf please remove or
-rename it so that it doesn't interfere with the WRE MySQL.
+7. Create a MySQL user account for the domain WebGUI is to host
+and load share/create.sql into that database
 
-cp /data/wre/var/setupfiles//my.cnf /etc/my.cnf.old
+Pick a database name.  Practise is to name it after the site.  If you're
+hosting www.example.com, then "www_example_com" is a good database name
+for the site, and the config file will be 
+"/data/WebGUI/etc/www.example.com.conf".
 
-FIXME:  WRE mysql should be patched to not look in /etc/.
+  $ mysql --password --user=root --password -e "create database www_example_com"
 
-Set up your MySQL root user and create a 'webgui' user.  Remember the password!  You have to put it in your WebGUI's config file in a few steps here.  FIXME:  Does one of the site-setup tools that comes with the WRE do this for you?
+Change "www_example_com" here to whatever yours is.
 
-
-6. Create a MySQL user account for the domain WebGUI is to host
-  and share/create.sql into that database
-
-  $ mysql --password --user=root -e "create database www_example_com"
   $ mysql --password --user=root -e "grant all privileges on www_example_com.*
         to webgui@localhost identified by 'XXXXpasswordhereXXXX'"
-  $ mysql --password --user=webgui < share/create.sql
+  $ mysql --password --user=webgui www_example_com < share/create.sql
 
 
-7. Use the WRE environment
+8. Use the WRE environment
 
     source /data/wre/sbin/setenvironment.sh  
 
@@ -77,22 +141,19 @@ command line utilities -- running upgrades, editing assets, starting and
 stopping wG related services and other things all require this.
 
 
-8. Get WebGUI8 from GitHub:
-
-  $ cd /data/
-  $ git clone https://github.com/plainblack/webgui.git WebGUI
-
-
 9. Setup your configuration files
 
-Copy WebGUI.conf.original to something named after the site's URL and
-ending in .conf, such as www.example.com.conf, and edit it, making sure
+Copy /data/WebGUI/etc/WebGUI.conf.original to something named after the site's 
+URL and ending in .conf, such as www.example.com.conf, and edit it, making sure
 to insert your site's URL and the database connection information.
-This is in the dbuser, dbpass, and dsn keys.  This file is JSON formatted
-and may not have trailing commas after the last item in a list (FIXME:	use
-JSON relaxed).
 
-Set uploadsPath in the .conf file to eg /data/domains/www.example.com/public/uploads/.
+These are the dbuser, dbpass, and dsn keys, as well as the uploadsPath.  
+
+Set uploadsPath in the .conf file to eg 
+/data/domains/www.example.com/public/uploads/.
+
+This file is JSON formatted and may not have trailing commas after the last 
+item in a list (FIXME:	use JSON relaxed).
 
 If you're running WebGUI on a port other than 80, edit "etc/spectre.conf" to define port and worker settings for spectre.  
 
