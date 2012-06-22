@@ -12,13 +12,22 @@ single, coherent set of install instructions.
 
 1. Get the latest WRE for your OS and unpack the WRE archive
 
-On sourceforge.net
+Get the WRE from sourceforge.net.  Go to this URL and pick out the latest
+version for your OS:
+
+   http://sourceforge.net/projects/pbwebgui/files/WebGUI%20Runtime%20Environment/
+
+At the time of this writing, WRE-0.9.6 is the latest.
+
+Then do:
 
   $ mkdir /data
   $ cd /data
   $ tar xvfz /path/to/wre-x.x.x-osname.tar.gz
 
-wG8 doesn't have to go into /data/ as 7 preferred to.  You may substitute whichever other directory you prefer whereever "/data/" appears in these docs.
+wG8 doesn't have to go into the "/data" directory as 7 preferred to.  You may
+substitute whichever other directory you prefer whereever "/data" appears in
+these docs.
 
 2. Get WebGUI8 from GitHub:
 
@@ -30,13 +39,12 @@ wG8 doesn't have to go into /data/ as 7 preferred to.  You may substitute whiche
 user whatever you want, but we recommend "webgui". On most systems
 you run a command similar to the following as the root user:
 
-adduser -s /sbin/nologin webgui
+  # adduser -s /sbin/nologin webgui
             - or -
-useradd -s /sbin/nologin webgui
+  # useradd -s /sbin/nologin webgui
 
-    NOTE: If you're just using the WRE for development on your
-    machine, feel free to just use your own user account rather than
-    creating a new one.
+NOTE: If you're just using the WRE for development on your machine, feel free
+to just use your own user account rather than creating a new one.
 
 
 4. Shut down httpd and mysql if they are installed but not used
@@ -56,8 +64,8 @@ for further instructions.
 
 On most systems you can shut them down hard by running commands like this:
 
-    killall mysqld
-    killall httpd
+  #  killall mysqld
+  #  killall httpd
 
 If you have a MySQL config file at /etc/my.cnf please remove or rename it so
 that it doesn't interfere with the WRE MySQL.
