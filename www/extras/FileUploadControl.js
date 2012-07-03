@@ -17,8 +17,9 @@ function FileUploadControl(fieldName, imageArray, removeLabel, fileLimit, size) 
 	this.workspaceId = workspaceId;
 	this.dom=document.getElementById&&!document.all;
 	this.topLevelElement=this.dom? "HTML" : "BODY"
-	document.write('<div id="'+workspaceId+'"> </div>');	
-	var workspace = document.getElementById(workspaceId);
+
+	//document.write('<div id="'+workspaceId+'"> </div>');	 // XXXXXXXXXX 
+	// var workspace = document.getElementById(workspaceId);    // XXXXXXXXXX
 	
 	var str = '<table border="0" cellspacing="0" cellpadding="0"><tbody id="' + workspaceId + '.fileUpload.body">';			
 	str += '</tbody></table>';
@@ -32,7 +33,9 @@ function FileUploadControl(fieldName, imageArray, removeLabel, fileLimit, size) 
 	
 	str += '</table>';
 	
-	workspace.innerHTML = str;
+	// workspace.innerHTML = str;                  // XXXXXXXXXX
+    // document.write($('<div id="'+workspaceId+'">' + str + '</div>')); // XXXXX
+    document.write('<div id="'+workspaceId+'">' + str + '</div>'); // XXXXX
 
 	this.tbody = document.getElementById(workspaceId + '.fileUpload.body');
 	this.tbody.fileUploadControl = this;
