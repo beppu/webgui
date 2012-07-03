@@ -30,7 +30,7 @@ WebGUI::Fork->init();
 builder {
     my $first_app;
 
-           enable 'Scrutiny';
+#           enable 'Scrutiny';
 
     WebGUI::Paths->siteConfigs or die "no configuration files found";
     for my $config_file (WebGUI::Paths->siteConfigs) {
