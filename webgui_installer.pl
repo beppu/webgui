@@ -7,7 +7,7 @@
 # SHELL STUFF TO GO FIRST:
 
 # Debian packages: 
-apt-get install perl
+apt-get install perl sudo
 
 # cpanm
 curl --insecure -L http://cpanmin.us | perl - App::cpanminus || exit 1
@@ -26,6 +26,12 @@ TODO:
 
 * start script as a shell script then either unpack a perl script or self perk <<EOF it
 * only thing to do while running as sh is to install perl, I think!
+* offer help for modules that won't install
+* don't just run 'perl'; use the perl that was used to run this script!
+* use WRE stuff to do config file instead?
+* cross-reference this with my install instructions
+* run() should maybe have an "press enter or hit 's' to skip" feature built in, where all non-noprompt commands are optional
+* save/restore variables automatically since we're asking for so many things?  touch for passwords though
 
 based in part on git://gist.github.com/2318748.git:
 run on a clean debian stable
@@ -135,8 +141,9 @@ my $comment = do {
 #
 
 sub update {
-    my $message = shift;
+    my $message = shift() || '';
     my $hop = shift;
+    $message =~ s{^\n}{};
     $message =~ s{^ +}{};
     $message =~ s{\n  +}{\n}g;
     $comment->setField( VALUE => $message ) if $message; 
@@ -156,10 +163,20 @@ sub run {
 
     my $cmd = shift;
     my $noprompt = shift;
+    my $nofatal = shift;
 
     my $msg = $comment->getField('VALUE');
-    update( $msg . "\nRunning '$cmd'.\n" . ( defined $noprompt ? 'Hit Enter to continue or control-C to abort.' : '' ) );
-    scankey($mwh) if ! defined $noprompt;
+
+    if( ! defined $noprompt) {
+        update( $msg . qq{\nRunning '$cmd'.\nHit Enter to continue, press "s" to skip this command, or control-C to abort the script.} );
+        my $key = scankey($mwh);
+        if( $key =~ m/s/i ) {
+            update( $msg );  # restore original message from before we added stuff
+            return;
+        }
+    } else {
+        update( $msg . "\nRunning '$cmd'." );
+    }
 
     open my $fh, '-|', "$cmd 2>&1" or bail(qq{
         $msg\nRunning '$cmd'\nFailed: $!
@@ -177,8 +194,13 @@ sub run {
     #waitpid $pid;
     #my $exit = close($output);
 
-    if( $exit ) {
+    if( $exit and ! defined $nofatal ) {
         bail( $msg . "\n$cmd:\n$output\nExit code $exit indicates failure.  Exiting." );
+    } elsif( $exit and defined $nofatal ) {
+        status( $msg . "\n$cmd:\n$output\nExit code $exit indicates failure.\nHit Enter to continue." );
+        scankey($mwh);
+        update( $msg );  # get rid of the extra stuff so that the next call to run() doesn't just keep adding stuff
+        return undef;
     } else {
         update( $msg . "\n$cmd:\n$output\nHit Enter to continue." );
         scankey($mwh);
@@ -189,9 +211,39 @@ sub run {
 
 }
 
+sub text {
+    my $title = shift;
+    my $value = shift;
+    my $text = Curses::Widgets::TextField->new({ 
+        Y           => 4,
+        X           => 1, 
+        COLUMNS     => 60, 
+        MAXLENGTH   => 80,
+        FOREGROUND  => 'white',
+        BACKGROUND  => 'black',
+        VALUE       => $value,
+        BORDERCOL   => 'black',
+        BORDER      => 1,
+        CAPTION     => $title,
+        CAPTIONCOL  => 'white',
+    });
+    $text->draw($mwh);
+    $text->execute($mwh);
+    main_win();  # erase the text dialogue
+    update();    # redraw after erasing the text dialogue
+    return $text->getField('VALUE');
+}
+
+#
+#
+#
+
 update(qq{
     Welcome to the WebGUI8 installer utility!
-    Press any reasonable key to begin or control-C to exit.
+    You may press control-C at any time to exit.
+    Examine commands before they're run to make sure that they're what you want to do!
+    This script is provided without warranty, including warranty for merchantability, suitability for any purpose, and is not warrantied against special or incidental damages.  It may not work, and it may even break things.  Use at your own risk!  Always have good backups.  Consult the included source for full copyright and license.
+    Press any reasonable key to begin.
 });
 
 # $SIG{__DIE__} = sub { bail("Fatal error: $_[0]\n"); };
@@ -227,14 +279,33 @@ $linux = 'debian' if -f '/etc/debian_version';
 $linux = 'redhat' if -f '/etc/redhat-release';
 
 #
+# site name
+#
+
+my $site_name;
+my $database_name;
+
+do {
+    update(qq{
+        What domain name are you setting up this WebGUI for?
+        The config file, database, and directory of uploaded files will be named after this.
+        If you've already set up WebGUI and want to add another site, please instead use the addSite.pl utility.
+        This doesn't matter much if you're only setting up one site for development.
+        Most developers use "www.example.com" or "dev.localhost.localdomain".
+    });
+    $site_name = text( 'Domain name', 'www.example.com');
+    ($database_name = $site_name) =~ s{\.}{_}g;
+};
+
+#
 # mysqld
 #
 
-my $safe_mysqld_path = `which mysqld_safe`; chomp $safe_mysqld_path if $safe_mysqld_path;
+my $mysqld_safe_path = `which mysqld_safe`; chomp $mysqld_safe_path if $mysqld_safe_path;
 
 my $mysqld_path = `which mysqld`; chomp $mysqld_path if $mysqld_path;
 
-if( $safe_mysqld_path and ! $mysqld_path ) {
+if( $mysqld_safe_path and ! $mysqld_path ) {
     # mysqld is probably hiding in a libexec somewhere and mysqld_safe won't relay a request for --version
     # nevermind, we don't care about the version that much
 }
@@ -249,17 +320,35 @@ if( $mysqld_path ) {
     ($mysqld_version) = $mysqld_version =~ m/Ver (\d+\.\d+)\.\d+ for/ if $mysqld_version;
 }
 
-if( $safe_mysqld_path) {
+my $mysql_root_password;
+my $run_as_user = getpwuid($>);
+my $current_user = $run_as_user;
+
+if( $mysqld_safe_path) {
+
+    # mysql already exists
+
     my $extra_text= '';
     $extra_text .= "MySQL installed at $mysqld_path is version $mysqld_version.\n" if $mysqld_path and $mysqld_version;
     update(qq{
         $extra_text
-        Found mysqld_safe at $safe_mysqld_path.
+        Found mysqld_safe at $mysqld_safe_path.
         Using it.
         Hit enter to continue. 
     });
     scankey($mwh);
+
+    update( qq{
+        Please enter your MySQL root password.
+        This will be used to create a new database to hold data for the WebGUI site, and to 
+        create a user to associate with that database.
+    } );
+   $mysql_root_password = text('MySQL Root Password', '');
+
 } else {
+
+    # install and set up MySQL
+
     if( ! $root ) {
         bail(qq{
             MySQL not found and root privileges are required to install it.
@@ -274,12 +363,11 @@ if( $safe_mysqld_path) {
         });
         scankey($mwh);
         # percona mysql 5.5
-        #apt-get update || exit 1
-        # apt-get install percona-server-server-5.5 libmysqlclient18-dev 
         run( 'gpg --keyserver  hkp://keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A' );
         run( 'sudo gpg -a --export CD2EFD2A | apt-key add -' );
         run( q{grep 'http://repo.percona.com/apt' /etc/apt/sources.list || echo "deb http://repo.percona.com/apt squeeze main" >> /etc/apt/sources.list} );
         run( 'apt-get update', 0 );
+        run( 'apt-get install percona-server-server-5.5 libmysqlclient18-dev' ); 
     } else {
         # XXX
         bail(qq{
@@ -288,7 +376,109 @@ if( $safe_mysqld_path) {
             Hit any key to exit.
         });
     }
+
+    # user to run stuff as
+
+    update( "Which user would you like to run mysqd as?\n" . ( $root ? "Since we're running as root, you may enter a new user name to create a new user." : "Since we're not running as root, if you enter a different user than the current one, I'll try to use sudo to launch mysqld as root so it can switch to that user." ) );
+     # XXXX either add mysqld to the startup scripts or else tell the user that we aren't and that they need to do it theirself
+  pick_run_as_user:
+    $run_as_user = text( "User to Run MySQL As", $run_as_user );
+    if( $root and ! defined getpwnam( $run_as_user ) ) {
+        update(qq{Creating user $run_as_user...});
+        my $cmd = `which adduser` ? 'adduser' : `which useradd` ? 'useradd' : undef;
+        defined $cmd or do {
+            update( qq{
+                I don't see either an 'adduser' nor a 'useradd' program.  
+                Please add the user using whatever means are available to you and then enter their name here.
+            } );
+           goto pick_run_as_user;
+        };
+        run( "$cmd -s /sbin/nologin '$run_as_user'", 0 );
+    } elsif( $root and ! defined getpwnam( $run_as_user ) ) {
+        update(qq{
+            User $run_as_user is not an existing user, but I'm not root so I can't create it for you.
+            Please try again, or press control-C to exit.
+        });
+        scankey($mwh);
+    }
+
+    # database initialization
+
+    run( qq{ mysql_install_db --user=$run_as_user } );
+
+    # start mysql
+
+    if( $root and $run_as_user ne $current_user ) {
+        update( "Launching the new MySQL daemon..." );
+        run( qq{ $mysqld_safe_path --user=$run_as_user & } );
+    } elsif( $run_as_user ne $current_user ) {
+        update( qq{
+            Launching the new MySQL daemon. 
+            Please enter your password for sudo so that mysqld_safe can switch from root to the specified user.
+        } );
+        my $password = text( qq{sudo password}, '' ); # XXX do this early and re-use it as needed; add logic to run() to sudo as necessary
+        run( qq{ echo $password | sudo -S $mysqld_safe_path --user=$run_as_user & } );
+    } else {
+        # run as the current user; that's easy!
+        run( qq{ $mysqld_safe_path & }, 0, 0 ) or goto pick_run_as_user;
+    }
+
+    # set mysql root password
+
+    update( qq{
+        If MySQL was just installed, you'll probably want to set the MySQL 'root' user password.
+        Would you like to set that password now?
+    } );
+    if( scankey($mwh) =~ m/^y/ ) {
+        update( qq{ Please pick a MySQL root password. } );
+        $mysql_root_password = text('MySQL Root Password', '');
+        update( qq{ Setting MySQL root password. } );
+        run( qq{mysql --user=root -e "SET PASSWORD FOR 'root' = PASSWORD('$mysql_root_password'); SET PASSWORD FOR 'root'\@'localhost' = PASSWORD('$mysql_root_password') SET PASSWORD FOR 'root'\@'127.0.0.1' = PASSWORD('$mysql_root_password');" } );
+    }
+     
+    update( qq{ Deleing MySQL anonymous user. } );
+    run( qq{mysql --user=root --password=$mysql_root_password -e "drop user '';" } );
 }
+
+
+#
+# create database and user
+#
+
+my $mysql_user_password = join('', map { $_->[int rand scalar @$_] } (['a'..'z', 'A'..'Z', '0' .. '9']) x 12);
+
+do {
+    # XXX hard-coded database user name to 'webgui' for now and user has no say in what the password is
+    update(qq{Creating database and database user.});
+    run( qq{mysql --password=$mysql_root_password --user=root -e "create database $database_name"} );
+    run( qq{mysql --password=$mysql_root_password --user=root -e "grant all privileges on $database_name.* to webgui\@localhost identified by '$mysql_user_password'"} );
+};
+
+
+#
+# create.sql syntax
+#
+
+if( $mysqld_version and $mysqld_version >= 5.5 ) {
+    # XXX what is the actual cut off point?  is it 5.5, or something else?
+    # get a working create.sql because someone messed up the one in repo
+    # sdw:  MySQL changed; there's no syntax that'll work with both new and old ones
+    update( 'Updating details in the create.sql to make MySQL/Percona >= 5.5 happy...' );
+    run(' perl -p -i -e "s/TYPE=InnoDB CHARSET=utf8/ENGINE=InnoDB DEFAULT CHARSET=utf8/g" share/create.sql ', 0);
+    run(' perl -p -i -e "s/TYPE=MyISAM CHARSET=utf8/ENGINE=MyISAM DEFAULT CHARSET=utf8/g" share/create.sql ', 0);
+};
+
+#
+# create database and load create.sql
+#
+
+do {
+    update( qq{
+        Loading the initial WebGUI database.
+        This contains configuration, table structure for all of the tables, definitions for the default assets, and other stuff.
+    } );
+    run( qq{ mysql --password=$mysql_user_password --user=webgui $database_name < share/create.sql } );
+};
 
 #
 # other system packages we need
@@ -303,7 +493,7 @@ do {
             scankey($mwh);
         }
     } else {
-        update( "WebGUI needs the perlmagick libssl-dev libexpat1-dev git curl and build-essential packages but I'm not running as root so I can't install them; please either install these or else run this script as root." );
+        update( "WebGUI needs the perlmagick libssl-dev libexpat1-dev git curl and build-essential packages but I'm not running as root so I can't install them; please either install these or else run this script as root." ); # XXXX
         scankey($mwh);
     }
 };
@@ -315,19 +505,20 @@ do {
 my $install_dir = '/data';
 
 do {
-    my $get_filename = Curses::Widgets::TextField->new({ 
-        Y           => 4,
-        X           => 1, 
-        COLUMNS     => 60, 
-        MAXLENGTH   => 80,
-        FOREGROUND  => 'white',
-        BACKGROUND  => 'black',
-        VALUE       => $install_dir,
-        BORDERCOL   => 'black',
-        BORDER      => 1,
-        CAPTION     => 'Install Directory',
-        CAPTIONCOL  => 'white',
-    });
+    #my $get_filename = Curses::Widgets::TextField->new({ 
+    #    Y           => 4,
+    #    X           => 1, 
+    #    COLUMNS     => 60, 
+    #    MAXLENGTH   => 80,
+    #    FOREGROUND  => 'white',
+    #    BACKGROUND  => 'black',
+    #    VALUE       => $install_dir,
+    #    BORDERCOL   => 'black',
+    #    BORDER      => 1,
+    #    CAPTION     => 'Install Directory',
+    #    CAPTIONCOL  => 'white',
+    #});
+    $install_dir = text("Install Directory", $install_dir);
   where_to_install:
     update(qq{
         Where do you want to install WebGUI8?
@@ -336,14 +527,10 @@ do {
         Static and uploaded files for your site will be kept under in a 'domains' directory in there.
         Traditionally, WebGUI has lived inside of the '/data' directory, but this is not necessary.
     });
-    $get_filename->draw($mwh);
-    $get_filename->execute($mwh);
-    $install_dir = $get_filename->getField('VALUE');
     update(qq{
         Create directory '$install_dir' to hold WebGUI?  [Y/N]
     });
     goto where_to_install unless scankey($mwh) =~ m/^y/i;
-    main_win();  # erase the text dialogue
     update( qq{Creating directory '$install_dir'.\n} );
     run( "mkdir -p '$install_dir'", 0 );
     chdir $install_dir;
@@ -356,9 +543,11 @@ do {
 #
 
 do {
+    update("Checking out a copy of WebGUI from GitHub...");
     run(
         # https:// fails for me on a fresh Debian for want of CAs; use http:// or git://
-        'git clone http://github.com/plainblack/webgui.git WebGUI'
+        # 'git clone http://github.com/plainblack/webgui.git WebGUI' # XXXXXXXXXX
+        'git clone /tmp/WebGUI WebGUI' # XXXXXXXXXXXX
     );
 };
 
@@ -367,6 +556,7 @@ do {
 #
 
 do {
+    update( "Installing the cpanm utility to use to install Perl modules..." );
     run( 'curl --insecure --location http://cpanmin.us > WebGUI/sbin/cpanm', 0 );
     run( 'chmod ugo+x WebGUI/sbin/cpanm', 0 );
 };
@@ -376,37 +566,41 @@ do {
 #
 
 do {
+    update( "Checking for needed Perl modules..." );
     my $test_environment_output = run( 'perl sbin/testEnvironment.pl' ); 
     # Checking for module Weather::Com::Finder:         OK
     my @results = grep m/Checking for module/, split m/\n/, $test_environment_output;
     for my $result ( @results ) {
-        next unless $result ! =~ m/:.*OK/;
+        next if $result =~ m/:.*OK/;
         $result =~ s{:.*}{};
         $result =~ s{Checking for module }{};
-        run( "WebGUI/sbin/cpanm $result" );
+        update( "Installing Perl module $result from CPAN:" );
+        run( "WebGUI/sbin/cpanm -n -L extlib $result" );
     }
 
 };
 
+#
+# config files
+#
+
 =for comment
+
+TODO:
 
 # fix version number to match create.sql
 # perl -p -i -e "s/8\.0\.1/8\.0\.0/g" lib/WebGUI.pm || exit 1 # XXXX let's see what happens if this doesn't run
 
-# perl modules , the "-n" in the end means no tests are run, it's faster, but not safer
-perl sbin/testEnvironment.pl --simpleReport | grep 'Checking for module'|grep -v 'Magick'| perl -ane 'print $F[3]. " "' | perl -pe 's/: / /g'|cpanm -n -L extlib
-
+# XXX need more than this; use the WRE addsite stuff
+    /data/wre/sbin/wresetup.pl
 cp etc/WebGUI.conf.original etc/WebGUI.conf
 cp etc/log.conf.original etc/log.conf
 
-# get a working create.sql because someone messed up the one in repo
-# sdw:  MySQL changed; there's no syntax that'll work with both new and old ones
-perl -p -i -e "s/TYPE=InnoDB CHARSET=utf8/ENGINE=InnoDB DEFAULT CHARSET=utf8/g" share/create.sql
-perl -p -i -e "s/TYPE=MyISAM CHARSET=utf8/ENGINE=MyISAM DEFAULT CHARSET=utf8/g" share/create.sql
+   $ wget http://haarg.org/wgd -O wgd
+   $ sudo chmod ugo+x wgd
+   $ sudo mv wgd /data/wre/prereqs/bin/
 
-mysql --password --user=root -e "create database www_example_com" || exit 1
-mysql --password --user=root -e "grant all privileges on www_example_com.*  to webgui@localhost identified by 'password'" || exit 1
-mysql --password=password --user=webgui www_example_com < share/create.sql || exit 1
+  $ wgd reset --upgrade
 
 #run webgui. -- For faster server install "cpanm -L extlib Starman" and add " -s Starman --workers 10 --disable-keepalive" to plackup command
 export PERL5LIB=/data/WebGUI/lib:/data/WebGUI/extlib/lib/perl5
