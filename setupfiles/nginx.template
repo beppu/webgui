@@ -1,0 +1,86 @@
+##Force all domain requests, mysite.com, to go to www.mysite.com
+[% IF domain_name_has_www %]
+server {
+    server_name [% domain_sans_www %];
+    rewrite ^ $scheme://[% domain %]$request_uri redirect;
+}
+[% END %]
+
+server {
+    server_name  [% sitename %];
+
+    listen 80; ## listen for ipv4
+
+    # access_log [% domainRoot %]/[% sitename %]/logs/access.log combined;
+    access_log [% log_files %]/[% sitename %].access.log combined;
+    root       [% domainRoot %]/[% sitename %]/public;
+    client_max_body_size 20M;
+
+    # proxy webgui to starman listening on 127.0.0.1
+    location / {
+        # proxy_cache static;
+        # proxy_cache_valid 200 1s;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Host $host;
+        proxy_pass   http://127.0.0.1:[% webgui_port %];
+    }
+
+    location /extras/ {
+        add_header Cache-Control public;
+        expires 24h;
+        root   /data/WebGUI/www/;
+        add_header Access-Control-Allow-Origin *;
+    }
+
+    location /uploads/filepump { expires max; }
+    location = /default.ida    { access_log off; deny all; }
+    location /_vti_bin         { access_log off; deny all; }
+    location /_mem_bin         { access_log off; deny all; }
+    location ~ /\.(ht|wg)      { access_log off; deny all; }
+    location = /alive          { access_log off; }
+}
+
+#server {
+#    listen   443;
+#    server_name  [% sitename %] [%domain %];
+#
+#    ssl  on;
+#    ssl_certificate [% domainRoot %]/[% sitename %]/certs/server.crt;
+#    ssl_certificate_key [% domainRoot %]/[% sitename %]/certs/server.key;
+#
+#    ssl_session_timeout  5m;
+#
+#    ssl_protocols  SSLv3 TLSv1;
+#    ssl_ciphers  ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv3:+EXP;
+#    ssl_prefer_server_ciphers   on;
+#
+#    access_log [% domainRoot %]/[% sitename %]/logs/access.log combined
+#    root       [% domainRoot %]/www.example.com/public;
+#
+#    # proxy webgui to starman listening on 127.0.0.1
+#    location / {
+#        # proxy_cache static;
+#        # proxy_cache_valid 200 1s;
+#        proxy_set_header X-Real-IP $remote_addr;
+#        proxy_set_header X-Forwarded-For $remote_addr;
+#        proxy_set_header Host $host;
+#        proxy_pass   http://127.0.0.1:[% webgui_port %];
+#    }
+#
+#    location /extras/ {
+#        add_header Cache-Control public;
+#        expires 24h;
+#        root   /data/WebGUI/www/extras;
+#        add_header Access-Control-Allow-Origin *;
+#    }
+#
+#    location /uploads/filepump { expires max; }
+#    location = /default.ida    { access_log off; deny all; }
+#    location /_vti_bin     { access_log off; deny all; }
+#    location /_mem_bin     { access_log off; deny all; }
+#    location ~ /\.(ht|wg)      { access_log off; deny all; }
+#    location = /alive      { access_log off; }
+#}
+
+

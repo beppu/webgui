@@ -115,7 +115,7 @@ XXX is the MySQL setup stuff redundant with what the WRE setup scripts do?
 
 Make sure that you're initializing database in the WRE, not another one.
 
-  $ which mysql_install_d
+  $ which mysql_install_db
 
 That should output "/data/wre/prereqs/bin/mysql_install_db"
 
@@ -156,25 +156,25 @@ mysql is up and running.
 8. Create a MySQL user account for the domain WebGUI is to host
 and load share/create.sql into that database
 
-Pick a database name.  The practice is to name it after the site.  If you're
-hosting www.example.com, then "www_example_com" is a good database name
-for the site, and the config file will be 
-"/data/WebGUI/etc/www.example.com.conf".
-
-Create the new, empty database.  Change "www_example_com" here to whatever 
-yours is.
-
-  $ mysql --password --user=root --password -e "create database www_example_com"
-
-# IGNORE: XXX
+# IGNORE -- addsite.pl does this for you
+#Pick a database name.  The practice is to name it after the site.  If you're
+#hosting www.example.com, then "www_example_com" is a good database name
+#for the site, and the config file will be 
+#"/data/WebGUI/etc/www.example.com.conf".
+#
+#Create the new, empty database.  Change "www_example_com" here to whatever 
+#yours is.
+#
+#  $ mysql --password --user=root --password -e "create database www_example_com"
+#
 # Create the 'webgui' database user and set its password:
 # 
 #   $ mysql --password --user=root -e "grant all privileges on www_example_com.*
 #         to webgui@localhost identified by 'XXXXpasswordhereXXXX'"
-
-Load the database:
-
-  $ mysql --password --user=webgui www_example_com < share/create.sql
+#
+#Load the database:
+#
+#  $ mysql --password --user=webgui www_example_com < share/create.sql
 
 That may not work.  Newer versions of MySQL will give you "ERROR 1064 (42000)
 at line 19: You have an error in your SQL syntax; check the manual that
@@ -201,7 +201,7 @@ Use the addsite.pl script to set up your first WebGUI site:
       --databaseName      # The name of the database to create in MySQL (defaults to 
                           # www_site_com for the domain www.site.com)
 
-# IGNORE XXX
+# IGNORE -- addsite.pl does this for you
 # Copy /data/WebGUI/etc/WebGUI.conf.original to something named after the site's 
 # URL and ending in .conf, such as www.example.com.conf, and edit it, making sure
 # to insert your site's URL and the database connection information.
