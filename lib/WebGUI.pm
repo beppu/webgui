@@ -1,6 +1,6 @@
 package WebGUI;
 
-our $VERSION = '8.0.1';
+our $VERSION = '8.0.0';
 our $STATUS = 'beta';
 
 =head1 LEGAL
@@ -255,6 +255,13 @@ sub can {
 #    my($self, $res, $cb) = @_;
 #    Plack::Util::response_cb($res, $cb);
 #}
+
+# trick Moose into building our constructor for us
+
+sub can {
+    return if $_[1] eq 'new';
+    return $_[0]->SUPER::can(@_);
+}
 
 no Moose;
 __PACKAGE__->meta->make_immutable;
