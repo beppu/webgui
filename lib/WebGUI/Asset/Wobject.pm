@@ -384,6 +384,10 @@ sub processStyle {
     if ($style->useMobileStyle) {
         return $style->process($output,$self->get("mobileStyleTemplateId"));
     }
+    my $styleTemplateId = $self->get("styleTemplateId");
+    if( ! $styleTemplateId ) {
+        $self->session->fatal("styleTemplateId is undef in assetId " . $self->getId );
+    }
     return $style->process($output,$self->get("styleTemplateId"));
 }
 
