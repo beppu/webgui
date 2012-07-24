@@ -1429,12 +1429,14 @@ sub update {
             $self->{_user}->{$key} = $value;
         }
     }
-    # No matter what we update properties
-    my $userFields = join ", ", @userFields;
-    $db->write(
-        "UPDATE users SET $userFields WHERE userId=?",
-        [@userValues, $self->{_userId}]
-    );
+    # Update properties if there's data
+    if( @userFields ) {
+        my $userFields = join ", ", @userFields;
+        $db->write(
+            "UPDATE users SET $userFields WHERE userId=?",
+            [@userValues, $self->{_userId}]
+        );
+    }
 
     # Everything else must be a profile field
     my @profileFields = ();
