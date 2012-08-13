@@ -73,36 +73,46 @@ use strict;
 use warnings;
 no warnings 'redefine';
 
-use lib '/tmp';
-
 use IO::Handle;
 use Config;
-
-my $perl = $Config{perlpath};
+my $perl;
 
 BEGIN {
+    $perl = $Config{perlpath};
     eval { require Curses; require Curses::Widgets; } or do {
         `which make` or die 'Cannot bootstrap.  Please install "make" (eg, apt-get install make) and try again.';
+        open my $data, '<', $0 or die "can't open $0: $!"; # huh, so DATA isn't open yet in the BEGIN block
         chdir '/tmp' or die $!;
-        while( my $line = readline DATA ) {
+        while( my $line = readline $data ) {
             chomp $line;
-            next unless my ($mode, $file) = /^begin\s+(\d+)\s+(\S+)/;
+            last if $line =~ m/^__DATA__$/;
+        }
+        while( my $line = readline $data ) {
+            chomp $line;
+            next unless my ($mode, $file) = $line =~ m/^begin\s+(\d+)\s+(\S+)/;
             open my $fh, '>', $file	or die "can't create $file: $!";
-            while( my $line = readline DATA ) {
+            while( my $line = readline $data ) {
                 chomp $line;
                 last if $line =~ m/^end/;
-                $fh->print(unpack 'u', $line) or die $!;
+                $line = unpack 'u', $line;
+                $fh->print($line) or die $! if length $line;
             }
             system 'tar', '-xzf', $file and die $@;
             $file =~ s{\.tar\.gz$}{} or die;
             chdir $file or die $!;
-            system $perl, 'Makefile.PL', '--prefix=/tmp';
+            system $perl, 'Makefile.PL', 'PREFIX=/tmp';
             system 'make' and die $@; # XXX do they have 'make' installed?  apt-get install make on Debian, what about RedHat?
             system 'make', 'install' and die $@;
             chdir '..' or die $!;
+
         }
     };
-};
+    #my $v = '' . $^V;
+    #$v =~ s{v}{};
+    #use lib "/tmp/lib/perl5/$v/site_perl";
+}
+
+use lib '/tmp/lib/perl5/site_perl';
 
 use Cwd;
 
