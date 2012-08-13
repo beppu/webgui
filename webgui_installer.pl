@@ -99,6 +99,7 @@ BEGIN {
             }
             system 'tar', '-xzf', $file and die $@;
             $file =~ s{\.tar\.gz$}{} or die;
+            $file =~ s{\.modified}{};
             chdir $file or die $!;
             system $perl, 'Makefile.PL', 'PREFIX=/tmp';
             system 'make' and die $@; # XXX do they have 'make' installed?  apt-get install make on Debian, what about RedHat?
