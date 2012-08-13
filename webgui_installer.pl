@@ -33,6 +33,7 @@ export PERL5LIB=/data/wre/lib:/data/WebGUI/lib:$PERL5LIB
 
 XXX:
 
+XXX Task::WebGUI
 XXX Running upgrade script... Error upgrading www_example3_com.conf: Can't find upgrade path from 8.0.0 to 8.0.1.
 XXX does it do "s" to skip this command reliably?
 XXX test the sudo password when the user gives it and ask again if its wrong
@@ -74,6 +75,29 @@ use strict;
 use warnings;
 no warnings 'redefine';
 
+use Config;
+
+BEGIN {
+    my $perl = $Config{perlpath};
+    push @INC, sub {
+        my $self = shift;
+        my $module = shift;
+        return if grep $module eq $_, 'attrs.pm', 'Tie/StdScalar.pm', 'HTML/TreeBuilder/XPath/Node.pm';
+        $module =~ s{/}{::}g;  $module =~ s{\.pm$}{};  
+        warn "installing $module"; 
+        my @module = ($module);
+        @module = qw(Event Coro::Event Coro) if $module[0] eq 'Coro';  # all three, in order  
+        my $cpanm = `which cpanm`;
+        chomp $cpanm;
+        if( ! $cpanm ) { 
+            system 'wget', 'http://cpanmin.us', '-O', 'cpanm';
+            $cpanm = 'cpanm';
+        }
+        system $perl, $cpanm, @module;
+        return 1;
+    };
+};
+
 use Curses;
 use Curses::Widgets;
 use Curses::Widgets::TextField;
@@ -91,8 +115,6 @@ use Carp;
 
 use WRE::Config;
 use WRE::Site;
-
-use Config;
 
 use Config::JSON; # no relation to Config
 
