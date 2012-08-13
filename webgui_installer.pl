@@ -151,9 +151,6 @@ use IPC::Open3;
 use File::Copy 'cp';
 use FileHandle;
 
-use Template;
-
-
 #
 #
 #
@@ -819,6 +816,7 @@ do {
 };
 
 require "Config::JSON";  # this should be available now
+require "Template";      # this as well
 
 progress(60);
 
