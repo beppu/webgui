@@ -75,6 +75,8 @@ use strict;
 use warnings;
 no warnings 'redefine';
 
+use lib '/tmp';
+
 use IO::Handle;
 use Config;
 
@@ -95,13 +97,15 @@ BEGIN {
             system 'tar', '-xzf', $file and die $@;
             $file =~ s{\.tar\.gz$}{} or die;
             chdir $file or die $!;
-            system $perl, 'Makefile.PL';
+            system $perl, 'Makefile.PL', '--prefix=/tmp';
             system 'make' and die $@; # XXX do they have 'make' installed?  apt-get install make on Debian, what about RedHat?
             system 'make', 'install' and die $@;
             chdir '..' or die $!;
         }
     };
 };
+
+use Cwd;
 
 use Curses;
 use Curses::Widgets;
@@ -122,8 +126,6 @@ use Carp;
 # use WRE::Site;
 
 use Config::JSON; # no relation to Config
-
-use Cwd;
 
 use File::Copy 'cp';
 use FileHandle;
