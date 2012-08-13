@@ -36,8 +36,6 @@ XXX:
 XXX Task::WebGUI
 XXX Running upgrade script... Error upgrading www_example3_com.conf: Can't find upgrade path from 8.0.0 to 8.0.1.
 XXX does it do "s" to skip this command reliably?
-XXX test the sudo password when the user gives it and ask again if its wrong
-XXX test the mysql password when the user gives it and ask again if its wrong
 XXX mysql commands fail and it doesn't notice or care!?
 XXX git clone WebGUI can fatal without consequence too
 XXX error if a 'webgui' user already exists -- don't reset the password!
@@ -84,6 +82,7 @@ my $perl = $Config{perlpath};
 
 BEGIN {
     eval { require Curses; require Curses::Widgets; } or do {
+        `which make` or die 'Cannot bootstrap.  Please install "make" (eg, apt-get install make) and try again.';
         chdir '/tmp' or die $!;
         while( my $line = readline DATA ) {
             chomp $line;
@@ -120,7 +119,9 @@ use Curses::Widgets::Label;
 use Curses::Widgets::ProgressBar;
 
 use Carp;
-# use IPC::Open3;
+
+use IO::Select;
+use IPC::Open3;
 
 # use WRE::Config;
 # use WRE::Site;
@@ -185,7 +186,7 @@ my $progress = do {
         FOREGROUND  => 'white',
         BACKGROUND  => 'black',
         BORDER      => 1,
-        BORDERCOL   => 'black',
+        BORDERCOL   => 'white',
         CAPTION     => 'Progress',
         CAPTIONCOL  => 'white',
     });
@@ -267,22 +268,49 @@ sub run {
         update( $msg . "\nRunning '$cmd'." );
     }
 
-    open my $fh, '-|', "$cmd 2>&1" or bail(qq{
+    #open my $fh, '-|', "$cmd 2>&1" or bail(qq{
+    #    $msg\nRunning '$cmd'\nFailed: $!
+    #});
+
+    my $pid = open3( my $to_child, my $fh, my $fh_error, $cmd ) or bail(qq{
         $msg\nRunning '$cmd'\nFailed: $!
     });
-    my $output = '';
-    while( my $line = readline $fh ) { 
-        $output .= $line; 
-        # update( $msg . "\n$cmd:\n$output" );
-        update( tail( $msg . "\n$cmd:\n$output" ) );
-    }
-    my $exit = close($output);
 
-    #my $pid = open3( my $child_in, my $child_out, my $child_error, $cmd );
-    #while( $output .= readline $child_out ) { }
-    #while( $output .= readline $child_error ) { }  # not safe
-    #waitpid $pid;
-    #my $exit = close($output);
+    my $output = '';
+
+    # while( my $line = readline $fh ) { 
+    #     $output .= $line; 
+    #     update( tail( $msg . "\n$cmd:\n$output" ) );
+    # }
+
+    my $sel = IO::Select->new();
+    $sel->add($fh);
+    $sel->add($fh_error);
+
+    while (my @ready = $sel->can_read()) {
+        my $buf;
+        for my $handle (@ready) {
+            # handle may == $fh or $fh_error
+            my $bytes_read = sysread($handle, $buf, 1024);
+            if ($bytes_read == -1) {
+               warn("Error reading from child's STDOUT: $!\n");
+               $sel->remove($handle);
+               next;
+            }
+            if ($bytes_read == 0) {
+               print("Child's STDOUT closed\n");
+               $sel->remove($handle);
+               next;
+            }
+            $output .= $buf;
+        }
+    }
+
+    # my $exit = close($output);
+
+    close $to_child;  # XXX check for errors; sets $? and $! (possibily to 0)
+    waitpid $pid, 0;
+    my $exit = $? >> 8;
 
     if( $exit and ! defined $nofatal ) {
         # XXX generate a failure report email in this case?
@@ -314,7 +342,7 @@ sub text {
         FOREGROUND  => 'white',
         BACKGROUND  => 'black',
         VALUE       => $value,
-        BORDERCOL   => 'black',
+        BORDERCOL   => 'white',
         BORDER      => 1,
         CAPTION     => $title,
         CAPTIONCOL  => 'white',
@@ -565,12 +593,17 @@ if( $mysqld_safe_path) {
     });
     scankey($mwh);
 
+  mysql_password_again:
+
     update( qq{
         Please enter your MySQL root password.
         This will be used to create a new database to hold data for the WebGUI site, and to 
         create a user to associate with that database.
     } );
-   $mysql_root_password = text('MySQL Root Password', '');
+
+    $mysql_root_password = text('MySQL Root Password', '') or goto mysql_password_again;
+
+    run( "mysql --user=root --password=$mysql_root_password -e 'show databases'", 1, 1 ) or goto mysql_password_again;
 
 } else {
 
