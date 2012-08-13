@@ -33,6 +33,8 @@ export PERL5LIB=/data/wre/lib:/data/WebGUI/lib:$PERL5LIB
 
 XXX:
 
+XXX run() should take a 'requires root' flag and that should prompt the user to run things in a root terminal if not root
+    and there's no sudo password
 XXX apt-get install libncurses5-dev on Debian
 XXX Task::WebGUI
 XXX Running upgrade script... Error upgrading www_example3_com.conf: Can't find upgrade path from 8.0.0 to 8.0.1.
@@ -80,8 +82,43 @@ use File::Find;
 
 my $perl;
 
+#
+# some probes
+#
+
+# are we root?
+
+my $root;
+
+BEGIN { $root = $> == 0; }
+
+# which linux
+
+my $linux = 'unknown';
+
+BEGIN {
+    $linux = 'debian' if -f '/etc/debian_version';
+    $linux = 'redhat' if -f '/etc/redhat-release';
+}
+
+my $starting_dir = getcwd;
+
 BEGIN {
     $perl = $Config{perlpath};
+
+    if( $linux eq 'debian' ) {
+         if( $root ) {
+             print "running: apt-get install -y build-essential libncurses5-dev\nHit Enter to continue.\n";
+             readline STDIN;
+             system 'apt-get install -y build-essential libncurses5-dev';
+         } else {
+             print "Please run this command as root if these packages aren't already installed:\napt-get install -y build-essential libncurses5-dev\nHit Enter when done.\n";
+             readline STDIN;
+         }
+    } else {
+        # XXX
+    }
+
     eval { require Curses; require Curses::Widgets; } or do {
         `which make` or die 'Cannot bootstrap.  Please install "make" (eg, apt-get install make) and try again.';
         open my $data, '<', $0 or die "can't open $0: $!"; # huh, so DATA isn't open yet in the BEGIN block
@@ -430,22 +467,6 @@ my $input_key = *Curses::Widgets::TextField::input_key{CODE};
 };
 
 #
-# some probes
-#
-
-# are we root?
-
-my $root = $> == 0;
-
-# which linux
-
-my $linux = 'unknown';
-$linux = 'debian' if -f '/etc/debian_version';
-$linux = 'redhat' if -f '/etc/redhat-release';
-
-my $starting_dir = getcwd;
-
-#
 # site name
 #
 
@@ -640,7 +661,7 @@ if( $mysqld_safe_path) {
         if( ! `grep 'http://repo.percona.com/apt' /etc/apt/sources.list` ) {
             run( $sudo_command . qq{echo "deb http://repo.percona.com/apt squeeze main" >> /etc/apt/sources.list} );
         }
-        run( $sudo_command . 'apt-get update', 0 );
+        # run( $sudo_command . 'apt-get update', 0 );
         run( $sudo_command . 'apt-get install percona-server-server-5.5 libmysqlclient18-dev' ); 
     # XXXX
     # } elsif( $linux eq 'redhat' ) {
@@ -734,7 +755,7 @@ progress(25);
 do {
     if( $root or $sudo_command ) {
         if( $linux eq 'debian' ) {
-            run( $sudo_command . 'apt-get update', 0 );
+            # run( $sudo_command . 'apt-get update', 0 );
             run( $sudo_command . 'apt-get install -y perlmagick libssl-dev libexpat1-dev git curl build-essential nginx' );
         } else {
             update( "WebGUI needs the perlmagick libssl-dev libexpat1-dev git curl and build-essential modules but I don't yet know how to install them on your system; doing nothing, but you will need to make sure that this stuff is installed" );
@@ -794,6 +815,7 @@ progress(50);
 
 do {
     update( "Checking for needed Perl modules..." );
+    # XXX Task::WebGUI
     my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl" ); 
     # Checking for module Weather::Com::Finder:         OK
     my @results = grep m/Checking for module/, split m/\n/, $test_environment_output;
