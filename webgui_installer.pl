@@ -33,6 +33,7 @@ export PERL5LIB=/data/wre/lib:/data/WebGUI/lib:$PERL5LIB
 
 XXX:
 
+XXX apt-get install libncurses5-dev on Debian
 XXX Task::WebGUI
 XXX Running upgrade script... Error upgrading www_example3_com.conf: Can't find upgrade path from 8.0.0 to 8.0.1.
 XXX does it do "s" to skip this command reliably?
@@ -115,9 +116,9 @@ BEGIN {
     #use lib "/tmp/lib/perl5/$v/site_perl"; # not even that constant
     File::Find::find(
         sub {
-            push @INC, $File::Find::dir if -d $_;
+            push @INC, $File::Find::name if -d $_;
         },
-        '/tmp/lib',
+        '/tmp',
     );
 }
 
