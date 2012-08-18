@@ -69,7 +69,7 @@ delete (kill) each one via www_killSession
 
 =cut
 
-sub www_viewActiveSessions {
+sub www_viewActiveSessionsNonJson {
     my $session = shift;
     return $session->privilege->adminOnly unless canView($session);
     my $i18n   = WebGUI::International->new($session);
@@ -94,8 +94,44 @@ sub www_viewActiveSessions {
         $output .= '<td align="center">'.$session->icon->delete("op=killSession;sid=".$data->{sessionId}.";pn=$pn").'</td></tr>';
     }
     $output .= '</table>';
-    $output .= $p->getBarTraditional();
-    return WebGUI::AdminConsole->new($session,"activeSessions")->render($output);
+    #$output .= $p->getBarTraditional();
+    #return WebGUI::AdminConsole->new($session,"activeSessions")->render($output);
+    return $output;
+}
+
+sub www_viewActiveSessions {
+   use JSON;
+   my $session = shift;
+   return $session->privilege->adminOnly unless canView($session);
+   my $i18n = WebGUI::International->new($session);
+
+   my $p = WebGUI::Paginator->new($session,$session->url->page('op=viewActiveSessions'));
+   $p->setDataByQuery("select users.username,users.userId,userSession.sessionId,userSession.expires,
+       userSession.lastPageView,userSession.lastIP from users,userSession where users.userId=userSession.userId
+       and users.userId<>1 order by users.username,userSession.lastPageView desc");
+   my $pn = $p->getPageNumber;
+   my $output = [];
+   foreach my $data (@{ $p->getPageData() }) {
+      push(@{ $output },[
+         $data->{username},
+         $data->{userId}, 
+         $data->{sessionId},
+         $session->datetime->epochToHuman($data->{expires}),
+         $session->datetime->epochToHuman($data->{lastPageView}),
+         $data->{lastIP}
+      ]);
+#      push(@{ $output },{
+#         username     => $data->{username},
+#         userId       => $data->{userId}, 
+#         sessionId    => $data->{sessionId},
+#         expires      => $session->datetime->epochToHuman($data->{expires}),
+#         lastPageView => $session->datetime->epochToHuman($data->{lastPageView}),
+#         lastIP       => $data->{lastIP}
+#      });
+   }
+    
+   $session->response->content_type("application/json");
+   return to_json { aaData => $output };
 }
 
 1;
