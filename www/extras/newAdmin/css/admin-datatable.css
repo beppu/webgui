@@ -1,0 +1,147 @@
+/* 
+    Document   : admin-datatable
+    Created on : Feb 22, 2013, 10:35:02 AM
+    Author     : Daniel Maldonado
+    Description:
+        Use a common look and feel for the datatables displayed in the admin console.
+        Based on the excellent article at: http://www.datatables.net/blog/Creating_beautiful_and_functional_tables_with_DataTables
+*/
+
+div.dataTables_length {
+    float: left;
+    
+}
+div.dataTables_filter {
+    float: right;
+}
+ 
+div.dataTables_info {
+    float: left;
+}
+ 
+div.dataTables_paginate {
+    float: right;
+}
+ 
+div.dataTables_length,
+div.dataTables_filter,
+div.dataTables_paginate,
+div.dataTables_info {
+    padding: 6px;
+}   
+   
+table.webguiAdminTable {
+    clear: both;
+}   
+   
+/* Self clearing - */
+div.dataTables_wrapper:after {
+    content: ".";
+    display: block;
+    clear: both;
+    visibility: hidden;
+    line-height: 0;
+    height: 0;
+}
+html[xmlns] .dataTables_wrapper { 
+   display: block; 
+}
+* html .dataTables_wrapper { 
+   height: 1%; 
+}
+   
+table.webguiAdminTable {
+    width: 100%;
+    clear: both;
+}
+ 
+table.webguiAdminTable td,
+table.webguiAdminTable th {
+    padding: 5px;
+    border: 1px solid #fff;
+}
+
+/* Header cells */
+table.webguiAdminTable thead th {
+    text-align: center;
+    background: #66a9bd;
+}
+
+/* Body cells */
+table.webguiAdminTable tbody th {
+    text-align: left;
+    background: #91c5d4;
+}
+     
+table.webguiAdminTable tbody td {
+    text-align: center;
+    background: #d5eaf0;
+}
+         
+table.webguiAdminTable tbody tr.odd td {
+    background: #bcd9e1;
+}
+
+/* Footer cells */ 
+table.webguiAdminTable tfoot th {
+    background: #b0cc7f;
+    text-align: left;
+}
+     
+table.webguiAdminTable tfoot td {
+    background: #d7e1c5;
+    text-align: center;
+    font-weight: bold;
+}
+/* wrapping div = header and footer  */
+div.dataTables_wrapper {
+    background-color: #719ba7;
+}
+
+/* Sorting header images */
+table.webguiAdminTable thead th.sorting_asc {
+    background: #66A9BD url('/WebGUI/js/libs/DataTables-1.9.4/media/images/sort_asc.png') no-repeat right center;
+}
+ 
+table.webguiAdminTable thead th.sorting_desc {
+    background: #66A9BD url('/WebGUI/js/libs/DataTables-1.9.4/media/images/sort_desc.png') no-repeat right center;
+}
+ 
+table.webguiAdminTable thead th.sorting {
+    background: #66A9BD url('/WebGUI/js/libs/DataTables-1.9.4/media/images/sort_both.png') no-repeat right center;
+}
+
+/* pagination control is slightly more complicated to style */
+a.paginate_button,
+a.paginate_active {
+    display: inline-block;
+    background-color: #608995;
+    padding: 2px 6px;
+    margin-left: 2px;
+    cursor: pointer;
+    *cursor: hand;
+}
+ 
+a.paginate_active {
+    background-color: transparent;
+    border: 1px solid black;
+}
+ 
+a.paginate_button_disabled {
+    color: #3d6672;
+}
+.paging_full_numbers a:active {
+    outline: none
+}
+.paging_full_numbers a:hover {
+    text-decoration: none;
+}
+ 
+div.dataTables_paginate span>a {
+    width: 15px;
+    text-align: center;
+}
+ 
+div.dataTables_info {
+    padding: 9px 6px 6px 6px;
+}
