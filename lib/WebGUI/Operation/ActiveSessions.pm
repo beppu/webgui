@@ -15,6 +15,7 @@ use WebGUI::AdminConsole;
 use WebGUI::International;
 use WebGUI::Paginator;
 use WebGUI::SQL;
+use JSON;
 
 =head1 NAME
 
@@ -51,13 +52,25 @@ $session->form->process("sid").  Afterwards, it calls www_viewActiveSessions.
 
 =cut
 
-sub www_killSession {
+sub www_killSession { #$session->request->method
 	my $session = shift;
-	return www_viewActiveSessions($session) if $session->form->process("sid") eq $session->getId;
-	return $session->privilege->adminOnly unless canView($session);
-	$session->db->write("delete from userSession where sessionId=?",[$session->form->process("sid")]);
-	$session->db->write("delete from userSessionScratch where sessionId=?", [$session->form->process("sid")]);
-	return www_viewActiveSessions($session);
+   my $i18n = WebGUI::International->new($session);
+   $session->response->content_type("application/json");
+   if ( $session->form->process("sid") eq $session->getId ){
+      $session->response->status(304);
+      return to_json { header => $i18n->get(108)->{message}, error => $i18n->get(36) };
+
+   }elsif ( canView($session) ){
+	   $session->db->write("delete from userSession where sessionId=?",[$session->form->process("sid")]);
+	   $session->db->write("delete from userSessionScratch where sessionId=?", [$session->form->process("sid")]);
+	   return to_json { }; # json success
+   
+   }else{
+      $session->response->status(403);
+      return to_json { header => $i18n->get(35), error => $i18n->get(36) };#return $self->session->style->userStyle($output);
+      
+   }   
+
 }
 
 #-------------------------------------------------------------------
@@ -69,69 +82,44 @@ delete (kill) each one via www_killSession
 
 =cut
 
-sub www_viewActiveSessionsNonJson {
-    my $session = shift;
-    return $session->privilege->adminOnly unless canView($session);
-    my $i18n   = WebGUI::International->new($session);
-    my $output = '<table border="1" cellpadding="5" cellspacing="0" align="center">';
-    $output .= '<tr class="tableHeader"><td>'.$i18n->get(428).'</td>';
-    $output .= '<td>'.$i18n->get(435).'</td>';
-    $output .= '<td>'.$i18n->get(432).'</td>';
-    $output .= '<td>'.$i18n->get(430).'</td>';
-    $output .= '<td>'.$i18n->get(431).'</td>';
-    $output .= '<td>'.$i18n->get(436).'</td></tr>';
-    my $p = WebGUI::Paginator->new($session,$session->url->page('op=viewActiveSessions'));
-    $p->setDataByQuery("select users.username,users.userId,userSession.sessionId,userSession.expires,
-        userSession.lastPageView,userSession.lastIP from users,userSession where users.userId=userSession.userId
-        and users.userId<>1 order by users.username,userSession.lastPageView desc");
-    my $pn = $p->getPageNumber;
-    foreach my $data (@{ $p->getPageData() }) {
-        $output .= '<tr class="tableData"><td>'.$data->{username}.' ('.$data->{userId}.')</td>';
-        $output .= '<td>'.$data->{sessionId}.'</td>';
-        $output .= '<td>'.$session->datetime->epochToHuman($data->{expires}).'</td>';
-        $output .= '<td>'.$session->datetime->epochToHuman($data->{lastPageView}).'</td>';
-        $output .= '<td>'.$data->{lastIP}.'</td>';
-        $output .= '<td align="center">'.$session->icon->delete("op=killSession;sid=".$data->{sessionId}.";pn=$pn").'</td></tr>';
-    }
-    $output .= '</table>';
-    #$output .= $p->getBarTraditional();
-    #return WebGUI::AdminConsole->new($session,"activeSessions")->render($output);
-    return $output;
-}
-
 sub www_viewActiveSessions {
-   use JSON;
    my $session = shift;
-   return $session->privilege->adminOnly unless canView($session);
    my $i18n = WebGUI::International->new($session);
-
-   my $p = WebGUI::Paginator->new($session,$session->url->page('op=viewActiveSessions'));
-   $p->setDataByQuery("select users.username,users.userId,userSession.sessionId,userSession.expires,
-       userSession.lastPageView,userSession.lastIP from users,userSession where users.userId=userSession.userId
-       and users.userId<>1 order by users.username,userSession.lastPageView desc");
-   my $pn = $p->getPageNumber;
-   my $output = [];
-   foreach my $data (@{ $p->getPageData() }) {
-      push(@{ $output },[
-         $data->{username},
-         $data->{userId}, 
-         $data->{sessionId},
-         $session->datetime->epochToHuman($data->{expires}),
-         $session->datetime->epochToHuman($data->{lastPageView}),
-         $data->{lastIP}
-      ]);
-#      push(@{ $output },{
-#         username     => $data->{username},
-#         userId       => $data->{userId}, 
-#         sessionId    => $data->{sessionId},
-#         expires      => $session->datetime->epochToHuman($data->{expires}),
-#         lastPageView => $session->datetime->epochToHuman($data->{lastPageView}),
-#         lastIP       => $data->{lastIP}
-#      });
-   }
-    
    $session->response->content_type("application/json");
-   return to_json { aaData => $output };
+   if ( canView($session) ){
+      my $limit = $session->form->param('iDisplayLength');
+      my $echo = $session->form->param('sEcho');
+      my $p = WebGUI::Paginator->new($session,$session->url->page('op=viewActiveSessions'));
+      my $sqlCommand = q|select users.username,users.userId,userSession.sessionId,userSession.expires,
+            userSession.lastPageView,userSession.lastIP from users,userSession where users.userId=userSession.userId
+            and users.userId<>1 order by users.username,userSession.lastPageView desc |; # datatables search param sSearch
+      if ( $limit ){
+        $sqlCommand .= qq| limit $limit|; # sqlInjection WARNING!!!
+      }
+      $p->setDataByQuery( $sqlCommand );
+      my $output = [];
+      foreach my $data (@{ $p->getPageData() }) {
+         push(@{ $output },{
+              username     => $data->{username},
+              userId       => $data->{userId}, 
+              sessionId    => $data->{sessionId},
+              expires      => $session->datetime->epochToHuman($data->{expires}),
+              lastPageView => $session->datetime->epochToHuman($data->{lastPageView}),
+              lastIP       => $data->{lastIP}
+         });
+      }
+      return to_json {
+         iTotalRecords        => $p->getRowCount,
+         iTotalDisplayRecords => $limit,
+         data                 => $output,
+         sEcho                => $echo
+      };
+   
+   }else{
+      $session->response->status(403);
+      return to_json { header => $i18n->get(35), error => $i18n->get(36) };#return $self->session->style->userStyle($output);
+      
+   }
 }
 
 1;
