@@ -105,11 +105,14 @@ use Cwd;
 
 my $starting_dir = getcwd;
 
-my $sixtyfour = $Config{archname} =~ m/x86_64/ ? '64' : ''; # XXXXXXX use these everywhere apt-get gets run
-my $thirtytwo = $Config{archname} =~ m/i686/ ? '32' : '';
+my $sixtyfour;
+my $thirtytwo;
 
 BEGIN {
     $perl = $Config{perlpath};
+
+    $sixtyfour = $Config{archname} =~ m/x86_64/ ? '64' : ''; # XXXXXXX use these everywhere apt-get gets run
+    $thirtytwo = $Config{archname} =~ m/i686/ ? '32' : '';
 
     if( $linux eq 'debian' ) {
          my $sudo = $root ? '' : `which sudo` || '';
@@ -171,8 +174,8 @@ BEGIN {
         #);
         my $v = '' . $^V;
         $v =~ s{^v}{};
-        use lib "/tmp/lib/perl5/site_perl/$v/${sixtyfour}${thirtytwo}-linux/"; # Curses.pm in there
-        use lib "/tmp/lib/perl5/site_perl/$v/";   # Curses/Widgets.pm in there
+        eval qq{ use lib "/tmp/lib/perl5/site_perl/$v/${sixtyfour}${thirtytwo}-linux/"; };# Curses.pm in there
+        eval qq{ use lib "/tmp/lib/perl5/site_perl/$v/"; };  # Curses/Widgets.pm in there
     };
 }
 
