@@ -701,8 +701,9 @@ if( $mysqld_safe_path) {
             $fh->close;
             run( qq{ $sudo_command cp /tmp/sources.list /etc/apt/sources.list }, input => $sudo_password, );
         }
-        # run( $sudo_command . 'apt-get install percona-server-server-5.5 libmysqlclient18-dev' ); 
-        run( $sudo_command . 'apt-get install percona-server-server-5.5 libmysqlclient-dev' ); 
+        run( $sudo_command . 'apt-get update' );   # needed since we've just added to the sources
+        # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
+        run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient18-dev' ); 
     # XXXX
     # } elsif( $linux eq 'redhat' ) {
     #     rpm -Uhv http://www.percona.com/downloads/percona-release/percona-release-0.0-1.i386.rpm
