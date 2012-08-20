@@ -117,11 +117,11 @@ BEGIN {
     if( $linux eq 'debian' ) {
          my $sudo = $root ? '' : `which sudo` || '';
          print "WebGUI8 installer bootstrap:  Installing stuff before we install stuff...\n\n";
-         print "running: sudo apt-get update\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
+         print "running: $sudo apt-get update\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
          goto skip_update if readline(STDIN) =~ m/s/;
          system "$sudo apt-get update";
        skip_update:
-         print "\n\nrunning: sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
+         print "\n\nrunning: $sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
          goto skip_apt_get if readline(STDIN) =~ m/s/;
          system "$sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl";
        skip_apt_get:
@@ -694,14 +694,15 @@ if( $mysqld_safe_path) {
         run( "$sudo_command gpg -a --export CD2EFD2A | $sudo_command apt-key add -", input => $sudo_password, );
         if( ! `grep 'http://repo.percona.com/apt' /etc/apt/sources.list` ) {
             # run( qq{ $sudo_command echo "deb http://repo.percona.com/apt squeeze main" >> /etc/apt/sources.list }, input => $sudo_passwrd, ); # doesn't work; the >> doesn't run inside of sudo
+            # cp '/etc/apt/sources.list', '/tmp/sources.list' or bail "Failed to copy /etc/apt/sources.list to /tmp: $!; this means that I can't add ``deb http://repo.percona.com/apt squeeze main'' to the list; please do yourself and try again";
             cp '/etc/apt/sources.list', '/tmp/sources.list' or bail "Failed to copy /etc/apt/sources.list to /tmp: $!";
             open my $fh, '>>', '/tmp/sources.list' or bail "Failed to open /tmp/sources.list for append";
             $fh->print("deb http://repo.percona.com/apt squeeze main") or bail "write failed: $!";
+            $fh->close;
             run( qq{ $sudo_command cp /tmp/sources.list /etc/apt/sources.list }, input => $sudo_password, );
-            cp '/etc/apt/sources.list', '/tmp/sources.list' or 
-                bail "Failed to copy /etc/apt/sources.list to /tmp: $!; this means that I can't add ``deb http://repo.percona.com/apt squeeze main'' to the list; please do yourself and try again";
         }
-        run( $sudo_command . 'apt-get install percona-server-server-5.5 libmysqlclient18-dev' ); 
+        # run( $sudo_command . 'apt-get install percona-server-server-5.5 libmysqlclient18-dev' ); 
+        run( $sudo_command . 'apt-get install percona-server-server-5.5 libmysqlclient-dev' ); 
     # XXXX
     # } elsif( $linux eq 'redhat' ) {
     #     rpm -Uhv http://www.percona.com/downloads/percona-release/percona-release-0.0-1.i386.rpm
