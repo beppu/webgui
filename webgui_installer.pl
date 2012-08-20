@@ -119,11 +119,11 @@ BEGIN {
          print "WebGUI8 installer bootstrap:  Installing stuff before we install stuff...\n\n";
          print "running: sudo apt-get update\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
          goto skip_update if readline(STDIN) =~ m/s/;
-         system 'sudo apt-get update';
+         system "$sudo apt-get update";
        skip_update:
          print "\n\nrunning: sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
          goto skip_apt_get if readline(STDIN) =~ m/s/;
-         system 'sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl';
+         system "$sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl";
        skip_apt_get:
     } else {
         # XXX
