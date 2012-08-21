@@ -698,16 +698,21 @@ if( $mysqld_safe_path) {
     # install and set up MySQL
 
     if( ( $root or $sudo_command ) and $linux eq 'debian' ) {
+
         update(qq{
             Installing Percona Server to satisfy MySQL dependency.
             This step adds the percona repo to your /etc/apt/sources.list (if it isn't there already) and then
             installs the packages percona-server-server-5.5 and libmysqlclient18-dev.
             Hit control-C to cancel or Enter to continue.
         });
+
         scankey($mwh);
+
         # percona mysql 5.5
+
         run( "$sudo_command gpg --keyserver  hkp://keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A", input => $sudo_password, );
         run( "$sudo_command gpg -a --export CD2EFD2A | $sudo_command apt-key add -", input => $sudo_password, );
+
         if( ! `grep 'http://repo.percona.com/apt' /etc/apt/sources.list` ) {
             # run( qq{ $sudo_command echo "deb http://repo.percona.com/apt squeeze main" >> /etc/apt/sources.list }, input => $sudo_passwrd, ); # doesn't work; the >> doesn't run inside of sudo
             # cp '/etc/apt/sources.list', '/tmp/sources.list' or bail "Failed to copy /etc/apt/sources.list to /tmp: $!; this means that I can't add ``deb http://repo.percona.com/apt squeeze main'' to the list; please do yourself and try again";
@@ -717,10 +722,17 @@ if( $mysqld_safe_path) {
             $fh->close;
             run( qq{ $sudo_command cp /tmp/sources.list /etc/apt/sources.list }, input => $sudo_password, );
         }
+
         run( $sudo_command . 'apt-get update' );   # needed since we've just added to the sources
+
         # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
         # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
         system( "echo $sudo_password | $sudo_command  apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); 
+
+        # go look for mysqld again now that it should be installed
+
+        goto scan_for_mysqld;
+
     # XXXX
     # } elsif( $linux eq 'redhat' ) {
     #     rpm -Uhv http://www.percona.com/downloads/percona-release/percona-release-0.0-1.i386.rpm
@@ -733,60 +745,9 @@ if( $mysqld_safe_path) {
         goto scan_for_mysqld;
     }
 
-    # user to run stuff as
-
-    update( "Which user would you like to run mysqd as?\n" . ( $root ? "Since we're running as root, you may enter a new user name to create a new user." : "Since we're not running as root, if you enter a different user than the current one, I'll try to use sudo to launch mysqld as root so it can switch to that user." ) );
-     # XXX add mysqld to the startup scripts
-  pick_run_as_user:
-    $run_as_user = text( "User to Run MySQL As", $run_as_user );
-    if( $root and ! defined getpwnam( $run_as_user ) ) {
-        update(qq{Creating user $run_as_user...});
-        my $cmd = `which adduser` ? 'adduser' : `which useradd` ? 'useradd' : undef;
-        defined $cmd or do {
-            update( qq{
-                I don't see either an 'adduser' nor a 'useradd' program.  
-                Please add the user using whatever means are available to you and then enter their name here.
-            } );
-           goto pick_run_as_user;
-        };
-        run( "$cmd -s /sbin/nologin '$run_as_user'", noprompt => 1, );
-    } elsif( $root and ! defined getpwnam( $run_as_user ) ) {
-        update(qq{
-            User $run_as_user is not an existing user, but I'm not root so I can't create it for you.
-            Please try again, or press control-C to exit.
-        });
-        scankey($mwh);
-    }
-
-    # database initialization
-
-    run( qq{ mysql_install_db --user=$run_as_user } );
-
-    # start mysql
-
-    if( ( $root or $sudo_command ) and $run_as_user ne $current_user ) {
-        update "Launching the new MySQL daemon...";
-        run( qq{$sudo_command $mysqld_safe_path --user=$run_as_user & } ); # XXXX not sure that "echo | sudo &" is going to work
-    } else {
-        # run as the current user; that's easy!
-        run( qq{ $mysqld_safe_path & }, noprompt =>1, nofatal => 1, ) or goto pick_run_as_user;
-    }
-
-    # set mysql root password
-
-    update( qq{
-        If MySQL was just installed, you'll probably want to set the MySQL 'root' user password.
-        Would you like to set that password now?
-    } );
-    if( scankey($mwh) =~ m/^y/ ) {
-        update( qq{ Please pick a MySQL root password. } );
-        $mysql_root_password = text('MySQL Root Password', '');
-        update( qq{ Setting MySQL root password. } );
-        run( qq{mysql --user=root -e "SET PASSWORD FOR 'root' = PASSWORD('$mysql_root_password'); SET PASSWORD FOR 'root'\@'localhost' = PASSWORD('$mysql_root_password') SET PASSWORD FOR 'root'\@'127.0.0.1' = PASSWORD('$mysql_root_password');" } );
-    }
-     
     update( qq{ Deleing MySQL anonymous user. } );
     run( qq{mysql --user=root --password=$mysql_root_password -e "drop user '';" } );
+
 }
 
 progress(20);
