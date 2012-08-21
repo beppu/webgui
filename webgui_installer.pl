@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# usage: apt-get install perl;wget https://raw.github.com/plainblack/webgui/master/installwebgui -O | bash
+# usage: wget https://raw.github.com/plainblack/webgui/master/installwebgui -O | bash
 
 =for comment
 
@@ -455,6 +455,15 @@ sub text {
 #
 #
 
+$SIG{CONT} = sub {
+    main_win();  # erase the dialogue
+    update();    # redraw after erasing the text dialogue
+};
+
+#
+#
+#
+
 my $verbosity = 1;
 
 do {
@@ -489,7 +498,6 @@ do {
      main_win();  # erase the dialogue
      update();    # redraw after erasing the text dialogue
 };
-  
 
 
 # $SIG{__DIE__} = sub { bail("Fatal error: $_[0]\n"); };
@@ -565,7 +573,7 @@ progress(5);
 # sudo password
 #
 
-my $sudo_password;
+my $sudo_password = '';
 my $sudo_command = '';
 
 if( ! $root and `which sudo` ) {
@@ -729,6 +737,7 @@ if( $mysqld_safe_path) {
         # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
         system( "echo $sudo_password | $sudo_command  apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); 
 
+         Curses->new; # re-init the screen (echo off, etc)
          main_win();  update();    # redraw
 
         # go look for mysqld again now that it should be installed
