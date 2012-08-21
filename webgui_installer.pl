@@ -460,6 +460,10 @@ $SIG{CONT} = sub {
     update();    # redraw after erasing the text dialogue
 };
 
+$SIG{USR1} = sub {
+    use Carp; Carp::confess $_[0];
+};
+
 #
 #
 #
@@ -711,10 +715,7 @@ if( $mysqld_safe_path) {
             Installing Percona Server to satisfy MySQL dependency.
             This step adds the percona repo to your /etc/apt/sources.list (if it isn't there already) and then
             installs the packages percona-server-server-5.5 and libmysqlclient18-dev.
-            Hit control-C to cancel or Enter to continue.
         });
-
-        scankey($mwh);
 
         # percona mysql 5.5
 
@@ -737,7 +738,7 @@ if( $mysqld_safe_path) {
         # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
         system( "echo $sudo_password | $sudo_command  apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); 
 
-         Curses->new; # re-init the screen (echo off, etc)
+         $mwh = Curses->new; # re-init the screen (echo off, etc)
          main_win();  update();    # redraw
 
         # go look for mysqld again now that it should be installed
@@ -821,7 +822,7 @@ progress(40);
 do {
     # XXX if the first bit of this script is a .sh, this will become redundant
     update( "Installing the cpanm utility to use to install Perl modules..." );
-    run( 'curl --insecure --location --silent http://cpanmin.us > WebGUI/sbin/cpanm', noprompt => 1, );
+    run( 'curl --insecure --location --silent http://cpanmin.us --output WebGUI/sbin/cpanm', noprompt => 1, );
     run( 'chmod ugo+x WebGUI/sbin/cpanm', noprompt => 1 );
 };
 
@@ -839,12 +840,27 @@ do {
 
 progress(50);
 
+# Task::WebGUI
+
+do {
+    update( "Installing required Perl modules..." );
+    if( $root or $sudo_command or -w $Config{sitelib_stem} ) {
+        # if it's a perlbrew perl and the libs directory is writable by this user, or we're root, or we have sudo, just
+        # install the module stright into the site lib.
+        run( "$sudo_command $perl WebGUI/sbin/cpanm -n Task::WebGUI", noprompt => 1, );
+    } else {
+        # backup plan is to build an extlib directory
+        mkdir "$install_dir/extlib"; # XXX moved this up outside of 'WebGUI'
+        run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib Task::WebGUI", noprompt => 1, );
+    }
+};
+
 #
 # testEnvironment.pl
 #
 
 do {
-    update( "Checking for needed Perl modules..." );
+    update( "Checking for any additional needed Perl modules..." );
     # XXX Task::WebGUI
     my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl" ); 
     # Checking for module Weather::Com::Finder:         OK
