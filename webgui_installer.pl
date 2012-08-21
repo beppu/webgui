@@ -806,12 +806,10 @@ progress(30);
 
 do {
     update("Checking out a copy of WebGUI from GitHub...");
-    run(
-        # https:// fails for me on a fresh Debian for want of CAs; use http:// or git://
-        # 'git clone http://github.com/plainblack/webgui.git WebGUI', # XXXXXXXXXX
-        'git clone /tmp/WebGUI WebGUI', # XXXXXXXXXXXX
-        nofatal => 1,
-    ) or goto pick_install_directory;
+    # https:// fails for me on a fresh Debian for want of CAs; use http:// or git://
+    my $url = 'http://github.com/plainblack/webgui.git';
+    $url = '/tmp/WebGUI' if -f '/tmp/WebGUI/.git/config'; # XXXXXXXXXXXX testing, so we don't beat up github too much, and it's faster
+    run( "git clone $url WebGUI", nofatal => 1, ) or goto pick_install_directory;
 };
 
 progress(40);
@@ -1034,13 +1032,13 @@ EOF
 
     update( qq{
         Installation complete.
-        Please see $install_dir/webgui.sh for an example of starting up WebGUI.
-        If cpanm was able to install modules into the siteperl directory, this should work:
+        If cpanm was able to install modules into the siteperl directory, this should work to test:
 
         cd $install_dir/WebGUI
         export PERL5LIB="/$install_dir/WebGUI/lib"
         plackup --port $webgui_port app.psgi
 
+        See $install_dir/webgui.sh for an example of starting up WebGUI.
         Please hit any reasonable key to exit the installer.
     } );
     scankey($mwh);
