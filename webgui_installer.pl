@@ -116,6 +116,7 @@ BEGIN {
 
     if( $linux eq 'debian' ) {
          my $sudo = $root ? '' : `which sudo` || '';
+         chomp $sudo;
          print "WebGUI8 installer bootstrap:  Installing stuff before we install stuff...\n\n";
          print "running: $sudo apt-get update\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
          goto skip_update if readline(STDIN) =~ m/s/;
@@ -264,11 +265,14 @@ my $progress = do {
     });
 };
 
+my $comment_box_width;
+
 my $comment = do {
     my ($y, $x);
   
     # Get the main screen max y & X
     $mwh->getmaxyx($y, $x);
+    $comment_box_width = $x - 2;
   
     Curses::Widgets::Label->new({
         CAPTION     => 'Comments',
@@ -314,7 +318,15 @@ sub bail {
 sub tail {
     my $text = shift;
     my $num_lines = 10;
+  split_again:
     my @lines = split m/[\n\r]+/, $text;
+    for my $line (@lines) {
+        if( length($line) > $comment_box_width ) {
+            substr $line, $comment_box_width, 0, "\n";
+            $text = join "\n", @lines;
+            goto split_again;
+        }
+    }
     @lines = @lines[ - $num_lines ..  -1 ] if @lines > $num_lines; 
     return join "\n", @lines;
 }
@@ -557,18 +569,22 @@ my $sudo_password;
 my $sudo_command = '';
 
 if( ! $root and `which sudo` ) {
+  sudo_command_again:
     update( qq{
         If you like, enter your account password to use to sudo various commands.
         You'll be prompted before each command.
         You may also skip entering your password here and manually complete the steps that require root access in another terminal window.
     } );
-    $sudo_password = text( qq{sudo password}, '' );
+    $sudo_password = text( qq{sudo password}, '' ) or goto no_sudo_command;
     # $sudo_command = "echo $sudo_password | sudo -S "; # prepended to stuff that needs to run as root XXX
     $sudo_command = "sudo -S -- "; # prepended to stuff that needs to run as root
+    run( "$sudo_command ls /root", nofatal => 1, ) or goto sudo_command_again;
+  no_sudo_command:
 } elsif( ! $root ) {
     update( qq{
         This script isn't running as root and I don't see sudo.
         You'll be prompted to run commands as root in another terminal window when and if needed.
+XXXXXX
         Hit Enter to continue.
     } );
     scankey($mwh);
@@ -703,7 +719,8 @@ if( $mysqld_safe_path) {
         }
         run( $sudo_command . 'apt-get update' );   # needed since we've just added to the sources
         # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
-        run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient18-dev' ); 
+        # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
+        system( "echo $sudo_password | $sudo_command  apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); 
     # XXXX
     # } elsif( $linux eq 'redhat' ) {
     #     rpm -Uhv http://www.percona.com/downloads/percona-release/percona-release-0.0-1.i386.rpm
