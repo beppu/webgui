@@ -211,6 +211,10 @@ use FileHandle;
 #
 #
 
+my $verbosity = 1;
+
+#
+
 my $mwh = Curses->new;
 
 noecho();
@@ -341,6 +345,7 @@ sub run {
     my $noprompt = delete $opts{noprompt};
     my $nofatal = delete $opts{nofatal};
     my $input = delete $opts{input};
+    my $background = delete $opts{background};
 
     die join ', ', keys %opts if keys %opts;
 
@@ -355,6 +360,17 @@ sub run {
         }
     } else {
         update( $msg . "\nRunning '$cmd'." );
+    }
+
+    if( $background ) {
+        if( ! fork ) {
+            # child process
+            exec $cmd;
+        } else {
+            sleep 3;
+            main_win();  update();    # redraw
+            return;
+        }
     }
 
     #open my $fh, '-|', "$cmd 2>&1" or bail(qq{
@@ -416,7 +432,7 @@ sub run {
         return;
     } else {
         $output ||= 'Success.';
-        if( ! $noprompt) {
+        if( ! $noprompt and $verbosity == 1 ) {
             update( tail( $msg . "\n$cmd:\n$output\nHit Enter to continue." ) );
             scankey($mwh);
         }
@@ -467,8 +483,6 @@ $SIG{USR1} = sub {
 #
 #
 #
-
-my $verbosity = 1;
 
 do {
     update(qq{
@@ -559,10 +573,13 @@ do {
         Static and uploaded files for your site will be kept under in a 'domains' directory in there.
         Traditionally, WebGUI has lived inside of the '/data' directory, but this is not necessary.
     });
-    update(qq{
-        Create directory '$install_dir' to hold WebGUI?  [Y/N]
-    });
-    goto where_to_install unless scankey($mwh) =~ m/^y/i;
+    if( $verbosity >= 1 ) {
+        update(qq{
+            Create directory '$install_dir' to hold WebGUI?  [Y/N]
+        });
+        goto where_to_install unless scankey($mwh) =~ m/^y/i;
+    }
+    main_win();  update();    # redraw
     update( qq{Creating directory '$install_dir'.\n} );
     run( "mkdir -p '$install_dir'", noprompt => 1 );
     chdir $install_dir;
@@ -685,13 +702,34 @@ if( $mysqld_safe_path) {
 
     my $extra_text= '';
     $extra_text .= "MySQL installed at $mysqld_path is version $mysqld_version.\n" if $mysqld_path and $mysqld_version;
-    update(qq{
-        $extra_text
-        Found mysqld_safe at $mysqld_safe_path.
-        Using it.
-        Hit enter to continue. 
-    });
-    scankey($mwh);
+    if( $verbosity >= 1 ) {
+        update(qq{
+            $extra_text
+            Found mysqld_safe at $mysqld_safe_path.
+            Using it.
+            Hit enter to continue. 
+        });
+        scankey($mwh);
+    } else {
+        update(qq{
+            $extra_text
+            Found mysqld_safe at $mysqld_safe_path.
+            Using it.
+        });
+    }
+
+    #
+    # start mysqld if it isn't already running
+    #
+
+    do {
+       my $ps = `ps ax`;
+       if( $ps !~ m/mysqld/ ) {
+            die unless $mysqld_safe_path;
+            update(qq{Starting mysqld...});
+            run( qq{ $sudo_command $mysqld_safe_path }, input => $sudo_password, noprompt => 1, background => 1, );
+       }
+    };
 
   mysql_password_again:
 
@@ -736,10 +774,10 @@ if( $mysqld_safe_path) {
 
         # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
         # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
-        system( "echo $sudo_password | $sudo_command  apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); 
+        system( "echo $sudo_password | $sudo_command apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); # system(), not run(), so have to do sudo the old way
 
-         $mwh = Curses->new; # re-init the screen (echo off, etc)
-         main_win();  update();    # redraw
+        $mwh = Curses->new; # re-init the screen (echo off, etc)
+        main_win();  update();    # redraw
 
         # go look for mysqld again now that it should be installed
 
@@ -761,6 +799,7 @@ if( $mysqld_safe_path) {
     run( qq{mysql --user=root --password=$mysql_root_password -e "drop user '';" } );
 
 }
+
 
 progress(20);
 
@@ -847,11 +886,15 @@ do {
     if( $root or $sudo_command or -w $Config{sitelib_stem} ) {
         # if it's a perlbrew perl and the libs directory is writable by this user, or we're root, or we have sudo, just
         # install the module stright into the site lib.
-        run( "$sudo_command $perl WebGUI/sbin/cpanm -n Task::WebGUI", noprompt => 1, );
+        # if it fails, hopefully it wasn't important or else testEnvironment.pl can pick up the slack
+        # XXX should send reports (POST to slowas.net?) when modules fail to build
+        run( "$sudo_command $perl WebGUI/sbin/cpanm -n IO::Tty --verbose", noprompt => 1, nofatal => 1, );  # this one likes to time out
+        run( "$sudo_command $perl WebGUI/sbin/cpanm -n Task::WebGUI", noprompt => 1, nofatal => 1, );
     } else {
         # backup plan is to build an extlib directory
         mkdir "$install_dir/extlib"; # XXX moved this up outside of 'WebGUI'
-        run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib Task::WebGUI", noprompt => 1, );
+        run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib IO::Tty --verbose", noprompt => 1, nofatal => 1, );  # this one likes to time out
+        run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib Task::WebGUI", noprompt => 1, nofatal => 1, );
     }
 };
 
