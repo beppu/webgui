@@ -702,7 +702,7 @@ if( $mysqld_path ) {
     # my $sqld_version = `$mysqld_path --version`;
     $mysqld_version = run("$mysqld_path --version");
     # /usr/local/libexec/mysqld  Ver 5.1.46 for pc-linux-gnu on i686 (Source distribution)
-    ($mysqld_version) = $mysqld_version =~ m/Ver (\d+\.\d+)\.\d+ for/ if $mysqld_version;
+    ($mysqld_version) = $mysqld_version =~ m/Ver\s+(\d+\.\d+)\./ if $mysqld_version;
 }
 
 my $mysql_root_password;
@@ -959,7 +959,7 @@ if( $mysqld_version and $mysqld_version >= 5.5 ) {
     # sdw:  MySQL changed; there's no syntax that'll work with both new and old ones
     update( 'Updating details in the create.sql to make MySQL/Percona >= 5.5 happy...' );
     run( $perl . ' -p -i -e "s/TYPE=InnoDB CHARSET=utf8/ENGINE=InnoDB DEFAULT CHARSET=utf8/g" share/create.sql ', noprompt => 1,);
-    run( $perl . ' -p -i -e "s/TYPE=MyISAM CHARSET=utf8/ENGINE=MyISAM DEFAULT CHARSET=utf8/g" share/create.sql ', noprompt => 1, );
+    run( $perl . ' -p -i -e "s/TYPE=MyISAM CHARSET=utf8/ENGINE=MyISAM DEFAULT CHARSET=utf8/g" share/create.sql ', noprompt => 1, ); # XXX combine these two lines
 };
 
 progress(65);
