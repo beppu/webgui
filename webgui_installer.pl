@@ -356,7 +356,7 @@ sub run {
         my $key = scankey($mwh);
         if( $key =~ m/s/i ) {
             update( $msg );  # restore original message from before we added stuff
-            return;
+            return 1;
         }
     } else {
         update( $msg . "\nRunning '$cmd'." );
@@ -369,7 +369,7 @@ sub run {
         } else {
             sleep 3;
             main_win();  update();    # redraw
-            return;
+            return 1;
         }
     }
 
@@ -439,6 +439,8 @@ sub run {
         update( $msg );  # get rid of the extra stuff so that the next call to run() doesn't just keep adding stuff
         # if( scankey($mwh) =~ m/h/ ) { open my $fh, '|-', '/usr/bin/hexdump', '-C'; $fh->print($output); }; # this didn't work
     }
+
+    # the call to run testEnvironment.pl in particular wants the command output
 
     $output;
 
@@ -512,7 +514,7 @@ do {
      });
      $verbosiy_dialogue->draw($mwh);
      $verbosiy_dialogue->execute($mwh);
-     $verbosity = $verbosiy_dialogue->getField('VALUE');
+     $verbosity = $verbosiy_dialogue->getField('CURSORPOS');
      main_win();  # erase the dialogue
      update();    # redraw after erasing the text dialogue
 };
@@ -800,7 +802,6 @@ if( $mysqld_safe_path) {
 
 }
 
-
 progress(20);
 
 #
@@ -905,7 +906,8 @@ do {
 do {
     update( "Checking for any additional needed Perl modules..." );
     # XXX Task::WebGUI
-    my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl" ); 
+    my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl", noprompt => 1, ); 
+# XXX $test_environment_output or ... handle failure
     # Checking for module Weather::Com::Finder:         OK
     my @results = grep m/Checking for module/, split m/\n/, $test_environment_output;
     for my $result ( @results ) {
