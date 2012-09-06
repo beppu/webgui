@@ -684,15 +684,23 @@ my $mysqld_path = `which mysqld`; chomp $mysqld_path if $mysqld_path;
 
 if( $mysqld_safe_path and ! $mysqld_path ) {
     # mysqld is probably hiding in a libexec somewhere and mysqld_safe won't relay a request for --version
-    # nevermind, we don't care about the version that much
+    open my $fh, '<', $mysqld_safe_path or die $!;
+    while( my $line = readline $fh ) {
+        # looking for a line like this: ledir='/usr/local/libexec'
+        (my $ledir) = $line =~ m/^\s*ledir='(.*)'/ or next;
+        next if $ledir =~ m/\$/;  # not any of the ones with shell variables in them; those run override args to mysqld_safe as given
+        $mysqld_path = $ledir . '/mysqld';
+        $mysqld_path = undef unless -x $mysqld_path;
+    }
 }
 
 my $mysqld_version;
 if( $mysqld_path ) {
     my $extra = '';
     # if ! -x $mysqld_path # XXX
-    update( $comment->getField('VALUE') . " Running command: $mysqld_path --version");
-    my $sqld_version = `$mysqld_path --version`;
+    # update( $comment->getField('VALUE') . " Running command: $mysqld_path --version");
+    # my $sqld_version = `$mysqld_path --version`;
+    $mysqld_version = run("$mysqld_path --version");
     # /usr/local/libexec/mysqld  Ver 5.1.46 for pc-linux-gnu on i686 (Source distribution)
     ($mysqld_version) = $mysqld_version =~ m/Ver (\d+\.\d+)\.\d+ for/ if $mysqld_version;
 }
