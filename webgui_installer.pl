@@ -316,6 +316,8 @@ sub bail {
     my $message = shift;
     update( $message );
     scankey($mwh);
+    endwin();
+    print $message;
     exit 1;
 }
 
@@ -432,7 +434,7 @@ sub run {
         return;
     } else {
         $output ||= 'Success.';
-        if( ! $noprompt and $verbosity == 1 ) {
+        if( ! $noprompt and $verbosity >= 1 ) {
             update( tail( $msg . "\n$cmd:\n$output\nHit Enter to continue." ) );
             scankey($mwh);
         }
@@ -517,6 +519,7 @@ do {
      $verbosity = $verbosiy_dialogue->getField('CURSORPOS');
      main_win();  # erase the dialogue
      update();    # redraw after erasing the text dialogue
+update("verbosity = $verbosity"); scankey($mwh);
 };
 
 
@@ -928,11 +931,13 @@ do {
 
 };
 
-# require "Config::JSON";  # this should be available now
-# require "Template";      # this as well
-# for some reason, the require fails
-eval "use Config::JSON;";  # these should be available now
-eval "use Template";
+# testEnviroment.pl/cpanm should have installed some modules that we need
+
+do {
+    local $SIG{__DIE__};
+    eval "use Config::JSON;";
+    eval "use Template";
+};
 
 progress(60);
 
