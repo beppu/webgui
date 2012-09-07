@@ -2145,7 +2145,7 @@ sub newByUrl {
 		if ($id ne "" || $class ne "") {
 			return WebGUI::Asset->new($session,$id, $class, $revisionDate);
 		} else {
-			$session->errorHandler->warn("The URL $url was requested, but does not exist in your asset tree.");
+			$session->errorHandler->notfound("The URL $url was requested, but does not exist in your asset tree.");
 			return undef;
 		}
 	}

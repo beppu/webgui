@@ -329,7 +329,8 @@ sub new {
 	my $class = shift;
 	my $session = shift;
     Log::Log4perl->init_once( $session->config->getWebguiRoot."/etc/log.conf" );   
-	my $logger = Log::Log4perl->get_logger($session->config->getFilename);
+	# my $logger = Log::Log4perl->get_logger($session->config->getFilename);
+	my $logger = Log::Log4perl->get_logger('webgui');
 	my $self = bless {_queryCount=>0, _logger=>$logger, _session=>$session}, $class;
         weaken( $self->{_session} );
         return $self;
@@ -396,7 +397,9 @@ sub query {
 
 =head2 security ( message )
 
-A convenience function that wraps warn() and includes the current username, user ID, and IP address in addition to the message being logged.
+Log errors to the security/auth log.  This may be configured in C<log.conf> with the C<auth> logging key to be the same as the main log, or to be a different log.
+
+Includes the current username, user ID, and IP address in addition to the message being logged.
 
 =head3 message
 
@@ -405,11 +408,34 @@ The message you wish to add to the log.
 =cut
 
 sub security {
-	my $self = shift;
-	my $message = shift;
-	$self->warn($self->session->user->username." (".$self->session->user->userId.") connecting from "
-	.$self->session->env->getIp." attempted to ".$message);
+    my $self = shift;
+    my $message = shift;
+    # Log::Log4perl->init_once( $config->getWebguiRoot."/etc/log.conf" );
+    # $self->warn($self->session->user->username." (".$self->session->user->userId.") connecting from " .$self->session->env->getIp." attempted to ".$message);
+    Log::Log4perl->get_logger('auth')->info( $self->session->user->username." (".$self->session->user->userId.") connecting from " .$self->session->env->getIp." attempted to ". $message);
 }
+
+#-------------------------------------------------------------------
+
+=head2 notfound ( message )
+
+Log errors to the notfound log.  This may be configured in C<log.conf> with the C<notfound> logging key to be the same as the main log, or to be a different log.
+Always logs at log level C<info>.
+
+Includes the current username, user ID, and IP address in addition to the message being logged.
+
+=head3 message
+
+The message you wish to add to the log.
+
+=cut
+
+sub notfound {
+    my $self = shift;
+    my $message = shift;
+    Log::Log4perl->get_logger('notfound')->info( $self->session->user->username." (".$self->session->user->userId.") connecting from " .$self->session->env->getIp.": ". $message);
+}
+
 
 
 #-------------------------------------------------------------------
