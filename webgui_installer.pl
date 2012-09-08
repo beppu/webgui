@@ -953,13 +953,17 @@ progress(60);
 # create.sql syntax
 #
 
+# update("mysqld_version is $mysqld_version; changing sql syntax if >= 5.5"); scankey($mwh); # debug
+
 if( $mysqld_version and $mysqld_version >= 5.5 ) {
     # XXX what is the actual cut off point?  is it 5.5, or something else?
     # get a working create.sql because someone messed up the one in repo
     # sdw:  MySQL changed; there's no syntax that'll work with both new and old ones
     update( 'Updating details in the create.sql to make MySQL/Percona >= 5.5 happy...' );
-    run( $perl . ' -p -i -e "s/TYPE=InnoDB CHARSET=utf8/ENGINE=InnoDB DEFAULT CHARSET=utf8/g" share/create.sql ', noprompt => 1,);
-    run( $perl . ' -p -i -e "s/TYPE=MyISAM CHARSET=utf8/ENGINE=MyISAM DEFAULT CHARSET=utf8/g" share/create.sql ', noprompt => 1, ); # XXX combine these two lines
+    # scankey($mwh); # debug
+
+    run( $perl . ' -p -i -e "s/TYPE=InnoDB CHARSET=utf8/ENGINE=InnoDB DEFAULT CHARSET=utf8/g" WebGUI/share/create.sql ', noprompt => 1,);
+    run( $perl . ' -p -i -e "s/TYPE=MyISAM CHARSET=utf8/ENGINE=MyISAM DEFAULT CHARSET=utf8/g" WebGUI/share/create.sql ', noprompt => 1, );
 };
 
 progress(65);
@@ -1094,11 +1098,11 @@ do {
     open my $fh, '>', "$install_dir/webgui.sh";
     $fh->print(<<EOF);
 cd $install_dir/WebGUI
-export PERL5LIB="\$PERL5LIB:/$install_dir/WebGUI/lib"
-export PERL5LIB="\$PERL5LIB:/$install_dir/extlib/lib/perl5" # needed if Perl modules were installed without write permission to the site lib
+export PERL5LIB="\$PERL5LIB:$install_dir/WebGUI/lib"
+export PERL5LIB="\$PERL5LIB:$install_dir/extlib/lib/perl5" # needed if Perl modules were installed without write permission to the site lib
 export PATH="$install_dir/extlib/bin/:\$PATH"  # needed if Starman was installed without write permission to install in the site lib
 plackup --port $webgui_port app.psgi &
-nginx /$install_dir/nginx.conf &
+nginx $install_dir/nginx.conf &
 EOF
     close $fh;
      
