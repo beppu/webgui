@@ -43,6 +43,9 @@ Delete multiple keys from the cache
 sub deleteChunk {
     my ( $self, $key ) = @_;
     $key = $self->parseKey( $key );
+    if( $self->{_chi}->can('deleteChunk') ) {
+        return $self->{_chi}->deleteChunk( $key );
+    }
     for my $checkKey ( $self->{_chi}->get_keys ) {
         if ( $checkKey =~ /^\Q$key/ ) {
             $self->{_chi}->remove( $checkKey );
@@ -95,7 +98,7 @@ sub new {
     unless ( $chi = $session->stow->get( "CHI" ) ) {
         my $cacheConf    = clone $session->config->get('cache');
         $cacheConf->{namespace}     = $namespace;
-        $cacheConf->{is_size_aware} = 1;
+        $cacheConf->{is_size_aware} = 1 if ! exists $cacheConf->{is_size_aware};
 
         # Default values
         my $resolveConf = sub {
