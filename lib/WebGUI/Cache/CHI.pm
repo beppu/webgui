@@ -99,6 +99,7 @@ sub new {
         my $cacheConf    = clone $session->config->get('cache');
         $cacheConf->{namespace}     = $namespace;
         $cacheConf->{is_size_aware} = 1 if ! exists $cacheConf->{is_size_aware};
+        delete $cacheConf->{is_size_aware} if ! $cacheConf->{is_size_aware};  # having the value 0/undef is not adequate; have to delete the field entirely
 
         # Default values
         my $resolveConf = sub {
@@ -155,7 +156,7 @@ Get the size of the cache
 
 sub stats {
     my ( $self ) = @_;
-    return $self->{_chi}->get_size;
+    return $self->{_chi}->get_size if $self->{_chi}->can('get_size');
 }
 
 
