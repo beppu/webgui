@@ -519,7 +519,6 @@ do {
      $verbosity = $verbosiy_dialogue->getField('CURSORPOS');
      main_win();  # erase the dialogue
      update();    # redraw after erasing the text dialogue
-update("verbosity = $verbosity"); scankey($mwh);
 };
 
 
