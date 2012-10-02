@@ -879,7 +879,7 @@ if( $mysqld_safe_path) {
         update( qq{ Please pick a MySQL root password. } );
         $mysql_root_password = text('MySQL Root Password', '');
         update( qq{ Setting MySQL root password. } );
-        run( qq{mysql --user=root -e "SET PASSWORD FOR 'root' = PASSWORD('$mysql_root_password'); SET PASSWORD FOR 'root'\@'localhost' = PASSWORD('$mysql_root_passwor') SET PASSWORD FOR 'root'\@'127.0.0.1' = PASSWORD('$mysql_root_password');" } );
+        run( qq{mysql --user=root -e "SET PASSWORD FOR 'root' = PASSWORD('$mysql_root_password'); SET PASSWORD FOR 'root'\@'localhost' = PASSWORD('$mysql_root_password') SET PASSWORD FOR 'root'\@'127.0.0.1' = PASSWORD('$mysql_root_password');" } );
 
     } else {
         update(qq{
@@ -930,7 +930,7 @@ do {
             if( ! -f '/etc/yum.repos.d/nginx.repo' ) {
                 # XXX sudo cat?
                 my $fh;
-                open my $fh, '<', '/etc/redhat-release' or die "can't open /etc/redhat-release: $!";  
+                open $fh, '<', '/etc/redhat-release' or die "can't open /etc/redhat-release: $!";  
                 (my $version) = readline $fh;
                 close $fh;
                 (my $releasever) = $version =~ m/release (\d+)\./;
