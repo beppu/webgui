@@ -31,9 +31,7 @@ export PERL5LIB=/data/wre/lib:/data/WebGUI/lib:$PERL5LIB
 
 XXX:
 
-XXXX bundle wreservice.pl
-
-setupfiles/services/redhat/wre-apache XXX
+setupfiles/services/redhat/wre-apache   <--- bundle RedHat and Debian startup files for wG itself, and make sure Debian is set to start MySQL on boot
 setupfiles/services/redhat/webgui
 setupfiles/services/redhat/wre-mysql
 setupfiles/services/redhat/wre-spectre
@@ -52,8 +50,10 @@ XXX app.psgi should probably just do a 'use libs "extlib"' so that the user does
 
 TODO:
 
-* start script as a shell script then either unpack a perl script or self perk <<EOF it
-* only thing to do while running as sh is to install perl, I think!  ack, that and Curses and various modules
+* setupfiles/my.cnf is unused by us; are there any settings in there we want to apply to the system my.cnf?
+* setupfiles/wre.logrotate is unusused by us; do Debian and RedHat rotate mysql logs?  probably.  anyway, we probably also need to rotate the webgui.log.
+* in verbose mode, put commands up for edit in a textbox with ok and cancel buttons
+* maybe start script as a shell script then either unpack a perl script or self perk <<EOF it
 * offer help for modules that won't install
 * use WRE stuff to do config file instead?  depends on the wre.conf, hard-codes in the prereqs path, other things
 * cross-reference this with my install instructions
@@ -413,6 +413,8 @@ sub run {
         if( $key =~ m/s/i ) {
             update( $msg );  # restore original message from before we added stuff
             return 1;
+        } else {
+            update( $msg . "\nWorking...\n" );
         }
     } else {
         update( $msg . "\nRunning '$cmd'." );
@@ -1217,12 +1219,21 @@ do {
     } );
     scankey($mwh);
 
+#    open my $fh, '>', "$install_dir/webgui.sh";
+#    $fh->print(<<EOF);
+#cd $install_dir/WebGUI
+#export PERL5LIB="\$PERL5LIB:$install_dir/WebGUI/lib"
+#export PERL5LIB="\$PERL5LIB:$install_dir/extlib/lib/perl5" # needed if Perl modules were installed without write permission to the site lib
+#export PATH="$install_dir/extlib/bin/:\$PATH"  # needed if Starman was installed without write permission to install in the site lib
+#plackup --port $webgui_port app.psgi &
+#nginx $install_dir/nginx.conf &
+#EOF
+#    close $fh;
+
     open my $fh, '>', "$install_dir/webgui.sh";
     $fh->print(<<EOF);
 cd $install_dir/WebGUI
 export PERL5LIB="\$PERL5LIB:$install_dir/WebGUI/lib"
-export PERL5LIB="\$PERL5LIB:$install_dir/extlib/lib/perl5" # needed if Perl modules were installed without write permission to the site lib
-export PATH="$install_dir/extlib/bin/:\$PATH"  # needed if Starman was installed without write permission to install in the site lib
 plackup --port $webgui_port app.psgi &
 nginx $install_dir/nginx.conf &
 EOF
@@ -1230,9 +1241,11 @@ EOF
      
     progress(100);
 
+    #   "If cpanm was able to install modules into the siteperl directory, this should work to test:"
+
     update( qq{
         Installation complete.
-        If cpanm was able to install modules into the siteperl directory, this should work to test:
+        Run this to test:
 
         cd $install_dir/WebGUI
         export PERL5LIB="/$install_dir/WebGUI/lib"
