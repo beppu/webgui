@@ -38,6 +38,7 @@ setupfiles/services/redhat/webgui
 setupfiles/services/redhat/wre-mysql
 setupfiles/services/redhat/wre-spectre
 
+XXX our Curses bootstrap attempt is pathetic; should use local::lib perhaps
 XXX apt-get install perl sudo
 XXX on 64 bit debian, use the 64 bit specific package names!
 XXX some kind of a build .sh that updates the docs/ and setupfiles/ .tar.gz in the DATA section
@@ -129,6 +130,7 @@ BEGIN {
 
     $cpu = $Config{archname};
     $cpu =~ s{-.*}{};
+    $cpu = 'i686' if $cpu eq 'i386'; # at least for RedHat
 
     my $sudo = $root ? '' : `which sudo` || '';
     chomp $sudo;
@@ -147,7 +149,7 @@ BEGIN {
        skip_apt_get:
     } elsif( $linux eq 'redhat' ) {
         # no counterpart to libcurses-perl or libcurses-widgets-perl so we have to fallback on building from the bundled tarball
-        my $cmd = "$sudo yum install --assumeyes gcc make automake kernel-devel man ncurses-devel.$cpu";
+        my $cmd = "$sudo yum install --assumeyes gcc make automake kernel-devel man ncurses-devel.$cpu perl-devel.$cpu";
         print "running: $cmd\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
         goto skip_install if readline(STDIN) =~ m/s/;
         system $cmd;
@@ -165,6 +167,7 @@ BEGIN {
             chomp $line;
             last if $line =~ m/^__DATA__$/;
         }
+        die if eof $data;
         while( my $line = readline $data ) {
             chomp $line;
             next unless my ($mode, $file) = $line =~ m/^begin\s+(\d+)\s+(\S+)/;
@@ -173,6 +176,7 @@ BEGIN {
                 chomp $line;
                 last if $line =~ m/^end/;
                 $line = unpack 'u', $line;
+                next unless defined $line and length $line;
                 $fh->print($line) or die $! if length $line;
             }
         }
@@ -186,14 +190,32 @@ BEGIN {
 
     eval { require Curses; require Curses::Widgets; } or do {
         `which make` or die 'Cannot bootstrap.  Please install "make" (eg, apt-get install make) and try again.';
+
+        if( ! $root ) {
+            # this is a failed attempt at dealing with lack of root permission to install perl modules
+            # add to the library path before, so that after Curses is installed, Curses::Widgets can find it during build
+            my $v = '' . $^V;
+            $v =~ s{^v}{};
+            eval qq{ use lib "/tmp/lib/perl5/site_perl/$v/${sixtyfour}${thirtytwo}-linux/"; };# Curses.pm in there
+            eval qq{ use lib "/tmp/lib/perl5/"; };# no, Curses.pm is in here!
+            eval qq{ use lib "/tmp/lib/perl5/site_perl/$v/"; };  # Curses/Widgets.pm in there
+            eval qq{ use lib "/tmp/lib/perl5/auto/"; };  # no, Curses/Widgets.pm goes in there!  no, it doesn't even... sigh
+        }
+
         for my $filen ( 'Curses-1.28.modified.tar.gz', 'CursesWidgets-1.997.tar.gz' ) {
             my $file = $filen;
             system 'tar', '-xzf', $file and die $@;
             $file =~ s{\.tar\.gz$}{};
             $file =~ s{\.modified}{};
             chdir $file or die $!;
-            system $perl, 'Makefile.PL', 'PREFIX=/tmp';
-            system 'make' and die $@; # XXX do they have 'make' installed?  apt-get install make on Debian, what about RedHat?
+            die "Curses::Widgets not bootstrapping into a private lib directory on RedHat currently, sorry" if $linux eq 'redhat' and ! $root;
+            # XXX would be better to test -w on the perl lib dir; might be a private perl install
+            if( ! $root ) {
+                system $perl, 'Makefile.PL', 'PREFIX=/tmp';
+            } else {
+                system $perl, 'Makefile.PL';
+            }
+            system 'make' and die $@;
             system 'make', 'install' and die $@;
             chdir '..' or die $!;
         }
@@ -209,10 +231,6 @@ BEGIN {
         #    },
         #    '/tmp',
         #);
-        my $v = '' . $^V;
-        $v =~ s{^v}{};
-        eval qq{ use lib "/tmp/lib/perl5/site_perl/$v/${sixtyfour}${thirtytwo}-linux/"; };# Curses.pm in there
-        eval qq{ use lib "/tmp/lib/perl5/site_perl/$v/"; };  # Curses/Widgets.pm in there
     };
 }
 
@@ -823,27 +841,13 @@ if( $mysqld_safe_path) {
             run( qq{ $sudo_command cp /tmp/sources.list /etc/apt/sources.list }, input => $sudo_password, );
         }
 
-        if( $linux eq 'debian' ) {
 
-            run( $sudo_command . 'apt-get update' );   # needed since we've just added to the sources
+        run( $sudo_command . 'apt-get update' );   # needed since we've just added to the sources
 
-            # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
-            # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
-            system( "echo $sudo_password | $sudo_command apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); # system(), not run(), so have to do sudo the old way
+        # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
+        # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
+        system( "echo $sudo_password | $sudo_command apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); # system(), not run(), so have to do sudo the old way
 
-        } elsif( $linux eq 'redhat' ) {
-            # XXX
-            # figure out if they have either mysql or percona and use whichever they have if they have one?  only install one if they don't have either
-            run( "$sudo_command yum install --assumeyes mysql.$cpu mysql-devel.$cpu mysql-server.$cpu" );
-            # or else
-            # run( "$sudo_command rpm -Uhv --skip-broken http://www.percona.com/downloads/percona-release/percona-release-0.0-1.i386.rpm" ); # -Uhv is upgrade, help, version...?  seems odd... and nothing about aliasing mysql to percona but then after this, attempts to install mysql stuff install more percona stuff and things get wedged
-            # run( "$sudo_command yum install -y Percona-Server-{server,client,shared,devel}-55" );
-
-# XXX have to start mysqld; rpm doesn't do it
-
-        } else {
-            die "I don't know what OS you've got there";
-        }
 
         $mwh = Curses->new; # re-init the screen (echo off, etc)
         main_win();  update();    # redraw
@@ -852,10 +856,18 @@ if( $mysqld_safe_path) {
 
         goto scan_for_mysqld;
 
-    # XXXX
-    # } elsif( $linux eq 'redhat' ) {
-    #     rpm -Uhv http://www.percona.com/downloads/percona-release/percona-release-0.0-1.i386.rpm
-    #     yum install -y Percona-Server-{server,client,shared,devel}-55
+    } elsif( ( $root or $sudo_command ) and $linux eq 'redhat' ) {
+        # figure out if they have either mysql or percona and use whichever they have if they have one?  only install one if they don't have either XXX
+        run( "$sudo_command yum install --assumeyes mysql.$cpu mysql-devel.$cpu mysql-server.$cpu" );
+        # or else
+        # run( "$sudo_command rpm -Uhv --skip-broken http://www.percona.com/downloads/percona-release/percona-release-0.0-1.i386.rpm" ); # -Uhv is upgrade, help, version...?  seems odd... and nothing about aliasing mysql to percona but then after this, attempts to install mysql stuff install more percona stuff and things get wedged
+        # run( "$sudo_command yum install -y Percona-Server-{server,client,shared,devel}-55" );
+
+        # have to start mysqld; rpm doesn't do it
+
+        run( "$sudo_command /sbin/chkconfig mysqld on" );
+        run( "$sudo_command /sbin/service mysqld start" );
+
     } else {
         update(qq{
             MySQL/Percona not found.  Please use another terminal window (or control-Z this one) to install one of them, and then hit enter to continue.
@@ -864,7 +876,7 @@ if( $mysqld_safe_path) {
         goto scan_for_mysqld;
     }
 
-    update( qq{ Deleing MySQL anonymous user. } );
+    update( qq{ Deleting MySQL anonymous user. } );
     run( qq{mysql --user=root --password=$mysql_root_password -e "drop user '';" } );
 
 }
