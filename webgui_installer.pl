@@ -802,6 +802,8 @@ if( $mysqld_safe_path) {
        }
     };
 
+    goto already_have_possible_mysql_root_password if $mysql_root_password;
+
   mysql_password_again:
 
     update( qq{
@@ -812,7 +814,12 @@ if( $mysqld_safe_path) {
 
     $mysql_root_password = text('MySQL Root Password', '') or goto mysql_password_again;
 
+  already_have_possible_mysql_root_password:
+
+    update( qq{ Testing to see if the MySQL root password we have works. } );
     run( "mysql --user=root --password=$mysql_root_password -e 'show databases'", noprompt => 1, nofatal => 1 ) or goto mysql_password_again;
+
+    # end of the scenario where we found a mysqld already installed and we just need to get the root password before we can continue
 
 } else {
 
@@ -848,15 +855,16 @@ if( $mysqld_safe_path) {
         # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
         system( "echo $sudo_password | $sudo_command apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); # system(), not run(), so have to do sudo the old way
 
-
         $mwh = Curses->new; # re-init the screen (echo off, etc)
         main_win();  update();    # redraw
 
         # go look for mysqld again now that it should be installed
+        # this also gives the installer another chance to ask for the root password, which the user set as part of shelling out to apt-get
 
         goto scan_for_mysqld;
 
     } elsif( ( $root or $sudo_command ) and $linux eq 'redhat' ) {
+
         # figure out if they have either mysql or percona and use whichever they have if they have one?  only install one if they don't have either XXX
         run( "$sudo_command yum install --assumeyes mysql.$cpu mysql-devel.$cpu mysql-server.$cpu" );
         # or else
@@ -867,6 +875,11 @@ if( $mysqld_safe_path) {
 
         run( "$sudo_command /sbin/chkconfig mysqld on" );
         run( "$sudo_command /sbin/service mysqld start" );
+
+        update( qq{ Please pick a MySQL root password. } );
+        $mysql_root_password = text('MySQL Root Password', '');
+        update( qq{ Setting MySQL root password. } );
+        run( qq{mysql --user=root -e "SET PASSWORD FOR 'root' = PASSWORD('$mysql_root_password'); SET PASSWORD FOR 'root'\@'localhost' = PASSWORD('$mysql_root_passwor') SET PASSWORD FOR 'root'\@'127.0.0.1' = PASSWORD('$mysql_root_password');" } );
 
     } else {
         update(qq{
