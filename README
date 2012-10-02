@@ -2,17 +2,20 @@
 This is an experimental installer for WebGUI8 that attempts to use the
 system package manager rather than the WRE.  It is currently incomplete --
 it doesn't set up WebGUI or MySQL to run at boot time, and it doesn't
-set up cron, and a few other things.  It also needs to be packaged up
-with its dependencies with PAR or FatPacker or the like.
+set up cron, and a few other things.
 
 It attempts to gracefully handle running with user permission.  It
 uses a Curses interface, asking the user about install options
 (paths and passwords and such), and getting confirmation before running
 commands.
 
-At this point, it stumbles through the install process on a Debian machine
-that already has MySQL installed but I haven't actually tried firing up the
-nginx and WebGUI.
+At this point, for me, it stumbles through the install process on a 32
+bit Debian machine.  More testing is needed.
+
+Curses, Curses::UI, and the setupfiles and docs directory are bundled
+into the __DATA__ section of the webgui_installer.pl script.  If changes
+are made to those files in the github repo, the __DATA__ section of
+the installer needs to be updated with uuencoded copies.
 
 NO WARRANTY:
 
