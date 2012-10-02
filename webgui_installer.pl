@@ -918,11 +918,15 @@ progress(25);
 
 do {
     if( $root or $sudo_command and ( $linux eq 'debian' or $linux eq 'redhat' ) ) {
+
         if( $linux eq 'debian' ) {
+
             # run( $sudo_command . 'apt-get update', noprompt => 1, );
  # XXXX yes, but are we installing perlmagick for the *correct* perl install?  not if they built their own perl
             run( "$sudo_command apt-get install -y perlmagick libssl-dev libexpat1-dev git curl nginx" );
+
         } elsif( $linux eq 'redhat' ) {
+
             run( " $sudo_command yum install --assumeyes ImageMagick-perl.$cpu openssl.$cpu openssl-devel.$cpu expat-devel.$cpu git curl" );
             # http://wiki.nginx.org/Install:
             # "Due to differences between how CentOS, RHEL, and Scientific Linux populate the $releasever variable, it is necessary to manually 
@@ -939,20 +943,25 @@ do {
                 $redhatcentos = lc $redhatcentos;
                 $redhatcentos = 'rhel' if $redhatcentos eq 'redhat'; # just guessing here
                 open $fh, '>', '/etc/yum.repos.d/nginx.repo' or die "can't write to /etc/yum.repos.d/nginx.repo: $!";
+                my $cpu2 = $cpu;  $cpu2 = 'i386' if $cpu2 eq 'i686'; # for crying out loud...
                 $fh->print(<<EOF);
 [nginx]
 name=nginx repo
-baseurl=http://nginx.org/packages/$redhatcentos/$releasever/$cpu/
+baseurl=http://nginx.org/packages/$redhatcentos/$releasever/$cpu2/
 gpgcheck=0
 enabled=1
 EOF
                 close $fh;
             }
             run( $sudo_command . 'yum install --assumeyes nginx' );
+
         }
+
     } else {
+
         update( "WebGUI needs the perlmagick libssl-dev libexpat1-dev git curl and build-essential packages but I'm not running as root or I'm on a strange system so I can't install them; please either install these or else run this script as root." ); # XXXX
         scankey($mwh);
+
     }
 };
 
