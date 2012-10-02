@@ -738,7 +738,7 @@ scan_for_mysqld:
 
 my $mysqld_safe_path = `which mysqld_safe 2>/dev/null`; chomp $mysqld_safe_path if $mysqld_safe_path;
 
-my $mysqld_path = `which mysqld`; chomp $mysqld_path if $mysqld_path;
+my $mysqld_path = `which mysqld 2>/dev/null`; chomp $mysqld_path if $mysqld_path;
 
 if( $mysqld_safe_path and ! $mysqld_path ) {
     # mysqld is probably hiding in a libexec somewhere and mysqld_safe won't relay a request for --version
@@ -927,32 +927,35 @@ do {
 
         } elsif( $linux eq 'redhat' ) {
 
+            # XXX this installs a ton of stuff, including X, cups, icon themes, etc.  what triggered that?  can we avoid it?
+
             run( " $sudo_command yum install --assumeyes ImageMagick-perl.$cpu openssl.$cpu openssl-devel.$cpu expat-devel.$cpu git curl" );
             # http://wiki.nginx.org/Install:
             # "Due to differences between how CentOS, RHEL, and Scientific Linux populate the $releasever variable, it is necessary to manually 
             # replace $releasever with either "5" (for 5.x) or "6" (for 6.x), depending upon your OS version."
             # XXX prompt before doing this
-            if( ! -f '/etc/yum.repos.d/nginx.repo' ) {
-                # XXX sudo cat?
-                my $fh;
-                open $fh, '<', '/etc/redhat-release' or die "can't open /etc/redhat-release: $!";  
-                (my $version) = readline $fh;
-                close $fh;
-                (my $releasever) = $version =~ m/release (\d+)\./;
-                (my $redhatcentos) = $version =~ m/(redhat|centos)/i or die "couldn't match (redhat|centos) in ``$version''";
-                $redhatcentos = lc $redhatcentos;
-                $redhatcentos = 'rhel' if $redhatcentos eq 'redhat'; # just guessing here
-                open $fh, '>', '/etc/yum.repos.d/nginx.repo' or die "can't write to /etc/yum.repos.d/nginx.repo: $!";
-                my $cpu2 = $cpu;  $cpu2 = 'i386' if $cpu2 eq 'i686'; # for crying out loud...
-                $fh->print(<<EOF);
+
+            # if( ! -f '/etc/yum.repos.d/nginx.repo' ) 
+
+            # XXX sudo cat?
+            my $fh;
+            open $fh, '<', '/etc/redhat-release' or die "can't open /etc/redhat-release: $!";  
+            (my $version) = readline $fh;
+            close $fh;
+            (my $releasever) = $version =~ m/release (\d+)\./;
+            (my $redhatcentos) = $version =~ m/(redhat|centos)/i or die "couldn't match (redhat|centos) in ``$version''";
+            $redhatcentos = lc $redhatcentos;
+            $redhatcentos = 'rhel' if $redhatcentos eq 'redhat'; # just guessing here
+            open $fh, '>', '/etc/yum.repos.d/nginx.repo' or die "can't write to /etc/yum.repos.d/nginx.repo: $!";
+            my $cpu2 = $cpu;  $cpu2 = 'i386' if $cpu2 eq 'i686'; # for crying out loud...
+            $fh->print(<<EOF);
 [nginx]
 name=nginx repo
 baseurl=http://nginx.org/packages/$redhatcentos/$releasever/$cpu2/
 gpgcheck=0
 enabled=1
 EOF
-                close $fh;
-            }
+            close $fh;
             run( $sudo_command . 'yum install --assumeyes nginx' );
 
         }
@@ -1000,7 +1003,11 @@ progress(45);
 
 do {
     update( "Installing the wgd (WebGUI Developer) utility to use to run upgrades..." );
-    run( 'curl --insecure --location --silent http://haarg.org/wgd > WebGUI/sbin/wgd', noprompt => 1, );
+  try_wgd_again:
+    run( 'curl --insecure --location --silent http://haarg.org/wgd > WebGUI/sbin/wgd', nofatal => 1, ) or do {
+        update( "Installing the wgd (WebGUI Developer) utility to use to run upgrades... trying again to fetch..." );
+        goto try_wgd_again;
+    };
     run( 'chmod ugo+x WebGUI/sbin/wgd', noprompt => 1, );
 };
 
@@ -1032,7 +1039,7 @@ do {
 do {
     update( "Checking for any additional needed Perl modules..." );
     # XXX Task::WebGUI
-    my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl", noprompt => 1, ); 
+    my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl --noprompt", noprompt => 1, ); 
 # XXX $test_environment_output or ... handle failure
     # Checking for module Weather::Com::Finder:         OK
     my @results = grep m/Checking for module/, split m/\n/, $test_environment_output;
