@@ -31,6 +31,7 @@ export PERL5LIB=/data/wre/lib:/data/WebGUI/lib:$PERL5LIB
 
 XXX:
 
+XXX apt-get install perl sudo
 XXX on 64 bit debian, use the 64 bit specific package names!
 XXX some kind of a build .sh that updates the docs/ and setupfiles/ .tar.gz in the DATA section
 XXX MEVENT is getting typedef'd to int by default in the Curses code but ncurses wants to create the type.  apparently it's a mouse event.  clearing C_GETMOUSE should get rid of the offending code, maybe.  swapping order of things seems to work, too.  include'ing ncurses.h before CursesTyp.h sets C_TYPMEVENT so that it doesn't default to define'ing it as an int.
@@ -108,6 +109,8 @@ my $starting_dir = '/tmp/';
 my $sixtyfour;
 my $thirtytwo;
 
+my $cpu;
+
 BEGIN {
 
     # early bootstrapping
@@ -117,21 +120,33 @@ BEGIN {
     $sixtyfour = $Config{archname} =~ m/x86_64/ ? '64' : ''; # XXXXXXX use these everywhere apt-get gets run
     $thirtytwo = $Config{archname} =~ m/i686/ ? '32' : '';
 
+    $cpu = $Config{archname};
+    $cpu =~ s{-.*}{};
+
+    my $sudo = $root ? '' : `which sudo` || '';
+    chomp $sudo;
+
+    print "WebGUI8 installer bootstrap:  Installing stuff before we install stuff...\n\n";
     if( $linux eq 'debian' ) {
-         my $sudo = $root ? '' : `which sudo` || '';
-         chomp $sudo;
-         print "WebGUI8 installer bootstrap:  Installing stuff before we install stuff...\n\n";
-         print "running: $sudo apt-get update\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
+         my $cmd = "$sudo apt-get update";
+         print "running: $cmd\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
          goto skip_update if readline(STDIN) =~ m/s/;
-         system "$sudo apt-get update";
+         system $cmd;
        skip_update:
-         print "\n\nrunning: $sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl git\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
+         $cmd = "$sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl";
+         print "\n\nrunning: $cmd\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
          goto skip_apt_get if readline(STDIN) =~ m/s/;
-         system "$sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl git";
+         system $cmd;
        skip_apt_get:
+    } elsif( $linux eq 'redhat' ) {
+        # no counterpart to libcurses-perl or libcurses-widgets-perl so we have to fallback on building from the bundled tarball
+        my $cmd = "$sudo yum install --assumeyes gcc make automake kernel-devel man ncurses-devel.$cpu";
+        print "running: $cmd\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
+        goto skip_install if readline(STDIN) =~ m/s/;
+        system $cmd;
+       skip_install:
     } else {
-        # XXX
-        # die "redhat? n'yet";
+        die "I only know how to do Debian and RedHat right now.  Please refer to the source install instructions.\n";
     }
 
     # extract the uuencoded, tar-gzd attachments
@@ -796,11 +811,27 @@ if( $mysqld_safe_path) {
             run( qq{ $sudo_command cp /tmp/sources.list /etc/apt/sources.list }, input => $sudo_password, );
         }
 
-        run( $sudo_command . 'apt-get update' );   # needed since we've just added to the sources
+        if( $linux eq 'debian' ) {
 
-        # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
-        # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
-        system( "echo $sudo_password | $sudo_command apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); # system(), not run(), so have to do sudo the old way
+            run( $sudo_command . 'apt-get update' );   # needed since we've just added to the sources
+
+            # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
+            # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
+            system( "echo $sudo_password | $sudo_command apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); # system(), not run(), so have to do sudo the old way
+
+        } elsif( $linux eq 'redhat' ) {
+            # XXX
+            # figure out if they have either mysql or percona and use whichever they have if they have one?  only install one if they don't have either
+            run( "$sudo_command yum install --assumeyes mysql.$cpu mysql-devel.$cpu mysql-server.$cpu" );
+            # or else
+            # run( "$sudo_command rpm -Uhv --skip-broken http://www.percona.com/downloads/percona-release/percona-release-0.0-1.i386.rpm" ); # -Uhv is upgrade, help, version...?  seems odd... and nothing about aliasing mysql to percona but then after this, attempts to install mysql stuff install more percona stuff and things get wedged
+            # run( "$sudo_command yum install -y Percona-Server-{server,client,shared,devel}-55" );
+
+# XXX have to start mysqld; rpm doesn't do it
+
+        } else {
+            die "I don't know what OS you've got there";
+        }
 
         $mwh = Curses->new; # re-init the screen (echo off, etc)
         main_win();  update();    # redraw
@@ -848,17 +879,41 @@ progress(25);
 #
 
 do {
-    if( $root or $sudo_command ) {
+    if( $root or $sudo_command and ( $linux eq 'debian' or $linux eq 'redhat' ) ) {
         if( $linux eq 'debian' ) {
             # run( $sudo_command . 'apt-get update', noprompt => 1, );
  # XXXX yes, but are we installing perlmagick for the *correct* perl install?  not if they built their own perl
-            run( $sudo_command . 'apt-get install -y perlmagick libssl-dev libexpat1-dev git curl build-essential nginx' );
-        } else {
-            update( "WebGUI needs the perlmagick libssl-dev libexpat1-dev git curl and build-essential modules but I don't yet know how to install them on your system; doing nothing, but you will need to make sure that this stuff is installed" );
-            scankey($mwh);
+            run( $sudo_command . 'apt-get install -y perlmagick libssl-dev libexpat1-dev git curl nginx' );
+        } elsif( $linux eq 'redhat' ) {
+            run( $sudo_command . 'yum install --assumeyes ImageMagick-perl.$cpu openssl.$cpu openssl-devel.$cpu expat-devel.$cpu git curl' );
+            # http://wiki.nginx.org/Install:
+            # "Due to differences between how CentOS, RHEL, and Scientific Linux populate the $releasever variable, it is necessary to manually 
+            # replace $releasever with either "5" (for 5.x) or "6" (for 6.x), depending upon your OS version."
+            # XXX prompt before doing this
+            if( ! -f '/etc/yum.repos.d/nginx.repo' ) {
+                # XXX sudo cat?
+                my $fh;
+                open my $fh, '<', '/etc/redhat-release' or die "can't open /etc/redhat-release: $!";  
+                (my $version) = readline $fh;
+                close $fh;
+                (my $releasever) = $version =~ m/release (\d+)\./;
+                (my $redhatcentos) = $version =~ m/(redhat|centos)/i or die "couldn't match (redhat|centos) in ``$version''";
+                $redhatcentos = lc $redhatcentos;
+                $redhatcentos = 'rhel' if $redhatcentos eq 'redhat'; # just guessing here
+                open $fh, '>', '/etc/yum.repos.d/nginx.repo' or die "can't write to /etc/yum.repos.d/nginx.repo: $!";
+                $fh->print(<<EOF);
+[nginx]
+name=nginx repo
+baseurl=http://nginx.org/packages/$redhatcentos/$releasever/$cpu/
+gpgcheck=0
+enabled=1
+EOF
+                close $fh;
+            }
+            run( $sudo_command . 'yum install --assumeyes nginx' );
         }
     } else {
-        update( "WebGUI needs the perlmagick libssl-dev libexpat1-dev git curl and build-essential packages but I'm not running as root so I can't install them; please either install these or else run this script as root." ); # XXXX
+        update( "WebGUI needs the perlmagick libssl-dev libexpat1-dev git curl and build-essential packages but I'm not running as root or I'm on a strange system so I can't install them; please either install these or else run this script as root." ); # XXXX
         scankey($mwh);
     }
 };
