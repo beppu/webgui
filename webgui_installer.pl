@@ -736,7 +736,7 @@ progress(15);
 
 scan_for_mysqld:
 
-my $mysqld_safe_path = `which mysqld_safe`; chomp $mysqld_safe_path if $mysqld_safe_path;
+my $mysqld_safe_path = `which mysqld_safe 2>/dev/null`; chomp $mysqld_safe_path if $mysqld_safe_path;
 
 my $mysqld_path = `which mysqld`; chomp $mysqld_path if $mysqld_path;
 
@@ -879,7 +879,8 @@ if( $mysqld_safe_path) {
         update( qq{ Please pick a MySQL root password. } );
         $mysql_root_password = text('MySQL Root Password', '');
         update( qq{ Setting MySQL root password. } );
-        run( qq{mysql --user=root -e "SET PASSWORD FOR 'root' = PASSWORD('$mysql_root_password'); SET PASSWORD FOR 'root'\@'localhost' = PASSWORD('$mysql_root_password') SET PASSWORD FOR 'root'\@'127.0.0.1' = PASSWORD('$mysql_root_password');" } );
+        # run( qq{mysql --user=root -e "SET PASSWORD FOR 'root' = PASSWORD('$mysql_root_password'); SET PASSWORD FOR 'root'\@'localhost' = PASSWORD('$mysql_root_password') SET PASSWORD FOR 'root'\@'127.0.0.1' = PASSWORD('$mysql_root_password');" } );
+        run( "mysqladmin -u root password '$mysql_root_password'" );
 
     } else {
         update(qq{
@@ -920,9 +921,9 @@ do {
         if( $linux eq 'debian' ) {
             # run( $sudo_command . 'apt-get update', noprompt => 1, );
  # XXXX yes, but are we installing perlmagick for the *correct* perl install?  not if they built their own perl
-            run( $sudo_command . 'apt-get install -y perlmagick libssl-dev libexpat1-dev git curl nginx' );
+            run( "$sudo_command apt-get install -y perlmagick libssl-dev libexpat1-dev git curl nginx" );
         } elsif( $linux eq 'redhat' ) {
-            run( $sudo_command . 'yum install --assumeyes ImageMagick-perl.$cpu openssl.$cpu openssl-devel.$cpu expat-devel.$cpu git curl' );
+            run( " $sudo_command yum install --assumeyes ImageMagick-perl.$cpu openssl.$cpu openssl-devel.$cpu expat-devel.$cpu git curl" );
             # http://wiki.nginx.org/Install:
             # "Due to differences between how CentOS, RHEL, and Scientific Linux populate the $releasever variable, it is necessary to manually 
             # replace $releasever with either "5" (for 5.x) or "6" (for 6.x), depending upon your OS version."
