@@ -36,7 +36,7 @@ setupfiles/services/redhat/webgui
 setupfiles/services/redhat/wre-mysql
 setupfiles/services/redhat/wre-spectre
 
-XXX our Curses bootstrap attempt is pathetic; should use local::lib perhaps
+XXX our /tmp install Curses bootstrap attempt is pathetic; should use local::lib perhaps
 XXX apt-get install perl sudo
 XXX on 64 bit debian, use the 64 bit specific package names!
 XXX some kind of a build .sh that updates the docs/ and setupfiles/ .tar.gz in the DATA section
@@ -368,8 +368,33 @@ sub progress {
 
 sub bail {
     my $message = shift;
-    update( $message );
-    scankey($mwh);
+    update( $message . "\nHit Enter.\n");
+    scankey($mwh );
+    update( "May I please post this message to http://slowass.net/~scott/wginstallerbug.cgi?\nDoing so may help get bugs fixed and problems worked around in future versions." );
+    my $feedback_dialogue = Curses::Widgets::ListBox->new({
+         Y           => 2,
+         X           => 38,
+         COLUMNS     => 20,
+         LISTITEMS   => ['Yes', 'No'],
+         VALUE       => 0,
+         SELECTEDCOL => 'white',
+         CAPTION     => 'Send Feedback?',
+         CAPTIONCOL  => 'white',
+         FOCUSSWITCH => "\t\n",
+    });
+    $feedback_dialogue->draw($mwh);
+    $feedback_dialogue->execute($mwh);
+    my $feedback = $feedback_dialogue->getField('CURSORPOS');
+    main_win();  # erase the dialogue
+    update();    # redraw after erasing the text dialogue
+    if( $feedback == 0 ) {
+        use Socket; 
+        socket my $s, 2, 1, 6 or die $!;
+        connect $s, scalar sockaddr_in(80, scalar inet_aton("slowass.net")) or do {print "failed to send feedback: $!"; exit; };
+        $message =~ s{[^a-zA-Z0-9]}{ '%'.sprintf("%2x", $1) }ge;
+        my $postdata = 'message=' . $message;
+        syswrite $s, "POST /~scott/wginstallerbug.cgi HTTP/1.0\r\nHost: slowass.net\r\nContent-type: application/x-www-form-urlencoded\r\nContent-Length: " . length($postdata) . "\r\n\r\n" . $postdata;
+    }
     endwin();
     print $message;
     exit 1;
@@ -482,7 +507,7 @@ sub run {
 
     if( $exit and ! $nofatal ) {
         # XXX generate a failure report email in this case?
-        bail $msg . "\n$cmd:\n$output\nExit code $exit indicates failure.  Exiting." ;
+        bail $msg . "\n$cmd:\n$output\nExit code $exit indicates failure." ;
     } elsif( $exit and $nofatal ) {
         update( tail( $msg . "\n$cmd:\n$output\nExit code $exit indicates failure.\nHit Enter to continue." ) );
         scankey($mwh);
@@ -744,7 +769,7 @@ my $mysqld_path = `which mysqld 2>/dev/null`; chomp $mysqld_path if $mysqld_path
 
 if( $mysqld_safe_path and ! $mysqld_path ) {
     # mysqld is probably hiding in a libexec somewhere and mysqld_safe won't relay a request for --version
-    open my $fh, '<', $mysqld_safe_path or die $!;
+    open my $fh, '<', $mysqld_safe_path or bail "opening ``$mysqld_safe_path'', the mysqld_safe script, for read: $!";
     while( my $line = readline $fh ) {
         # looking for a line like this: ledir='/usr/local/libexec'
         (my $ledir) = $line =~ m/^\s*ledir='(.*)'/ or next;
@@ -793,12 +818,11 @@ if( $mysqld_safe_path) {
 
     #
     # start mysqld if it isn't already running
-    #
 
     do {
        my $ps = `ps ax`;
        if( $ps !~ m/mysqld/ ) {
-            die unless $mysqld_safe_path;
+            bail "wait, thought we had a mysqld at this point, but we don't have a mysqld_safe_path with which to start mysqld"  unless $mysqld_safe_path;
             update(qq{Starting mysqld...});
             run( qq{ $sudo_command $mysqld_safe_path }, input => $sudo_password, noprompt => 1, background => 1, );
        }
@@ -875,8 +899,20 @@ if( $mysqld_safe_path) {
 
         # have to start mysqld; rpm doesn't do it
 
+        if( ! -f "/etc/sysconfig/network" ) {
+            # XXX sudo cat?
+            # 'chkconfig mysqld on' fails if /etc/sysconfig/network wasn't set by the installer; from looking at Google's results, this doesn't seem to be the uncommon problem that RedHat users claim
+            $root or bail "/etc/sysconfig/network doesn't exist; cannot proceed; other tools won't work; yell at CentOS/RedHat about it";
+            open my $fh, '>', '/etc/sysconfig/network' or bail "cannot write to /etc/sysconfig/network: $!";
+            $fh->print(<<EOF) or bail "writing to /etc/sysconfig/network: $!";
+NETWORK=yes
+HOSTNAME=localhost.localdomain
+EOF
+            close $fh or bail "writing to /etc/sysconfig/network: $!";
+        }
+
         run( "$sudo_command /sbin/chkconfig mysqld on" );
-        run( "$sudo_command /sbin/service mysqld start" );
+        run( "$sudo_command /sbin/service mysqld start" ); # this initializes the database, when it works
 
         update( qq{ Please pick a MySQL root password. } );
         $mysql_root_password = text('MySQL Root Password', '');
@@ -941,14 +977,14 @@ do {
 
             # XXX sudo cat?
             my $fh;
-            open $fh, '<', '/etc/redhat-release' or die "can't open /etc/redhat-release: $!";  
+            open $fh, '<', '/etc/redhat-release' or bail "can't open /etc/redhat-release to figure out which version we are to set the correct nginx repo with: $!";  
             (my $version) = readline $fh;
             close $fh;
             (my $releasever) = $version =~ m/release (\d+)\./;
-            (my $redhatcentos) = $version =~ m/(redhat|centos)/i or die "couldn't match (redhat|centos) in ``$version''";
+            (my $redhatcentos) = $version =~ m/(redhat|centos)/i or bail "reading /etc/redhat-release, couldn't match (redhat|centos) in ``$version''";
             $redhatcentos = lc $redhatcentos;
             $redhatcentos = 'rhel' if $redhatcentos eq 'redhat'; # just guessing here
-            open $fh, '>', '/etc/yum.repos.d/nginx.repo' or die "can't write to /etc/yum.repos.d/nginx.repo: $!";
+            open $fh, '>', '/etc/yum.repos.d/nginx.repo' or bail "can't write to /etc/yum.repos.d/nginx.repo: $!";
             my $cpu2 = $cpu;  $cpu2 = 'i386' if $cpu2 eq 'i686'; # for crying out loud...
             $fh->print(<<EOF);
 [nginx]
@@ -1032,6 +1068,9 @@ do {
         run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib IO::Tty --verbose", noprompt => 1, nofatal => 1, );  # this one likes to time out
         run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib Task::WebGUI", noprompt => 1, nofatal => 1, );
     }
+    if( $linux eq 'redhat' ) {
+        run( "$sudo_command $perl WebGUI/sbin/cpanm -n CPAN --verbose", noprompt => 1, nofatal => 1, );  # RedHat's perl doesn't come with the CPAN shell
+    }
 };
 
 #
@@ -1039,6 +1078,8 @@ do {
 #
 
 do {
+
+
     update( "Checking for any additional needed Perl modules..." );
     # XXX Task::WebGUI
     my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl --noprompt", noprompt => 1, ); 
@@ -1242,16 +1283,14 @@ EOF
     progress(100);
 
     #   "If cpanm was able to install modules into the siteperl directory, this should work to test:"
+    #    cd $install_dir/WebGUI
+    #    export PERL5LIB="/$install_dir/WebGUI/lib"
+    #    plackup --port $webgui_port app.psgi
 
     update( qq{
         Installation complete.
-        Run this to test:
-
-        cd $install_dir/WebGUI
-        export PERL5LIB="/$install_dir/WebGUI/lib"
-        plackup --port $webgui_port app.psgi
-
         See $install_dir/webgui.sh for an example of starting up WebGUI.
+        The default WebGUI Administrator password is 123qwe.
         Please hit any reasonable key to exit the installer.
     } );
     scankey($mwh);
@@ -1280,17 +1319,17 @@ sub template {
     $var->{log_files}     = $log_files;
     $var->{webgui_port}   = $webgui_port;
 
-    open my $infh, '<', $infn or die "Couldn't open $infn: $!";
+    open my $infh, '<', $infn or bail "templating out config files, couldn't open input file $infn: $!";
     read $infh, my $input, -s $infh;
     close $infh or die $!;
 
-    open my $outfh, '>', $outfn or die "Couldn't open $outfn: $!";
+    open my $outfh, '>', $outfn or bail "templating out config files, couldn't open output file $outfn: $!";
 
     my $template = Template->new(INCLUDE_PATH=>'/');
     $template->process(\$input, $var, \my $output) or die $template->error;
 
-    print $outfh $output or die $!;
-    close $outfh or die $!;
+    print $outfh $output or bail "templating out config files, couldn't write to the output file: $!";
+    close $outfh or bail "templating out config files, couldn't close the output file: $!";
 }
 
 END {
