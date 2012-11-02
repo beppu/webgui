@@ -6,8 +6,6 @@ use Moose::Role;
 use WebGUI::Asset;
 use WebGUI::Form::DynamicField;
 
-use Moose::Role;
-
 =head1 NAME
 
 WebGUI::Role::Asset::Installable -- Make your asset installable
@@ -58,7 +56,7 @@ sub install {
     my $session = shift;
 
     ### Install the first member of the definition
-    my $definition = $class->definition($session); # XXXXXXXXXXXX
+    my $definition = $class->definition($session);
     my $installDef = shift @{$definition};
 
     # Make the table according to WebGUI::Form::Control's databaseFieldType
