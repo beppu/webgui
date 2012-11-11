@@ -1,6 +1,8 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
+    eval 'exec /usr/bin/perl -S $0 ${1+"$@"}'
+    if $running_under_some_shell;
 
-# usage: wget https://raw.github.com/plainblack/webgui/master/installwebgui -O | bash
+# to run this installer: wget https://raw.github.com/plainblack/webgui/master/installwebgui -O | perl
 
 =for comment
 
@@ -14,8 +16,6 @@
   http://www.plainblack.com                     info@plainblack.com
  -------------------------------------------------------------------
 
-# SHELL STUFF TO GO FIRST:
-# Debian packages: apt-get install perl sudo
 
 # cpanm
 curl --insecure -L http://cpanmin.us | perl - App::cpanminus || exit 1
@@ -31,11 +31,13 @@ export PERL5LIB=/data/wre/lib:/data/WebGUI/lib:$PERL5LIB
 
 XXX:
 
+# XXX SHELL STUFF TO GO FIRST: Debian packages: apt-get install perl sudo
 setupfiles/services/redhat/wre-apache   <--- bundle RedHat and Debian startup files for wG itself, and make sure Debian is set to start MySQL on boot
 setupfiles/services/redhat/webgui
 setupfiles/services/redhat/wre-mysql
 setupfiles/services/redhat/wre-spectre
 
+XXX testEnvironment.pl probably uses the first perl in $ENV{PATH} which may not be the one this script was run with and our $perl = $Config{perlpath}!
 XXX our /tmp install Curses bootstrap attempt is pathetic; should use local::lib perhaps
 XXX apt-get install perl sudo
 XXX on 64 bit debian, use the 64 bit specific package names!
@@ -71,6 +73,7 @@ TODO:
 based in part on git://gist.github.com/2318748.git:
 run on a clean debian stable
 install webgui 8, using my little tweaks to get things going. 
+bash/perl handling magic from http://www.perlmonks.org/?node_id=825147
 xdanger
 
 =cut
