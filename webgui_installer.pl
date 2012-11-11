@@ -2,7 +2,18 @@
     eval 'exec /usr/bin/perl -S $0 ${1+"$@"}'
     if $running_under_some_shell;
 
-# to run this installer: wget https://raw.github.com/plainblack/webgui/master/installwebgui -O | perl
+# to run this installer on CentOS, do:
+
+# yum install wget
+# yum install perl
+# wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate -O - | perl
+
+# to run this installer on Debian, do:
+
+# apt-get install wget
+# apt-get install perl 
+# wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate -O - | perl
+
 
 =for comment
 
@@ -37,6 +48,7 @@ setupfiles/services/redhat/webgui
 setupfiles/services/redhat/wre-mysql
 setupfiles/services/redhat/wre-spectre
 
+XXX display full license; bundle license
 XXX testEnvironment.pl probably uses the first perl in $ENV{PATH} which may not be the one this script was run with and our $perl = $Config{perlpath}!
 XXX our /tmp install Curses bootstrap attempt is pathetic; should use local::lib perhaps
 XXX apt-get install perl sudo
@@ -1085,7 +1097,7 @@ do {
 
     update( "Checking for any additional needed Perl modules..." );
     # XXX Task::WebGUI
-    my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl --noprompt", noprompt => 1, ); 
+    my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl --noprompt --simpleReport", noprompt => 1, ); 
 # XXX $test_environment_output or ... handle failure
     # Checking for module Weather::Com::Finder:         OK
     my @results = grep m/Checking for module/, split m/\n/, $test_environment_output;
