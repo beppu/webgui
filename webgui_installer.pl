@@ -1209,7 +1209,7 @@ do {
     } else {
         # nginx.conf does an include [% webgui_root %]/etc/*.nginx
         eval { 
-            template(nginx_conf, "/etc/nginx/conf.d/webgui8.conf", { } )            # XXX this is on CentOS; is it the same on Debian?
+            template(nginx_conf(), "/etc/nginx/conf.d/webgui8.conf", { } )            # XXX this is on CentOS; is it the same on Debian?
         } or bail "Failed to template nginx.conf to etc/nginx/conf.d/webgui8.conf: $@";
     }
 
@@ -1224,7 +1224,7 @@ do {
     # $file->copy($wreConfig->getRoot("/var/nginx.template"), $wreConfig->getRoot("/etc/".$sitename.".nginx"), { templateVars => $params, force => 1 });
     # XXX we're putting $sitename.nginx in WebGUI/etc, not wre/etc; probably have to change the main nginx.conf to match; yup, testing
     eval { 
-        template(nginx_template, "$install_dir/WebGUI/etc/$database_name.nginx", { } ) 
+        template(nginx_template(), "$install_dir/WebGUI/etc/$database_name.nginx", { } ) 
     } or bail "Failed to template nginx.template to $install_dir/WebGUI/etc/$database_name.nginx: $@";
 
     if( ! -f "$install_dir/WebGUI/etc/mime.types" ) {
@@ -1233,7 +1233,7 @@ do {
         #    bail "Copying $starting_dir/setupfiles/mime.types to $install_dir/WebGUI/etc/mime.types failed: $@";
         open my $fh, '>', "$install_dir/WebGUI/etc/mime.types" or 
             bail "Failed to open $install_dir/WebGUI/etc/mime.types for write: $!";
-        $fh->print(mime_types) or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!";
+        $fh->print(mime_types()) or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!";
         $fh->close or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!";
     }
 
@@ -1253,12 +1253,12 @@ do {
 do {
     if( $linux eq 'debian' ) {
         eval { 
-            template(services_debian, "/etc/rc.d/init.d/webgui8XXXX", { } ) # XXXXXXXX doesn't exist yet and certainly isn't tested
+            template(services_debian(), "/etc/rc.d/init.d/webgui8XXXX", { } ) # XXXXXXXX doesn't exist yet and certainly isn't tested
         } or bail "Failed to template startup file into /etc/rc.d/init.d/webgui8XXXX: $@";
         run "chmod ugo+x /etc/rc.d/init.d/webgui8", noprompt => 1; # XXXX
     } elsif( $linux eq 'redhat' ) {
         eval { 
-            template(services_redhat, "/etc/rc.d/init.d/webgui8", { } ) 
+            template(services_redhat(), "/etc/rc.d/init.d/webgui8", { } ) 
         } or bail "Failed to template startup file into /etc/rc.d/init.d/webgui8: $@";
         run "chmod ugo+x /etc/rc.d/init.d/webgui8", noprompt => 1;
     }
