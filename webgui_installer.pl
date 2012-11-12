@@ -1209,8 +1209,10 @@ do {
         scankey($mwh);
     }
 
-    update "Remove the default, stock nginx config file?  Don't remove it if you've made changes to it and are using it!";
-    run "rm /etc/nginx/conf.d/default.conf";   # XXX this is on CentOS; is it the same on Debian?
+    if( -f '/etc/nginx/conf.d/default.conf' ) {
+        update "Remove the default, stock nginx config file?  Don't remove it if you've made changes to it and are using it!";
+        run "rm /etc/nginx/conf.d/default.conf";   # XXX this is on CentOS; is it the same on Debian?
+    }
 
     update "Setting up nginx per-site config";
     # addsite.pl does this as a two-step process
