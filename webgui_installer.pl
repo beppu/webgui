@@ -6,13 +6,15 @@
 
 # yum install wget
 # yum install perl
-# wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate -O - | perl
+# wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate 
+# perl webgui_installer.pl
 
 # to run this installer on Debian, do:
 
 # apt-get install wget
 # apt-get install perl 
-# wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate -O - | perl
+# wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate 
+# perl webgui_installer.pl
 
 
 =for comment
@@ -406,7 +408,7 @@ sub bail {
         use Socket; 
         socket my $s, 2, 1, 6 or die $!;
         connect $s, scalar sockaddr_in(80, scalar inet_aton("slowass.net")) or do {print "failed to send feedback: $!"; exit; };
-        $message =~ s{[^a-zA-Z0-9]}{ '%'.sprintf("%2x", $1) }ge;
+        $message =~ s{([^a-zA-Z0-9])}{ '%'.sprintf("%2x", $1) }ge;
         my $postdata = 'message=' . $message;
         syswrite $s, "POST /~scott/wginstallerbug.cgi HTTP/1.0\r\nHost: slowass.net\r\nContent-type: application/x-www-form-urlencoded\r\nContent-Length: " . length($postdata) . "\r\n\r\n" . $postdata;
     }
