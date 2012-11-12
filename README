@@ -1,17 +1,31 @@
 
 This is an experimental installer for WebGUI8 that attempts to use the
-system package manager rather than the WRE.  
+system package manager rather than the WRE.  It currently targets
+CentOS and Debian.
 
-It is currently incomplete -- it doesn't set up WebGUI or MySQL to run
-at boot time, and it doesn't set up cron, and a few other things.
+It is currently incomplete -- it doesn't set up WebGUI to run at boot
+time, and it doesn't set up cron, and a few other things.
+
+To run it installer on CentOS, do:
+
+yum install wget 
+yum install perl 
+wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate
+perl webgui_installer.pl
+
+To run it installer on Debian, do:
+
+apt-get install wget
+apt-get install perl
+wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate
+perl webgui_installer.pl
 
 It uses a Curses interface, asking the user about install options
 (paths and passwords and such), and getting confirmation before running
 commands.
 
-At this point, for me, it stumbles through the install process on a 32
-bit Debian machine.  More testing is needed.  Update:  Managed a CentOS
-install, but I need to start from the top with a fresh install.
+It has been at points successfully tested on Debian 32 bit and CentOS 64
+bit.
 
 It asks for your sudo password and attempts to use that if run as a user,
 but this is less well tested.  There's some goo in the code for attempting
