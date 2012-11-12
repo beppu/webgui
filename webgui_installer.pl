@@ -44,7 +44,9 @@ xdanger
 
 XXX todo:
 
-XXX display full license; bundle license
+XXX sudo mode hasn't been tested recently and is almost certainly broken
+XXX check for spaces and other things in filenames and complain about them
+XXX $run_as_user never gets changed from eg root; need to offer to create a webgui user; thought I had logic around to do that; chown $install_dir to them so that they can write log and pid files there, and chown -R uploads to them; useradd <username> --password <whatever>
 XXX our /tmp install Curses bootstrap attempt is pathetic; should use local::lib perhaps
 XXX on 64 bit debian, use the 64 bit specific package names!
 XXX some kind of a build .sh that updates the docs/ and setupfiles/ .tar.gz in the DATA section
@@ -184,10 +186,6 @@ BEGIN {
             }
         }
     };
-
-    # templates we need to for configuring nginx and perhaps whatever else
-
-    system 'tar', '-xzf', 'setupfiles.tar.gz' and die $@;
 
     # attempt to load Curses and Curses::Widget or go the backup plan -- try to build and install the bundled Curses/Curses::Widgets into /tmp
 
@@ -394,7 +392,7 @@ sub bail {
         use Socket; 
         socket my $s, 2, 1, 6 or die $!;
         connect $s, scalar sockaddr_in(80, scalar inet_aton("slowass.net")) or do {print "failed to send feedback: $!"; exit; };
-        $message =~ s{([^a-zA-Z0-9])}{ '%'.sprintf("%2x", ord($1)) }ge;
+        $message =~ s{([^a-zA-Z0-9_-])}{ '%'.sprintf("%02x", ord($1)) }ge;
         my $postdata = 'message=' . $message;
         syswrite $s, "POST /~scott/wginstallerbug.cgi HTTP/1.0\r\nHost: slowass.net\r\nContent-type: application/x-www-form-urlencoded\r\nContent-Length: " . length($postdata) . "\r\n\r\n" . $postdata;
     }
@@ -791,7 +789,7 @@ my $mysqld_version;
 if( $mysqld_path ) {
     my $extra = '';
     # if ! -x $mysqld_path # XXX
-    # update( $comment->getField('VALUE') . " Running command: $mysqld_path --version");
+    # update( $comment->getField('VALUE') . " Running command: $mysqld_path --version", noprompt => 1, );
     # my $sqld_version = `$mysqld_path --version`;
     $mysqld_version = run("$mysqld_path --version");
     # /usr/local/libexec/mysqld  Ver 5.1.46 for pc-linux-gnu on i686 (Source distribution)
@@ -1093,7 +1091,7 @@ do {
 
     update( "Checking for any additional needed Perl modules..." );
     # XXX Task::WebGUI
-    my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl --noprompt --simpleReport", noprompt => 1, ); 
+    my $test_environment_output = run( "$perl WebGUI/sbin/testEnvironment.pl --noprompt --simpleReport", ); 
 # XXX $test_environment_output or ... handle failure
     # Checking for module Weather::Com::Finder:         OK
     my @results = grep m/Checking for module/, split m/\n/, $test_environment_output;
@@ -1200,19 +1198,19 @@ progress(75);
 #
 
 do {
-# XXXXXX testing
     # create nginx config
     # start nginx
 
     update "Setting up nginx main config";
     if( -f "/etc/nginx/conf.d/webgui8.conf" ) {
         update "There's already an /etc/nginx/conf.d/webgui.conf; not overwriting it (have I been here before?).\nHit Enter to continue.";
+# XXXX there is always already an /etc/nginx/conf.d/webgui8.conf ... why?
         scankey($mwh);
     } else {
-        # setupfiles/nginx.conf does an include [% webgui_root %]/etc/*.nginx
+        # nginx.conf does an include [% webgui_root %]/etc/*.nginx
         eval { 
-            template("$starting_dir/setupfiles/nginx.conf", "/etc/nginx/conf.d/webgui8.conf", { } )            # XXX this is on CentOS; is it the same on Debian?
-        } or bail "Failed to template $starting_dir/setupfiles/nginx.conf to etc/nginx/conf.d/webgui8.conf: $@";
+            template(nginx_conf, "/etc/nginx/conf.d/webgui8.conf", { } )            # XXX this is on CentOS; is it the same on Debian?
+        } or bail "Failed to template nginx.conf to etc/nginx/conf.d/webgui8.conf: $@";
     }
 
     if( -f '/etc/nginx/conf.d/default.conf' ) {
@@ -1226,13 +1224,17 @@ do {
     # $file->copy($wreConfig->getRoot("/var/nginx.template"), $wreConfig->getRoot("/etc/".$sitename.".nginx"), { templateVars => $params, force => 1 });
     # XXX we're putting $sitename.nginx in WebGUI/etc, not wre/etc; probably have to change the main nginx.conf to match; yup, testing
     eval { 
-        template("$starting_dir/setupfiles/nginx.template", "$install_dir/WebGUI/etc/$database_name.nginx", { } ) 
-    } or bail "Failed to template $starting_dir/setupfiles/nginx.template to $install_dir/WebGUI/etc/$database_name.nginx: $@";
+        template(nginx_template, "$install_dir/WebGUI/etc/$database_name.nginx", { } ) 
+    } or bail "Failed to template nginx.template to $install_dir/WebGUI/etc/$database_name.nginx: $@";
 
     if( ! -f "$install_dir/WebGUI/etc/mime.types" ) {
-        update "Setting up mime.types file";
-        cp "$starting_dir/setupfiles/mime.types", "$install_dir/WebGUI/etc/mime.types" or 
-            bail "Failed to copy $starting_dir/setupfiles/nginx.template to $install_dir/WebGUI/etc/$database_name.nginx: $@";
+        update "Setting up mime.types file, which is needed by nginx";
+        # cp "$starting_dir/setupfiles/mime.types", "$install_dir/WebGUI/etc/mime.types" or 
+        #    bail "Copying $starting_dir/setupfiles/mime.types to $install_dir/WebGUI/etc/mime.types failed: $@";
+        open my $fh, '>', "$install_dir/WebGUI/etc/mime.types" or 
+            bail "Failed to open $install_dir/WebGUI/etc/mime.types for write: $!";
+        $fh->print(mime_types) or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!";
+        $fh->close or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!";
     }
 
     if( $linux eq 'debian' ) {
@@ -1251,12 +1253,13 @@ do {
 do {
     if( $linux eq 'debian' ) {
         eval { 
-            template("$starting_dir/setupfiles/services/debian", "/etc/rc.d/init.d/webgui8XXXX", { } ) # XXXXXXXX doesn't exist yet and certainly isn't tested
-        } or bail "Failed to template $starting_dir/setupfiles/services/debian to /etc/rc.d/init.d/webgui8XXXX: $@";
+            template(services_debian, "/etc/rc.d/init.d/webgui8XXXX", { } ) # XXXXXXXX doesn't exist yet and certainly isn't tested
+        } or bail "Failed to template startup file into /etc/rc.d/init.d/webgui8XXXX: $@";
+        run "chmod ugo+x /etc/rc.d/init.d/webgui8", noprompt => 1; # XXXX
     } elsif( $linux eq 'redhat' ) {
         eval { 
-            template("$starting_dir/setupfiles/services/redhat", "/etc/rc.d/init.d/webgui8", { } ) 
-        } or bail "Failed to template $starting_dir/setupfiles/services/redhat to /etc/rc.d/init.d/webgui8: $@";
+            template(services_redhat, "/etc/rc.d/init.d/webgui8", { } ) 
+        } or bail "Failed to template startup file into /etc/rc.d/init.d/webgui8: $@";
         run "chmod ugo+x /etc/rc.d/init.d/webgui8", noprompt => 1;
     }
 };
@@ -1374,9 +1377,10 @@ sub template {
     $var->{log_files}     = $log_files;
     $var->{webgui_port}   = $webgui_port;
 
-    open my $infh, '<', $infn or bail "templating out config files, couldn't open input file $infn: $!";
-    read $infh, my $input, -s $infh;
-    close $infh or die $!;
+    # open my $infh, '<', $infn or bail "templating out config files, couldn't open input file $infn: $!";
+    # read $infh, my $input, -s $infh;
+    # close $infh or die $!;
+    my $input = $infh;  # moved to hard-coding the template data into the installer file
 
     open my $outfh, '>', $outfn or bail "templating out config files, couldn't open output file $outfn: $!";
 
@@ -1390,6 +1394,267 @@ sub template {
 END {
   endwin();
 }
+
+
+#
+# files needed for the wG install that aren't part of wG and don't come with it
+#
+
+sub mime_types {
+    <<EOF;
+types {
+    text/html                             html htm shtml;
+    text/css                              css;
+    text/xml                              xml;
+    image/gif                             gif;
+    image/jpeg                            jpeg jpg;
+    application/x-javascript              js;
+    application/atom+xml                  atom;
+    application/rss+xml                   rss;
+
+    text/mathml                           mml;
+    text/plain                            txt;
+    text/vnd.sun.j2me.app-descriptor      jad;
+    text/vnd.wap.wml                      wml;
+    text/x-component                      htc;
+    text/csv			                  csv;
+
+    image/png                             png;
+    image/tiff                            tif tiff;
+    image/vnd.wap.wbmp                    wbmp;
+    image/x-icon                          ico;
+    image/x-jng                           jng;
+    image/x-ms-bmp                        bmp;
+    image/svg+xml                         svg svgz;
+    image/webp                            webp;
+
+    application/java-archive              jar war ear;
+    application/mac-binhex40              hqx;
+    application/msword                    doc;
+    application/pdf                       pdf;
+    application/postscript                ps eps ai;
+    application/rdf+xml		              rdf;
+    application/rtf                       rtf;
+    application/vnd.ms-excel              xls;
+    application/vnd.ms-powerpoint         ppt;
+    application/vnd.wap.wmlc              wmlc;
+    application/vnd.google-earth.kml+xml  kml;
+    application/vnd.google-earth.kmz      kmz;
+    application/x-7z-compressed           7z;
+    application/x-cocoa                   cco;
+    application/x-java-archive-diff       jardiff;
+    application/x-java-jnlp-file          jnlp;
+    application/x-makeself                run;
+    application/x-perl                    pl pm;
+    application/x-pilot                   prc pdb;
+    application/x-rar-compressed          rar;
+    application/x-redhat-package-manager  rpm;
+    application/x-sea                     sea;
+    application/x-shockwave-flash         swf;
+    application/x-stuffit                 sit;
+    application/x-tar		              tar;
+    application/x-tcl                     tcl tk;
+    application/x-x509-ca-cert            der pem crt;
+    application/x-xpinstall               xpi;
+    application/xhtml+xml                 xhtml;
+    application/zip                       zip;
+
+    application/octet-stream              bin exe dll so ;
+    application/octet-stream              deb;
+    application/octet-stream              dmg;
+    application/octet-stream              eot;
+    application/octet-stream              iso img;
+    application/octet-stream              msi msp msm;
+
+    audio/midi                            mid midi kar;
+    audio/mpeg                            mp3;
+    audio/ogg                             ogg;
+    audio/x-m4a                           m4a;
+    audio/x-realaudio                     ra;
+
+    video/3gpp                            3gpp 3gp;
+    video/mp4                             mp4;
+    video/mpeg                            mpeg mpg;
+    video/quicktime                       qt mov;
+    video/webm                            webm;
+    video/x-flv                           flv;
+    video/x-m4v                           m4v;
+    video/x-mng                           mng;
+    video/x-ms-asf                        asx asf;
+    video/x-ms-wmv                        wmv;
+    video/x-msvideo                       avi;
+    webgui/package                        wgpkg;
+}
+EOF
+}
+
+sub nginx_conf {
+    <<EOF;
+user  [% $run_as_user %];
+worker_processes  10;
+
+error_log  [% log_files %]/nginx_error.log;
+
+pid        [% pid_files %]/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       [% webgui_root %]/etc/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    sendfile        on;
+
+    keepalive_timeout  65;
+
+    server_tokens off;
+
+    gzip  on;
+    gzip_types text/plain text/css application/json application/json-rpc application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+    gzip_comp_level 9;
+
+    ##Include per-server vhost configuration files.
+    include [% webgui_root %]/etc/*.nginx;
+
+}
+EOF
+}
+
+sub nginx_template {
+    <<EOF;
+##Force all domain requests, mysite.com, to go to www.mysite.com
+[% IF domain_name_has_www %]
+server {
+    server_name [% domain_sans_www %];
+    rewrite ^ $scheme://[% domain %]$request_uri redirect;
+}
+[% END %]
+
+server {
+    server_name  [% sitename %];
+
+    listen 80; ## listen for ipv4
+
+    # access_log [% domainRoot %]/[% sitename %]/logs/access.log combined;
+    access_log [% log_files %]/[% sitename %].access.log combined;
+    root       [% domainRoot %]/[% sitename %]/public;
+    client_max_body_size 20M;
+
+    # proxy webgui to starman listening on 127.0.0.1
+    location / {
+        # proxy_cache static;
+        # proxy_cache_valid 200 1s;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Host $host;
+        proxy_pass   http://127.0.0.1:[% webgui_port %];
+    }
+
+    location /extras/ {
+        add_header Cache-Control public;
+        expires 24h;
+        root   /data/WebGUI/www/;
+        add_header Access-Control-Allow-Origin *;
+    }
+
+    location /uploads/filepump { expires max; }
+    location = /default.ida    { access_log off; deny all; }
+    location /_vti_bin         { access_log off; deny all; }
+    location /_mem_bin         { access_log off; deny all; }
+    location ~ /\.(ht|wg)      { access_log off; deny all; }
+    location = /alive          { access_log off; }
+}
+
+#server {
+#    listen   443;
+#    server_name  [% sitename %] [%domain %];
+#
+#    ssl  on;
+#    ssl_certificate [% domainRoot %]/[% sitename %]/certs/server.crt;
+#    ssl_certificate_key [% domainRoot %]/[% sitename %]/certs/server.key;
+#
+#    ssl_session_timeout  5m;
+#
+#    ssl_protocols  SSLv3 TLSv1;
+#    ssl_ciphers  ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv3:+EXP;
+#    ssl_prefer_server_ciphers   on;
+#
+#    access_log [% domainRoot %]/[% sitename %]/logs/access.log combined
+#    root       [% domainRoot %]/www.example.com/public;
+#
+#    # proxy webgui to starman listening on 127.0.0.1
+#    location / {
+#        # proxy_cache static;
+#        # proxy_cache_valid 200 1s;
+#        proxy_set_header X-Real-IP $remote_addr;
+#        proxy_set_header X-Forwarded-For $remote_addr;
+#        proxy_set_header Host $host;
+#        proxy_pass   http://127.0.0.1:[% webgui_port %];
+#    }
+#
+#    location /extras/ {
+#        add_header Cache-Control public;
+#        expires 24h;
+#        root   /data/WebGUI/www/extras;
+#        add_header Access-Control-Allow-Origin *;
+#    }
+#
+#    location /uploads/filepump { expires max; }
+#    location = /default.ida    { access_log off; deny all; }
+#    location /_vti_bin     { access_log off; deny all; }
+#    location /_mem_bin     { access_log off; deny all; }
+#    location ~ /\.(ht|wg)      { access_log off; deny all; }
+#    location = /alive      { access_log off; }
+#}
+EOF
+}
+
+sub services_debian {
+    <<EOF;
+XXXXXXXXXXXXXXXX
+EOF
+}
+
+sub services_redhat {
+    <<EOF;
+#!/bin/bash
+# chkconfig: 2345 90 60
+# description: Start and stop WebGUI (non-WRE) plack-based service
+# processname: webgui
+
+export PERL5LIB="$PERL5LIB:[% webgui_root %]/lib"
+export PATH="$PATH:/usr/local/bin"  # starman gets installed into here
+
+# See how we were called.
+case "$1" in
+  	start)
+        cd [% webgui_root %]
+   		starman  --pid=[% pid_files %]webgui.pid --quiet --port=[% webgui_port %] --preload-app --access-log=[% log_files %]/access_log --error-log=[% log_files %]/error_log --user=[% run_as_user %] --daemonize --start all
+    	;;
+  	stop)
+    		kill `cat [% pid_files %]/webgui.pid`
+    	;;
+#  	restart)
+#    		/data/wre/sbin/wreservice.pl --quiet --restart all
+#    	;;
+  	*)
+		echo $"WebGUI Service Controller"
+   		echo $"Usage:"
+		echo $"	$0 { start | stop }"
+   		exit 1
+esac
+
+exit $?
+EOF
+}
+
+
 
 __DATA__
 begin 666 Curses-1.28.modified.tar.gz
@@ -9258,95 +9523,5 @@ M7QZ^DC.`P'^Q9:A`(=9GQYUN@@C"`0>JXPY\^ZWE>[T!,#YL:\]\_7_`"M[^
 M`_YZVYSKD%C6&\`UF)586.EC:@')/JP/Y:Z""A\'%0;:'ZCM1E!!J^CY,P$%
 M)[_);_*;_":_R6_RF_PFO\EO\IO\)K_);_*;_":_R6_RF_PFO\EO\IO\)K_)
 :;_*;_":_R6_RF_PFOR_R]_\!.Y2[_@#X`@``
-`
-end
-begin 666 setupfiles.tar.gz
-M'XL(`."HH%```^U<>W/;-A+/O^:G0"UWTB2F'K8>K3R=&U^2-IY)FX[C3'IS
-MU^-!)"0A(@D&`/5(F_OLMPN`$B51<GV3^&Y:X>I(!'87B\7BAUV`.L5TG@UY
-MS%3CP><J32B]7@\_6[U.L_Q9E`>MLV:GV6IUNLWV@V;KK-ON/""=SZ91J>1*
-M4TG(`Q4*K??035*197Q^'RK=9U&K^1_0<))G=38/XSQBG[`/G.!NM[M[_L\[
-M#UJM7J_;/>^>-5LP_YU.\^P!:7Y"'7:6/_G\QV*DO(PJ-8L\-::1F'G)0KV/
-M(ZJI][]6[E`^>RFM?\7DE(>?82.X$_Z?0WVKW>[V#OA_'Z5J_B6+QG2?+>Y8
-MS/QW.KOF'V:[X^;_K'T.P`_XW^TV#_A_'Z7V16/`4]C[U=BKD7`\"44ZY*,^
-M.3MO=\@W3=)M0GW$5"AYIKE(^^0U&$P3FD9$:9&1MVSP_9LK\E4J4O_M]?-'
-M)(LAD/!!(@,*ZU,@(I,"?$NE-&%],F.#4<X]C\TS`;)^>G[]LO/RZJ_?'I\4
-M7_M__])1!5((3;[\I1'SP?&2X_+F!5+#1[^1*]F(14AC',HQ(36"<YK0E(R8
-M5H2G\!C'H`U/M2!C)ID'"KUFC(S%#'J!_R0CH:&I>R$H3HY/6L=`[A%RA++T
-M(_AF2SB.N"1;VF'[T5'1+_']C$??`A5\!&9Y`8WEJ$,5M+_/.=-(!\/Y=B7.
-MC.[+7[!!LEC0R*=9!D\T1.OYL%TC,7PLI39L4P!U0,>D%+*2S+0XJASF!0ED
-MG@94!?AH.U5V;N/8C/?HXL):0&36`$='$Q['Y%\AU61C<(W5Z/ZU9*[!AV3.
-M@C4KH8&A16,F64.AY\$7YR3U+"[9Q;$976HE91X_\HZ.6#@6Y.38N=YKRT^>
-MBE1+`;,HC^UT.+(WBHY8_WC%=W32)+\2*_\WZ\4?"Y8YUZ3E,45#=$]X./G+
-M'SD.*N%_PA-6UXN,J4_<QRWQ?Z_9.]^(_]N]U@'_[Z5X9L+)KV;):C;7C;%.
-M8K*O&`+XARC\=K'B#)7:RTB`H$0^OZ4?,B^D\P06<&/$AWO)H;U,_BYCHWWD
-MIOU=-K(\@+(Q!UB#':XQ]]_1*;4[W@:/VJ:F6B1/*L>"+=OT4JEJ<B+1/"O[
-M)%2/]YHH6;,^;+L\W3=@/=<E\FD:U56>UM^=P:H'_?QBCQ?2C95&&^0SFM5G
-MNS2:K2DS]T.19")EJ:XF'^MPS7.F1T='VU10[RQBYS1+]TXI@?:R"V@^W.LR
-MT(Y_:VZS'.@@R2K'"?5E^KG/(63:W0>TKI._VSN&=^LCF/N)\G=H@F5#&34=
-M[?`M6Z`=_SZ4>6#?WBD>"[:[22B[,2X1G\IPS*=L8PB`IS/X8U1N>W]"0Q^V
-M_3&;MYOK;./W\PIR-1,RJE(K$N$V>1;MFF]HJ2`72E<M<R!7A,$?Y17K-QJB
-MC3?=559U(/4N?:!EFQQ]#^:;S4.V,8?SN`)Y''DF('[-!"\MM2S3U>1N"8?K
-MTK&FFGXDQ"AF/DRE'M<G26R]:U*L]5O(/UCQ\*4*9'L?#$A`H(>9PJKT*JE#
-M$0I:8<BP6%_;"%ZXIQ^M<`"<,UJN^`J6=VF<^1@/K7K`JBKZA$X@=(VW9AB"
-MZBKRC,G*A0E1;U:Q30`#CT45>F8R!'<>5+%(*BMM*JN6(I";1-_/(%\#)(`!
-MI?`!\"^K%5*L:@(`51BM)!^+<#*C8/]A#.GEBGQ6:7ZE\^&0;P]8\0I?GOL0
-MM6TN05T]2AU6`R+6ZTD5Q[S3_,8/J1\RN:9/!,;)6$)"6:G2/'.IYD9'4%]!
-MCL%3)5C/5V%5F>$#WP73T%(!T"+43(-5):/).CW@+V%S1B+05`FRW=5NUHA5
-M^-T>\J0BO-I-SD2%77>3<U">WZV'1''XR^`O*4R61UQ`[A/Q'=:U?)"S&YK)
-MTL<LWRU!9I*=E\G%:'_\`NUE<L"8=O62<]+;=)T<!AR;[Y7DDKHQ3WG$1.-\
-ME.W=^$T[_'-1XDFR]MX!0/LZ^6WF@?:DB,$MS_N<AQ,-N>@.GO>:)&):YH`(
-M)=E!;`JVE^GG`$C3/?30NDZ>M/>10^L&^=X(+TE'&^3*IVIGG$K5'/Z&6RRS
-M9*=.T+1);K[MZF'JX,F>X#3<=K!3^BB;P`@^_I%/1?X\I73^DXYX.J_C^>\G
-M[N.6\Y]6I]URYS_=5JO=Q?.?;K=S./^YCV*.?O$L]V3]+/C"@\1KPF3@SNV9
-M(J35A/UC=8Q,-D^8C0,%AJ`.#4",1]VN;!X76V^#*I0Y9:DN#J%<O^"'*0MQ
-M.S<]G[41<KRQUIFCXZEY3V$E?N.Z@.FP=*1I$2YB0YK'.L"JW2&#VR7-V(1,
-M*,2`B3E;>7@B62(T"V@42>*3XM'8[.\GN&D%YB+B%W(,;>]SIO0Q>>B1RO+P
-M!%Q/YXJ<#$2T"`8+S52@\,3D^`3'&4@V9)+)/1(<(?8?`&2GT)NKFJ/JD(5'
-M+,)OQP_=H$!^5$YO1.H:)HQE-(9L*<!AB!P&W>TLF>04>M!BPF`V!*9/IGYD
-M8E+ATAU\"NQQ8NE`:GDRN'9XH$2Z5>'++-Q]#K<\,ERCV'Y^(I7K?\5<T@^S
-MHR`&AXO)-VX4M=J5<R5(T7P[5C(="Z6)O0S+I9%.C._6UYROVNT>UXUW@_S_
-M^UUR"_\U2V#B]#V^_]-I-]WY?Z_=:^%[`JU.YX#_]U-JM>^$#!E>LY%(&)AS
-MP*5.2;*`Y)M!2)"<$BW(2."_L]FLOFKP8`5<?>=8`[S=#<:PBP`17HJZQ?1K
-M&460!M>-8U$T+<CM,I5L)D$X^2<Y4>&8):S?:"S)@:H`UB"7'(@C+F&;P,T!
-MB)[_^`R[W=TO=HRJFP?LT2(]5U!%OFY>`!@43X":A&?3M@,)4KIF7:IS[1;]
-MNM0&OE3EKF5Q(P0822#G9NX\?5W0V@ZZ+J>^4X0!F^7&MU>7+!\`/%JV,.:P
-M1P0)G0=FRU'\`R-GS1\*(,1+^OG"(1K.=7&?;4W"(:\!&&R=]>I-^%_+[9(6
-M>TG#F;LD*0@IS"!*T84*6ZW!%':="+1HDI9:T5@*0*=@S"B>N_SL7T-RZU_]
-M1,J;\%Z&[XH=$+_]7K87B/LGB/Z;1/B6',&;"YV!2RZMT-^ZO+>,'[T-^\">
-M)*DJFPE4*;I]BK;PW0TV*4\:%C;/P,T5.6N/5Y7.">Q]NKT*;\!":EQ4R;^T
-M[P^X#OS+.!8S_Y7D@/GD\0Z%\PQ?0%`-=,\L3R#P6BH"+G0!#&OTWX(J-KZJ
-M\\@<6_Q:]G4,&R``2Q>(-5O,C6"J>3`HW6#=B3EAR7_+_&_2^$?]J['^;39Z
-M=&=F&+,)FLB>GC]BX%I;0E*MA#B$M-OG%[9J#TS!XQ+^@-K1J]C&7L53@,>5
-M?(BQ$+L5%I#6OO+%9-V<9U:)"29L<3=1P%#6$%:64F"H55#92=;:86EI$8H8
-M5M;KUR^GY^3FY>MIJZP-S\9,0O/ERY?]+RZ?O>A_\?SGGUY=WW2Z_>NG[2?7
-MKR_[3UY<??^B_^2'Y\^NWOS0?_+RU=O^$R.M_P1H+\J]84@=.%,O15LS6K)/
-M`/-6T#Z,QCV4S2E$6F8378*TT^'.0%Q;7PZ%EY5D;4!Q=?,&%B^)?C<8[^/8
-MA\:[^<IPO$%U!SRN67RK;1IJ!<E+V;=B\I)R#927M;M0V79U4=G1+>"\2_O;
-M\7F=X:X`O='=&D+?C;,,SW?AO"LV;XVW!,Y5P%P#9/Y_S]`^;RGE?S/)$,8`
-MD#]M^G?K^5_[O+GY^X\V?!SROWLHM6LSW>3F^Z>8BD"@4C/G`.;]7KM@B/F-
-M"*"J/0VICY@N]K$IE787W#CZ<_!G-SW5>+RU5=H8.!40:+`DTPM[.D=YO'#Y
-MC5&J9QX2#B%$.A(3F\.XZVV;VHTI9(#VD,?6X"L=EGL9!5=J#C(@CU3FY6=S
-M,U])5?F&:O%FJAFSZ86E3@<3Z=7<MFW?D#;[]BW6<Z_.NIAC#Z$3]_@/8\/"
-M/E56Q`@AY5K(VZRW)/Q49OGXY]D42OA__?SRV0_//T,?M^#_^7G'_?ZCV>UU
-MSLX!_\_Q2NB`__=0O)LQ5P3^H_A."*QBR--23>/EKR:D.0BS@>S71(^I)E3C
-M(;%6F)CDBD$E\]0"$I.$%'?'Q:M$DD*C1+84R<C;Z^=U0JXT"7,IH:-X@6_M
-MX,\TO*?P^.JU0<UG;,!I6O<\(`355K0\Q34:,UC`OD^XAK2*J?0AX`C3)%_^
-M%@7TDGD*>I(!@(6'N>>I$;S-$4J1VC9*AFQ&A-,74$&!`C=6$O"M[`&1I=7U
-M%(3U/6^1)T4KF<%0R%J-`4;/U&.FHB!5D716'W$]S@<F^1M!3M<X^Z8'R^!K
-MMQ4$R]XL7*;"AU0DG/BEW-PSDBOH=VIMS>JTIIGV4:FRYEN5V,4]ZPY3GN-M
-M(R5/<XE?>*J9'-(0IU!-,/5%1S)7;G2`1PJ%LL+\/DEY7V7@=,K,J?EAJY"1
-M?5)Y.'YD)QN&I%&4V5;PB@_SA0$#5V=H.LRP/1@?N'&DK!^.J0("9KS*O&RI
-M4!X&-,,\1C>&'8U%*S.3\S,RX/9W4LZUNVT/:JPX&(HR*VLA<@F2(K%4UGKC
-MUAJ#?OG0^C5:!PUPZ@U@_-JMX!ACM1D#2UA=8*'=X(^='H*F(F%D)`3A=AF&
-M(F*F=]<-#M>*)/9N#.;'[(TPG,*\MBNJ'ZK2,H0^,)M/Q>QT:3=0SR3!H))D
-M:$38V/&'59Z=T%,WL?W^FRL[&:C1:A\R59$(%;%'^T)">@?3,LC3*&:19W[$
-MA2Q!\.SRYC((@-?<$T-29^JKW-`&%@@]0Q("&(V8\E!H`ODW,?($&-GV[VQD
-MO1R&D(G37?UY6+]:8RF#0`K%#<!!,PB!P2%F((;D.4O1YA%8/N-XB>C]^(J\
-MO;R^OOSQYF^P&@T*NYM.^)9)@6_L6&[T\1F5DJ9Z<>IN'M%WBSJ<2"]A$L>E
-MZ8#''.E4SHL'.].0)6>YA-BNP$*%05(AA4-G=(31NO94QD(.6P!>@*0AZ&$V
-MA(CBZ^*J?@3>F]"%919RLD16J#0W^60@&9T4&$K(&[`L.*]Q=#%+B>1J\@4A
-ME_&,+A2LJRFZIB<B8O\/")#E*:SC/-;$FM=<M49F=HQC-&*((U/%ZGKN?H<(
-MHD/CT!XN1C3R0O+1V+86U'^>H.Y0#N50#N50#N50#N50#N50#J6B_`=$+?1]
-$`%``````
 `
 end

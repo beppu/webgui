@@ -4,16 +4,17 @@ system package manager rather than the WRE.  It currently targets
 CentOS and Debian.
 
 It is currently incomplete -- it doesn't set up WebGUI to run at boot
-time, and it doesn't set up cron, and a few other things.
+time on Debian, and it doesn't set up log rotation, or cron to run
+wremonitor, and a few other things.
 
-To run it installer on CentOS, do:
+To run it installer on CentOS, do this, as root:
 
 yum install wget 
 yum install perl 
 wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate
 perl webgui_installer.pl
 
-To run it installer on Debian, do:
+To run it installer on Debian, do this, as root:
 
 apt-get install wget
 apt-get install perl
@@ -30,7 +31,7 @@ bit.
 It asks for your sudo password and attempts to use that if run as a user,
 but this is less well tested.  There's some goo in the code for attempting
 a user level permission install but that's incomplete.  For now, running
-as root is recommended.
+as root is recommended.  Update -- sudo mode is currently broken.
 
 Curses, Curses::UI, and the setupfiles and docs directory are bundled
 into the __DATA__ section of the webgui_installer.pl script.  If changes
