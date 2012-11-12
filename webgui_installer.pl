@@ -1380,7 +1380,7 @@ sub template {
     # open my $infh, '<', $infn or bail "templating out config files, couldn't open input file $infn: $!";
     # read $infh, my $input, -s $infh;
     # close $infh or die $!;
-    my $input = $infh;  # moved to hard-coding the template data into the installer file
+    my $input = $infn;  # moved to hard-coding the template data into the installer file
 
     open my $outfh, '>', $outfn or bail "templating out config files, couldn't open output file $outfn: $!";
 
@@ -1489,7 +1489,7 @@ EOF
 }
 
 sub nginx_conf {
-    <<EOF;
+    <<'EOF';
 user  [% $run_as_user %];
 worker_processes  10;
 
@@ -1527,7 +1527,7 @@ EOF
 }
 
 sub nginx_template {
-    <<EOF;
+    <<'EOF';
 ##Force all domain requests, mysite.com, to go to www.mysite.com
 [% IF domain_name_has_www %]
 server {
@@ -1622,7 +1622,7 @@ EOF
 }
 
 sub services_redhat {
-    <<EOF;
+    <<'EOF';
 #!/bin/bash
 # chkconfig: 2345 90 60
 # description: Start and stop WebGUI (non-WRE) plack-based service
