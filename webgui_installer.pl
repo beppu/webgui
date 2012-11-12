@@ -1045,7 +1045,7 @@ progress(45);
 #
 
 do {
-    update( "Installing the wgd (WebGUI Developer) utility to use to run upgrades..." );
+    update( "Installing the wgd (WebGUI Developer) utility to use to run upgrades...", noprompt => 1, );
   try_wgd_again:
     run( 'curl --insecure --location --silent http://haarg.org/wgd > WebGUI/sbin/wgd', nofatal => 1, ) or do {
         update( "Installing the wgd (WebGUI Developer) utility to use to run upgrades... trying again to fetch..." );
@@ -1064,14 +1064,15 @@ do {
         # if it's a perlbrew perl and the libs directory is writable by this user, or we're root, or we have sudo, just
         # install the module stright into the site lib.
         # if it fails, hopefully it wasn't important or else testEnvironment.pl can pick up the slack
-        # XXX should send reports (POST to slowas.net?) when modules fail to build
-        run( "$sudo_command $perl WebGUI/sbin/cpanm -n IO::Tty --verbose", noprompt => 1, nofatal => 1, );  # this one likes to time out
-        run( "$sudo_command $perl WebGUI/sbin/cpanm -n Task::WebGUI", noprompt => 1, nofatal => 1, );
+        # XXX should send reports when modules fail to build
+        # these don't have noprompt because RedHat users are cranky about perl modules not coming through their package system and I promised them that I would let them approve everything significant before it happens; need an ultra-low-verbosity verbosity setting
+        run( "$sudo_command $perl WebGUI/sbin/cpanm -n IO::Tty --verbose", nofatal => 1, );  # this one likes to time out
+        run( "$sudo_command $perl WebGUI/sbin/cpanm -n Task::WebGUI", nofatal => 1, );
     } else {
         # backup plan is to build an extlib directory
         mkdir "$install_dir/extlib"; # XXX moved this up outside of 'WebGUI'
-        run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib IO::Tty --verbose", noprompt => 1, nofatal => 1, );  # this one likes to time out
-        run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib Task::WebGUI", noprompt => 1, nofatal => 1, );
+        run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib IO::Tty --verbose", nofatal => 1, );  # this one likes to time out
+        run( "$perl WebGUI/sbin/cpanm -n -L $install_dir/extlib Task::WebGUI", nofatal => 1, );
     }
     if( $linux eq 'redhat' ) {
         run( "$sudo_command $perl WebGUI/sbin/cpanm -n CPAN --verbose", noprompt => 1, nofatal => 1, );  # RedHat's perl doesn't come with the CPAN shell
@@ -1083,7 +1084,6 @@ do {
 #
 
 do {
-
 
     update( "Checking for any additional needed Perl modules..." );
     # XXX Task::WebGUI
@@ -1147,7 +1147,7 @@ do {
         Loading the initial WebGUI database.
         This contains configuration, table structure for all of the tables, definitions for the default assets, and other stuff.
     } );
-    run( qq{ mysql --password=$mysql_user_password --user=webgui $database_name < WebGUI/share/create.sql } );
+    run( qq{ mysql --password=$mysql_user_password --user=webgui $database_name < WebGUI/share/create.sql }, noprompt => 1, );
 };
 
 #
@@ -1184,7 +1184,7 @@ do {
     mkdir "$install_dir/domains/$site_name/public/uploads" or bail "Couldn't create $install_dir/domains/$site_name/public/uploads: $!";
     update qq{Populating $install_dir/domains/$site_name/public/uploads and extras with bundled static HTML, JS, and CSS... };
     run "$perl WebGUI/sbin/wgd reset --uploads", noprompt => 1;
-    run "cp -a WebGUI/www/extras $install_dir/domains/public/";     # matches $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", ), above
+    run "cp -a WebGUI/www/extras $install_dir/domains/public/", noprompt => 1;     # matches $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", ), above
 };
 
 progress(75);
@@ -1232,8 +1232,8 @@ do {
     if( $linux eq 'debian' ) {
         # XXXX
     } elsif( $linux eq 'redhat' ) {
-        run( "$sudo_command /sbin/chkconfig nginx on" );
-        run( "$sudo_command /sbin/service nginx start" );
+        run "$sudo_command /sbin/chkconfig nginx on", noprompt => 1 ;
+        run "$sudo_command /sbin/service nginx start", noprompt => 1 ;
     }
 
 };
@@ -1251,6 +1251,7 @@ do {
         eval { 
             template("$starting_dir/setupfiles/services/redhat", "/etc/rc.d/init.d/webgui8", { } ) 
         } or bail "Failed to template $starting_dir/setupfiles/services/redhat to /etc/rc.d/init.d/webgui8: $@";
+        run "chmod ugo+x /etc/rc.d/init.d/webgui8", noprompt => 1;
     }
 };
 
@@ -1287,6 +1288,18 @@ do {
 progress(90);
 
 #
+# start webgui
+#
+
+do {
+    if( $linux eq 'debian' ) {
+        # XXX
+    } elsif( $linux eq 'redhat' ) {
+        run "$sudo_command /sbin/chkconfig nginx on", noprompt => 1 ;
+        run "$sudo_command /sbin/service nginx start", noprompt => 1 ;
+};
+
+#
 # parting comments
 #
 
@@ -1297,7 +1310,8 @@ do {
     update( qq{
         Installation is wrapping up.
 
-        You'll also need to add a startup script to start WebGUI if want it to start with the system.
+        Debian users will need to add a startup script to start WebGUI if they want it to start with the system.
+        $install_dir/webgui.sh shows how to manually launch WebGUI.
 
         Documentation and forums are at http://webgui.org.
     } );
