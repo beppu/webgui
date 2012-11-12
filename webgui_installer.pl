@@ -36,65 +36,44 @@
   http://www.plainblack.com                     info@plainblack.com
  -------------------------------------------------------------------
 
+based in part on git://gist.github.com/2318748.git:
+run on a clean debian stable
+install webgui 8, using my little tweaks to get things going. 
+bash/perl handling magic from http://www.perlmonks.org/?node_id=825147
+xdanger
 
-# cpanm
-curl --insecure -L http://cpanmin.us | perl - App::cpanminus || exit 1
-
-cpanm Curses Curses::Widgets
-
-# so that we can probe mysql and such inside of a WRE... or should we be mutually exclusive with the WRE?
-export PATH=/data/wre/prereqs/bin:/data/wre/prereqs/sbin:/data/wre/sbin:/data/wre/bin:$PATH
-export LD_LIBRARY_PATH=/data/wre/prereqs/lib:$LD_LIBRARY_PATH
-export DYLD_FALLBACK_LIBRARY_PATH=/data/wre/prereqs/lib:$DYLD_LIBRARY_PATH
-export LD_RUN_PATH=/data/wre/prereqs/lib:$LD_RUN_PATH
-export PERL5LIB=/data/wre/lib:/data/WebGUI/lib:$PERL5LIB
-
-XXX:
-
-setupfiles/services/redhat/wre-apache   <--- bundle RedHat and Debian startup files for wG itself, and make sure Debian is set to start MySQL on boot
-setupfiles/services/redhat/webgui
-setupfiles/services/redhat/wre-mysql
-setupfiles/services/redhat/wre-spectre
+XXX todo:
 
 XXX display full license; bundle license
-XXX testEnvironment.pl probably uses the first perl in $ENV{PATH} which may not be the one this script was run with and our $perl = $Config{perlpath}!
 XXX our /tmp install Curses bootstrap attempt is pathetic; should use local::lib perhaps
-XXX apt-get install perl sudo
 XXX on 64 bit debian, use the 64 bit specific package names!
 XXX some kind of a build .sh that updates the docs/ and setupfiles/ .tar.gz in the DATA section
-XXX MEVENT is getting typedef'd to int by default in the Curses code but ncurses wants to create the type.  apparently it's a mouse event.  clearing C_GETMOUSE should get rid of the offending code, maybe.  swapping order of things seems to work, too.  include'ing ncurses.h before CursesTyp.h sets C_TYPMEVENT so that it doesn't default to define'ing it as an int.
 XXX run() should take a 'requires root' flag and that should prompt the user to run things in a root terminal if not root
     and there's no sudo password
-XXX Running upgrade script... Error upgrading www_example3_com.conf: Can't find upgrade path from 8.0.0 to 8.0.1.
 XXX error if a 'webgui' user already exists -- don't reset the password!
 XXX /home/scott/bin/perl WebGUI/sbin/wgd reset --upgrade -- really not sure that's running and doing anything
 XXX app.psgi should probably just do a 'use libs "extlib"' so that the user doesn't have to set up the local lib
 
 TODO:
 
-* setupfiles/my.cnf is unused by us; are there any settings in there we want to apply to the system my.cnf?
 * setupfiles/wre.logrotate is unusused by us; do Debian and RedHat rotate mysql logs?  probably.  anyway, we probably also need to rotate the webgui.log.
 * in verbose mode, put commands up for edit in a textbox with ok and cancel buttons
 * maybe start script as a shell script then either unpack a perl script or self perk <<EOF it
 * offer help for modules that won't install
-* use WRE stuff to do config file instead?  depends on the wre.conf, hard-codes in the prereqs path, other things
+* use WRE libs to do config file instead?  depends on the wre.conf, hard-codes in the prereqs path, other things
 * cross-reference this with my install instructions
-* save/restore variables automatically since we're asking for so many things?  touch for passwords though
-* if something fails, offer to report the output of the failed command and the config variables
+* save/restore variables automatically since we're asking for so many things?  tough for passwords though
 * don't just automatically apt-get install perlmagick; handle system perl versus source install of perl scenarios
 * take command line arg options for the various variables we ask the user so people can run this partially or non interactively
 * ultra-low verbosity (fully automatic) mode
-* use File::Path <--- this is what we'd use if MacOS9 or Windows were a supported installer target
 * would be awesome if this could diagnose and repair common problems
-* add webgui to the system startup!  I think there's something like this in the WRE
-* handle log rotation... add something to cron to run a script?
 * even without using the WRE library code, look for mysql and such things in $install_root/wre and use them if there?
 
-based in part on git://gist.github.com/2318748.git:
-run on a clean debian stable
-install webgui 8, using my little tweaks to get things going. 
-bash/perl handling magic from http://www.perlmonks.org/?node_id=825147
-xdanger
+done/notes:
+
+MEVENT is getting typedef'd to int by default in the Curses code but ncurses wants to create the type.  apparently it's a mouse event.  clearing C_GETMOUSE should get rid of the offending code, maybe.  swapping order of things seems to work, too.  include'ing ncurses.h before CursesTyp.h sets C_TYPMEVENT so that it doesn't default to define'ing it as an int.
+if something fails, offer to report the output of the failed command and the config variables (except for the last part)
+add webgui to the system startup!  I think there's something like this in the WRE -- testing
 
 =cut
 
@@ -748,13 +727,12 @@ if( $verbosity >= 1 ) {
         Into which directory should WebGUI and nginx write log files?
         Writing into /var/log requires starting up as root.
         WebGUI doesn't currently start as root and then drop privileges,
-        so /tmp or $install_dir/var are probably the best options.
+        so /tmp or $install_dir are probably the best options.
     });
     $log_files = text( 'Log File Directory', $log_files );
 
     update(qq{
-        Into which directory should nginx write its PID file?
-        Since nginx has to start up as root to listen on port 80 and knows how to drop privileges, /var/run is probably fine.
+        Into which directory should nginx and starman write their PID file?
     });
     $pid_files = text( 'Log File Directory', $pid_files );
 };
@@ -974,7 +952,7 @@ do {
 progress(25);
 
 #
-# other system packages we need
+# other system packages we need:  imagemagck, openssl, expat, git, curl, nginx
 #
 
 do {
@@ -1200,8 +1178,9 @@ do {
     # mkdir "$install_dir/domains/$site_name/logs" or bail "Couldn't create $install_dir/domains/$site_name/logs: $!"; # not under /data/wre but instead in WebGUI and we let the user pick a dir earlier on
     mkdir "$install_dir/domains/$site_name/public" or bail "Couldn't create $install_dir/domains/$site_name/public: $!";
     mkdir "$install_dir/domains/$site_name/public/uploads" or bail "Couldn't create $install_dir/domains/$site_name/public/uploads: $!";
-    update qq{Populating $install_dir/domains/$site_name/public/extras with bundled static HTML, JS, and CSS... };
+    update qq{Populating $install_dir/domains/$site_name/public/uploads and extras with bundled static HTML, JS, and CSS... };
     run "$perl WebGUI/sbin/wgd reset --uploads", noprompt => 1;
+    run "cp -a WebGUI/www/extras $install_dir/domains/public/";     # matches $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", ), above
 };
 
 progress(75);
@@ -1213,11 +1192,21 @@ progress(75);
 do {
 # XXXXXX testing
     # create nginx config
+    # start nginx
 
     update "Setting up nginx main config";
-    eval { 
-        template("$starting_dir/setupfiles/nginx.conf", "$install_dir/nginx.conf", { } ) 
-    } or bail "Failed to template $starting_dir/setupfiles/nginx.conf to $install_dir/nginx.conf: $@";
+    if( -f "/etc/nginx/conf.d/webgui8.conf" ) {
+        # setupfiles/nginx.conf does an include [% webgui_root %]/etc/*.nginx
+        eval { 
+            template("$starting_dir/setupfiles/nginx.conf", "/etc/nginx/conf.d/webgui8.conf", { } )            # XXX this is on CentOS; is it the same on Debian?
+        } or bail "Failed to template $starting_dir/setupfiles/nginx.conf to etc/nginx/conf.d/webgui8.conf: $@";
+    } else {
+        update "There's already an /etc/nginx/conf.d/webgui.conf; not overwriting it (have I been here before?).\nHit Enter to continue.";
+        scankey($mwh);
+    }
+
+    update "Remove the default, stock nginx config file?  Don't remove it if you've made changes to it and are using it!";
+    run "rm /etc/nginx/conf.d/default.conf";   # XXX this is on CentOS; is it the same on Debian?
 
     update "Setting up nginx per-site config";
     # addsite.pl does this as a two-step process
@@ -1228,9 +1217,35 @@ do {
         template("$starting_dir/setupfiles/nginx.template", "$install_dir/WebGUI/etc/$database_name.nginx", { } ) 
     } or bail "Failed to template $starting_dir/setupfiles/nginx.template to $install_dir/WebGUI/etc/$database_name.nginx: $@";
 
-    update "Setting up mime.types file";
-    cp "$starting_dir/setupfiles/mime.types", "$install_dir/WebGUI/etc/mime.types" or 
-        bail "Failed to copy $starting_dir/setupfiles/nginx.template to $install_dir/WebGUI/etc/$database_name.nginx: $@";
+    if( ! -f "$install_dir/WebGUI/etc/mime.types" ) {
+        update "Setting up mime.types file";
+        cp "$starting_dir/setupfiles/mime.types", "$install_dir/WebGUI/etc/mime.types" or 
+            bail "Failed to copy $starting_dir/setupfiles/nginx.template to $install_dir/WebGUI/etc/$database_name.nginx: $@";
+    }
+
+    if( $linux eq 'debian' ) {
+        # XXXX
+    } elsif( $linux eq 'redhat' ) {
+        run( "$sudo_command /sbin/chkconfig nginx on" );
+        run( "$sudo_command /sbin/service nginx start" );
+    }
+
+};
+
+#
+# system startup files for webgui
+#
+
+do {
+    if( $linux eq 'debian' ) {
+        eval { 
+            template("$starting_dir/setupfiles/services/debian", "/etc/rc.d/init.d/webgui8XXXX", { } ) # XXXXXXXX doesn't exist yet and certainly isn't tested
+        } or bail "Failed to template $starting_dir/setupfiles/services/debian to /etc/rc.d/init.d/webgui8XXXX: $@";
+    } elsif( $linux eq 'redhat' ) {
+        eval { 
+            template("$starting_dir/setupfiles/services/redhat", "/etc/rc.d/init.d/webgui8", { } ) 
+        } or bail "Failed to template $starting_dir/setupfiles/services/redhat to /etc/rc.d/init.d/webgui8: $@";
+    }
 };
 
 progress(80);
@@ -1276,30 +1291,18 @@ do {
     update( qq{
         Installation is wrapping up.
 
-        This script has not added MySQL/Percona to your system start up.  You'll need to do that.
         You'll also need to add a startup script to start WebGUI if want it to start with the system.
 
         Documentation and forums are at http://webgui.org.
     } );
     scankey($mwh);
 
-#    open my $fh, '>', "$install_dir/webgui.sh";
-#    $fh->print(<<EOF);
-#cd $install_dir/WebGUI
-#export PERL5LIB="\$PERL5LIB:$install_dir/WebGUI/lib"
-#export PERL5LIB="\$PERL5LIB:$install_dir/extlib/lib/perl5" # needed if Perl modules were installed without write permission to the site lib
-#export PATH="$install_dir/extlib/bin/:\$PATH"  # needed if Starman was installed without write permission to install in the site lib
-#plackup --port $webgui_port app.psgi &
-#nginx $install_dir/nginx.conf &
-#EOF
-#    close $fh;
-
     open my $fh, '>', "$install_dir/webgui.sh";
     $fh->print(<<EOF);
 cd $install_dir/WebGUI
 export PERL5LIB="\$PERL5LIB:$install_dir/WebGUI/lib"
 plackup --port $webgui_port app.psgi &
-nginx $install_dir/nginx.conf &
+# nginx $install_dir/nginx.conf & # use /etc/init.d/rc.d/nginx start or stop; should be set to happen at boot
 EOF
     close $fh;
      
