@@ -16,6 +16,13 @@
 # wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate 
 # perl webgui_installer.pl
 
+# The full README is here:
+
+# https://raw.github.com/gist/2973558/README
+
+# And the full license is here:
+
+# https://raw.github.com/gist/2973558/docs/license.txt
 
 =for comment
 
