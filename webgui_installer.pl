@@ -1373,6 +1373,7 @@ sub template {
     $var->{sitename}      =  $site_name; 
     $var->{domain} =  $site_name;  $var->{domain} =~ s/[^.]+\.//;
     $var->{domain_name_has_www} = $site_name =~ m/^www\./;
+    $var->{domain_sans_www} = $site_name; $var->{domain_sans_www} =~ s{^www\.}{};
     $var->{run_as_user}   = $run_as_user;
     $var->{pid_files}     = $pid_files;
     $var->{log_files}     = $log_files;
@@ -1491,18 +1492,13 @@ EOF
 
 sub nginx_conf {
     <<'EOF';
+sendfile        on;
+gzip  on;
+gzip_types text/plain text/css application/json application/json-rpc application/x-javascript text/xml application/xml application/xml+rss text/javascript;
+gzip_comp_level 5;
 
-http {
-
-    sendfile        on;
-    gzip  on;
-    gzip_types text/plain text/css application/json application/json-rpc application/x-javascript text/xml application/xml application/xml+rss text/javascript;
-    gzip_comp_level 5;
-
-    ##Include per-server vhost configuration files.
-    include [% webgui_root %]/etc/*.nginx;
-
-}
+##Include per-server vhost configuration files.
+include [% webgui_root %]/etc/*.nginx;
 EOF
 }
 
