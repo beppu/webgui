@@ -1200,13 +1200,13 @@ do {
 
     update "Setting up nginx main config";
     if( -f "/etc/nginx/conf.d/webgui8.conf" ) {
+        update "There's already an /etc/nginx/conf.d/webgui.conf; not overwriting it (have I been here before?).\nHit Enter to continue.";
+        scankey($mwh);
+    } else {
         # setupfiles/nginx.conf does an include [% webgui_root %]/etc/*.nginx
         eval { 
             template("$starting_dir/setupfiles/nginx.conf", "/etc/nginx/conf.d/webgui8.conf", { } )            # XXX this is on CentOS; is it the same on Debian?
         } or bail "Failed to template $starting_dir/setupfiles/nginx.conf to etc/nginx/conf.d/webgui8.conf: $@";
-    } else {
-        update "There's already an /etc/nginx/conf.d/webgui.conf; not overwriting it (have I been here before?).\nHit Enter to continue.";
-        scankey($mwh);
     }
 
     if( -f '/etc/nginx/conf.d/default.conf' ) {
