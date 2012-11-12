@@ -44,6 +44,7 @@ xdanger
 
 XXX todo:
 
+XXX service startup stuff on Debian, nginx config on Debian
 XXX sudo mode hasn't been tested recently and is almost certainly broken
 XXX check for spaces and other things in filenames and complain about them
 XXX $run_as_user never gets changed from eg root; need to offer to create a webgui user; thought I had logic around to do that; chown $install_dir to them so that they can write log and pid files there, and chown -R uploads to them; useradd <username> --password <whatever>
@@ -1186,9 +1187,9 @@ do {
     # mkdir "$install_dir/domains/$site_name/logs" or bail "Couldn't create $install_dir/domains/$site_name/logs: $!"; # not under /data/wre but instead in WebGUI and we let the user pick a dir earlier on
     mkdir "$install_dir/domains/$site_name/public" or bail "Couldn't create $install_dir/domains/$site_name/public: $!";
     mkdir "$install_dir/domains/$site_name/public/uploads" or bail "Couldn't create $install_dir/domains/$site_name/public/uploads: $!";
-    update qq{Populating $install_dir/domains/$site_name/public/uploads and extras with bundled static HTML, JS, and CSS... };
+    update qq{Populating $install_dir/domains/$site_name/public/uploads with bundled static HTML, JS, and CSS... };
     run "$perl WebGUI/sbin/wgd reset --uploads", noprompt => 1;
-    run "cp -a WebGUI/www/extras $install_dir/domains/public/", noprompt => 1;     # matches $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", ), above
+    # run "cp -a WebGUI/www/extras $install_dir/domains/public/", noprompt => 1;     # matches $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", ), above # XXX nginx points into WebGUI/www/extras
 };
 
 progress(75);
@@ -1203,7 +1204,7 @@ do {
 
     update "Setting up nginx main config";
     if( -f "/etc/nginx/conf.d/webgui8.conf" ) {
-        update "There's already an /etc/nginx/conf.d/webgui.conf; not overwriting it (have I been here before?).\nHit Enter to continue.";
+        update "There's already an /etc/nginx/conf.d/webgui8.conf; not overwriting it (have I been here before?).\nHit Enter to continue.";
 # XXXX there is always already an /etc/nginx/conf.d/webgui8.conf ... why?
         scankey($mwh);
     } else {
@@ -1490,34 +1491,13 @@ EOF
 
 sub nginx_conf {
     <<'EOF';
-user  [% $run_as_user %];
-worker_processes  10;
-
-error_log  [% log_files %]/nginx_error.log;
-
-pid        [% pid_files %]/nginx.pid;
-
-events {
-    worker_connections  1024;
-}
 
 http {
-    include       [% webgui_root %]/etc/mime.types;
-    default_type  application/octet-stream;
-
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
-                      '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
 
     sendfile        on;
-
-    keepalive_timeout  65;
-
-    server_tokens off;
-
     gzip  on;
     gzip_types text/plain text/css application/json application/json-rpc application/x-javascript text/xml application/xml application/xml+rss text/javascript;
-    gzip_comp_level 9;
+    gzip_comp_level 5;
 
     ##Include per-server vhost configuration files.
     include [% webgui_root %]/etc/*.nginx;
@@ -1537,7 +1517,7 @@ server {
 [% END %]
 
 server {
-    server_name  [% sitename %];
+    server_name [% sitename %];
 
     listen 80; ## listen for ipv4
 
@@ -1559,7 +1539,7 @@ server {
     location /extras/ {
         add_header Cache-Control public;
         expires 24h;
-        root   /data/WebGUI/www/;
+        root   [% webgui_root %]/www/;
         add_header Access-Control-Allow-Origin *;
     }
 
