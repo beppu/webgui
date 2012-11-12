@@ -51,7 +51,6 @@ export PERL5LIB=/data/wre/lib:/data/WebGUI/lib:$PERL5LIB
 
 XXX:
 
-# XXX SHELL STUFF TO GO FIRST: Debian packages: apt-get install perl sudo
 setupfiles/services/redhat/wre-apache   <--- bundle RedHat and Debian startup files for wG itself, and make sure Debian is set to start MySQL on boot
 setupfiles/services/redhat/webgui
 setupfiles/services/redhat/wre-mysql
@@ -739,8 +738,8 @@ progress(10);
 # var and log dirs
 #
 
-my $log_files = '/tmp';
-my $pid_files = '/var/run';
+my $log_files = $install_dir;
+my $pid_files = $install_dir;
 
 if( $verbosity >= 1 ) {
     # XXX should only ask this if some kind of a --verbose flag is on or if the user navigates here in a big menu of things to set
@@ -1335,6 +1334,7 @@ sub template {
     $var->{webgui_root}   = "$install_dir/WebGUI/";  # also doesn't seem to actually be used in the installfiles templates
     $var->{domainRoot}    = "$install_dir/domains/";  # this one is used
     $var->{osName}        = ($^O =~ /MSWin32/i || $^O=~ /^Win/i) ?  "windows" : $^O;
+    $var->{database_name}  = $database_name;  # like sitename, but with the dots changed to underscores
     $var->{sitename}      =  $site_name; 
     $var->{domain} =  $site_name;  $var->{domain} =~ s/[^.]+\.//;
     $var->{domain_name_has_www} = $site_name =~ m/^www\./;
