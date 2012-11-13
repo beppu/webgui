@@ -1611,7 +1611,7 @@ export PATH="$PATH:/usr/local/bin"  # starman gets installed into here
 case "$1" in
   	start)
         cd [% webgui_root %]
-   		starman  --pid=[% pid_files %]webgui.pid --quiet --port=[% webgui_port %] --preload-app --access-log=[% log_files %]/access_log --error-log=[% log_files %]/error_log --user=[% run_as_user %] --daemonize --start all
+   		starman  --pid=[% pid_files %]/webgui.pid --quiet --port=[% webgui_port %] --preload-app --access-log=[% log_files %]/access_log --error-log=[% log_files %]/error_log --user=[% run_as_user %] --daemonize --start all
     	;;
   	stop)
     		kill `cat [% pid_files %]/webgui.pid`
