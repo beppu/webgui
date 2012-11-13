@@ -492,7 +492,7 @@ sub run {
         my @error_fhs = IO::Select->handles($sel, $error_bits);
 
         my $buf;
-        for my $handle (@ready) {
+        for my $handle (@read_fhs) {
             # handle may == $fh or $fh_error
             my $handle_name = $handle == $fh ? 'STDOUT' : $handle == $fh_error ? 'STDERR' : 'unknown';
             my $bytes_read = sysread($handle, $buf, 1024);
@@ -508,6 +508,9 @@ sub run {
             }
             $output .= $buf;
         }
+
+        last if @error_fhs;  # when the client starts closing stuff, it's done
+
         update( tail( $msg . "\n$cmd:\n$output" ) );
     }
 
