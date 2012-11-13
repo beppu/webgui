@@ -1372,7 +1372,7 @@ sub template {
     $var->{database_name}  = $database_name;  # like sitename, but with the dots changed to underscores
     $var->{sitename}      =  $site_name; 
     $var->{domain} =  $site_name;  $var->{domain} =~ s/[^.]+\.//;
-    $var->{domain_name_has_www} = $site_name =~ m/^www\./;
+    $var->{domain_name_has_www} = ( $site_name =~ m/^www\./ ) ? 1 : 0;
     $var->{domain_sans_www} = $site_name; $var->{domain_sans_www} =~ s{^www\.}{};
     $var->{run_as_user}   = $run_as_user;
     $var->{pid_files}     = $pid_files;
