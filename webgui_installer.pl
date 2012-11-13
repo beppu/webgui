@@ -481,7 +481,16 @@ sub run {
     $sel->add($fh);
     $sel->add($fh_error);
 
-    while (my @ready = $sel->can_read()) {
+    # while (my @ready = $sel->can_read())  # well that's miserable... IO::Select won't select on read and error at the same time
+
+    while(1) {
+
+        my $read_bits = $sel->[VEC_BITS];
+        my $error_bits = $sel->[VEC_BITS];
+        select( $read_bits, undef, $error_bits, undef ) );
+        my @read_fhs = IO::Select->handles($sel, $read_bits);
+        my @error_fhs = IO::Select->handles($sel, $error_bits);
+
         my $buf;
         for my $handle (@ready) {
             # handle may == $fh or $fh_error
@@ -602,7 +611,7 @@ do {
     my $verbosiy_dialogue = Curses::Widgets::ListBox->new({
          Y           => 2,
          X           => 38,
-         COLUMNS     => 20,
+         COLUMNS     => 25,
          LISTITEMS   => ['Fewer Questions', 'More Questions', 'Few Questions as Possible'],
          VALUE       => 0,
          SELECTEDCOL => 'white',
@@ -887,6 +896,8 @@ if( $mysqld_safe_path) {
     } );
 
     $mysql_root_password = text('MySQL Root Password', '') or goto mysql_password_again;
+    main_win();  # erase the dialogue
+    update();    # redraw after erasing the text dialogue
 
   already_have_possible_mysql_root_password:
 
