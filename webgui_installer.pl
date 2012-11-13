@@ -42,6 +42,7 @@ xdanger
 
 XXX todo:
 
+XXX warn about impossiblely early date time; Curses wouldn't build
 XXX service startup stuff on Debian, nginx config on Debian
 XXX sudo mode hasn't been tested recently and is almost certainly broken
 XXX check for spaces and other things in filenames and complain about them
@@ -55,6 +56,7 @@ XXX app.psgi should probably just do a 'use libs "extlib"' so that the user does
 
 TODO:
 
+* Report on passwords created for various accounts at the end of the install
 * Does it make sense to install one system-wide plack/starman startup file?  Doesn't handle multiple installations but maybe does multiple sites on one install even though they all share logs?  Or does it make more sense to install one system startup file for each site installed?
 * setupfiles/wre.logrotate is unusused by us; do Debian and RedHat rotate mysql logs?  probably.  anyway, we probably also need to rotate the webgui.log.
 * in verbose mode, put commands up for edit in a textbox with ok and cancel buttons
@@ -152,7 +154,7 @@ BEGIN {
        skip_apt_get:
     } elsif( $linux eq 'redhat' ) {
         # no counterpart to libcurses-perl or libcurses-widgets-perl so we have to fallback on building from the bundled tarball
-        my $cmd = "$sudo yum install --assumeyes gcc make automake kernel-devel man ncurses-devel.$cpu perl-devel.$cpu";
+        my $cmd = "$sudo yum install --assumeyes gcc make automake kernel-devel man ncurses-devel.$cpu perl-devel.$cpu sudo";
         print "running: $cmd\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
         goto skip_install if readline(STDIN) =~ m/s/;
         system $cmd;
@@ -1223,6 +1225,10 @@ do {
 #
 
 do {
+
+    # www.whatever.com.conf
+    # XXX change this to use $site_name, not $database_name, for the filename
+
     # largely adapted from /data/wre/sbin/wresetup.pl
     cp 'WebGUI/etc/WebGUI.conf.original', "WebGUI/etc/$database_name.conf" or bail "Failed to copy WebGUI/etc/WebGUI.conf.original to WebGUI/etc/$database_name.conf: $!";
     cp 'WebGUI/etc/log.conf.original', 'WebGUI/etc/log.conf' or bail "Failed to copy WebGUI/etc/log.conf.original to WebGUI/etc/log.conf: $!";
@@ -1234,6 +1240,13 @@ do {
     $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", );
     $config->set( maintenancePage =>  "$install_dir/WebGUI/www/maintenance.html", );
     # XXX the searchIndexPlugins scripts that come with the WRE
+
+    # log.conf
+
+    eval { 
+        template(log_conf(), "$install_dir/WebGUI/etc/log.conf", { } )
+    } or bail "Failed to template log.conf to $install_dir/WebGUI/etc/log.conf: $@";
+
 };
 
 progress(70);
@@ -1270,7 +1283,6 @@ do {
     update "Setting up nginx main config";
     if( -f "/etc/nginx/conf.d/webgui8.conf" ) {
         update "There's already an /etc/nginx/conf.d/webgui8.conf; not overwriting it (have I been here before?).\nHit Enter to continue.";
-# XXXX there is always already an /etc/nginx/conf.d/webgui8.conf ... why?
         scankey($mwh);
     } else {
         # nginx.conf does an include [% webgui_root %]/etc/*.nginx
@@ -1302,6 +1314,9 @@ do {
         # $fh->print(mime_types()) or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!"; # is there a problem with the one it comes with?
         $fh->close or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!";
     }
+
+    update "Having nginx test nginx.conf and the conf files it pulls in";
+    run "nginx -t", noprompt => 1;
 
     if( $linux eq 'debian' ) {
         # XXXX
@@ -1351,14 +1366,22 @@ do {
 #
 
 do {
+
     update( qq{
         Running upgrades.
         Each release of WebGUI includes upgrade scripts that modify the database or config files.
         However, a new config file and database dump are not included in each release, so upgrades 
         are necessary even for brand new installs.
     } );
-    run( "$perl WebGUI/sbin/wgd reset --upgrade", noprompt => 1, );
-    scankey($mwh); # XXXXXXXX testing... want to see the output of this
+    # run "$perl WebGUI/sbin/wgd reset --upgrade", noprompt => 1,;  # XXX testing... want to watch the output of this... thought there were a lot more upgrades!
+    if( $run_as_user eq 'root' ) {
+        run "$perl WebGUI/sbin/wgd reset --upgrade";
+    } else {
+        # run upgrades as the user wG is going to run as so that log files, uploads, etc are all owned by that user
+        run "sudo -u $run_as_user $perl WebGUI/sbin/wgd reset --upgrade --config-file=$database_name.conf --webgui-root=$install_dir/WebGUI";
+    }
+
+
 };
 
 progress(90);
@@ -1368,12 +1391,19 @@ progress(90);
 #
 
 do {
+
+    update "Fixing log file permissions";    
+    run "chown $run_as_user $log_files/*.log", noprompt => 1; # not sure how that winds up as root (during upgrades I guess) but not being able to write it was breaking things; running wgd --upgrade as $run_as_user now, after some pain, and this is still happening!
+    # still not enough... I guess webgui.log doesn't exist yet, gets created as owned by root, then plack tries to re-open it and fails; doing killall starman, rm webgui.log, service start starman seems to suggest that this is the case
+    run "touch $log_files/webgui.log", noprompt => 1;
+    run "chown $run_as_user $log_files/*.log", noprompt => 1; # testing... again after touching the file
+
     if( $linux eq 'debian' ) {
         # XXX
     } elsif( $linux eq 'redhat' ) {
         update "Attempting to start the WebGUI server process...\n";
         run "$sudo_command /sbin/chkconfig webgui8 on", noprompt => 1 ;
-        run "$sudo_command /sbin/service webgui8 start", noprompt => 1, background =>1 ; # XXX working around this process going zombie
+        run "$sudo_command /sbin/service webgui8 start", noprompt => 1, background => 1 ; # XXX working around this process going zombie
     }
 };
 
@@ -1471,7 +1501,7 @@ END {
 
 sub nginx_conf {
     <<'EOF';
-sendfile        on;
+# sendfile        on; # duplicate with /etc/nginx/nginx.conf; causes a fatal error; have to trust that it's right in /etc/nginx/nginx.conf or else check that it's right in there
 gzip  on;
 gzip_types text/plain text/css application/json application/json-rpc application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 gzip_comp_level 5;
@@ -1611,6 +1641,22 @@ exit $?
 EOF
 }
 
+sub log_conf {
+    <<'EOF';
+# WebGUI uses the log4perl logging system. This default configuration file
+# will work out of the box and will log only ERROR and FATAL level messages to
+# /var/log/webgui.log. This is only the beginning of what this logging
+# system is capable of. To unleash the full power read the config file manual
+# http://log4perl.sourceforge.net/releases/Log-Log4perl/docs/html/Log/Log4perl/Config.html
+
+log4perl.logger = ERROR, mainlog 
+log4perl.appender.mainlog = Log::Log4perl::Appender::File
+log4perl.appender.mainlog.filename = [% log_files %]/webgui.log 
+log4perl.appender.mainlog.layout = PatternLayout
+log4perl.appender.mainlog.layout.ConversionPattern = %d - %p - %c - %M[%L] - %m%n
+
+EOF
+}
 
 
 __DATA__
