@@ -1,6 +1,4 @@
-#!/usr/bin/perl
-    eval 'exec /usr/bin/perl -S $0 ${1+"$@"}'
-    if $running_under_some_shell;
+#!/usr/local/bin/perl
 
 # to run this installer on CentOS, do:
 
@@ -47,13 +45,11 @@ XXX todo:
 XXX service startup stuff on Debian, nginx config on Debian
 XXX sudo mode hasn't been tested recently and is almost certainly broken
 XXX check for spaces and other things in filenames and complain about them
-XXX $run_as_user never gets changed from eg root; need to offer to create a webgui user; thought I had logic around to do that; chown $install_dir to them so that they can write log and pid files there, and chown -R uploads to them; useradd <username> --password <whatever>
 XXX our /tmp install Curses bootstrap attempt is pathetic; should use local::lib perhaps
 XXX on 64 bit debian, use the 64 bit specific package names!
-XXX some kind of a build .sh that updates the docs/ and setupfiles/ .tar.gz in the DATA section
 XXX run() should take a 'requires root' flag and that should prompt the user to run things in a root terminal if not root
     and there's no sudo password
-XXX error if a 'webgui' user already exists -- don't reset the password!
+XXX error if a 'webgui' user already exists -- don't reset the password! ... where did this logic go?  had to re-write it
 XXX /home/scott/bin/perl WebGUI/sbin/wgd reset --upgrade -- really not sure that's running and doing anything
 XXX app.psgi should probably just do a 'use libs "extlib"' so that the user doesn't have to set up the local lib
 
@@ -75,6 +71,7 @@ TODO:
 
 done/notes:
 
+$run_as_user never gets changed from eg root; need to offer to create a webgui user; thought I had logic around to do that; chown $install_dir to them so that they can write log and pid files there, and chown -R uploads to them; useradd <username> --password <whatever>
 MEVENT is getting typedef'd to int by default in the Curses code but ncurses wants to create the type.  apparently it's a mouse event.  clearing C_GETMOUSE should get rid of the offending code, maybe.  swapping order of things seems to work, too.  include'ing ncurses.h before CursesTyp.h sets C_TYPMEVENT so that it doesn't default to define'ing it as an int.
 if something fails, offer to report the output of the failed command and the config variables (except for the last part)
 add webgui to the system startup!  I think there's something like this in the WRE -- testing
@@ -470,29 +467,29 @@ sub run {
 
     $to_child->print($input) if $input; # XXX to be safe, this would have to be done in an event loop or fork
 
-    my $output = '';
+    my $exit = '';
+    close $to_child or $exit = $! ? "Error closing pipe: $!" : "Exit status $? from pipe";
 
-    # while( my $line = readline $fh ) { 
-    #     $output .= $line; 
-    #     update( tail( $msg . "\n$cmd:\n$output" ) );
-    # }
+    my $output = '';
 
     my $sel = IO::Select->new();
     $sel->add($fh);
     $sel->add($fh_error);
 
-    # while (my @ready = $sel->can_read())  # well that's miserable... IO::Select won't select on read and error at the same time
+    while (my @read_fhs = $sel->can_read()) {
 
-    while(1) {
-
-        my $read_bits = $sel->[IO::Select::VEC_BITS];
-        my $error_bits = $sel->[IO::Select::VEC_BITS];
-        select( $read_bits, undef, $error_bits, undef );
-        my @read_fhs = $sel->handles($read_bits);
-        my @error_fhs = $sel->handles($error_bits);
+    # well that's miserable... IO::Select won't select on read and error at the same time
+    #while(1) {
+#
+#        my $read_bits = $sel->[IO::Select::VEC_BITS];
+#        my $error_bits = $sel->[IO::Select::VEC_BITS];
+#        select( $read_bits, undef, $error_bits, undef );
+#        my @read_fhs = $sel->handles($read_bits);
+#        my @error_fhs = $sel->handles($error_bits);
 
         my $buf;
         for my $handle (@read_fhs) {
+
             # handle may == $fh or $fh_error
             my $handle_name = $handle == $fh ? 'STDOUT' : $handle == $fh_error ? 'STDERR' : 'unknown';
             my $bytes_read = sysread($handle, $buf, 1024);
@@ -509,15 +506,14 @@ sub run {
             $output .= $buf;
         }
 
-        last if @error_fhs;  # when the client starts closing stuff, it's done
+#        last if @error_fhs;  # when the client starts closing stuff, it's done
 
         update( tail( $msg . "\n$cmd:\n$output" ) );
     }
 
     # my $exit = close($output);
 
-    my $exit = '';
-    close $to_child or $exit = $! ? "Error closing pipe: $!" : "Exit status $? from pipe";
+    # close $to_child or $exit = $! ? "Error closing pipe: $!" : "Exit status $? from pipe";
     waitpid $pid, 0;
     $exit .= " Exit status @{[ $? >> 8 ]} from pipe" if $?;
 
@@ -807,7 +803,7 @@ if( $mysqld_path ) {
     # if ! -x $mysqld_path # XXX
     # update( $comment->getField('VALUE') . " Running command: $mysqld_path --version", noprompt => 1, );
     # my $sqld_version = `$mysqld_path --version`;
-    $mysqld_version = run("$mysqld_path --version");
+    $mysqld_version = run "$mysqld_path --version", noprompt => 1;
     # /usr/local/libexec/mysqld  Ver 5.1.46 for pc-linux-gnu on i686 (Source distribution)
     ($mysqld_version) = $mysqld_version =~ m/Ver\s+(\d+\.\d+)\./ if $mysqld_version;
 }
@@ -817,7 +813,9 @@ my $run_as_user = getpwuid($>);
 my $current_user = $run_as_user;
 
 if( $run_as_user eq 'root' ) {
+
     my ($name, $passwd, $uid, $gid,  $quota, $comment, $gcos, $dir, $shell, $expire) = getpwnam('webgui');
+
     if( ! $name ) {
       ask_about_making_a_new_user:
         update "Create a user to run the WebGUI server process as?";
@@ -826,7 +824,7 @@ if( $run_as_user eq 'root' ) {
              X           => 38,
              COLUMNS     => 20,
              LISTITEMS   => ['Yes', 'No'],
-             VALUE       => 0,
+             VALUE       => 'webgui',
              SELECTEDCOL => 'white',
              CAPTION     => 'Create a user?',
              CAPTIONCOL  => 'white',
@@ -851,6 +849,11 @@ if( $run_as_user eq 'root' ) {
             my $new_user_password = join('', map { $_->[int rand scalar @$_] } (['a'..'z', 'A'..'Z', '0' .. '9']) x 12);
             run "useradd $run_as_user --password $new_user_password";
         }
+
+    } else {
+        # webgui user does exist; use it
+        # XXX should ask and confirm that that's what the user wants
+        $run_as_user = 'webgui';
     }
 }
 
@@ -1078,9 +1081,9 @@ do {
     update("Checking out a copy of WebGUI from GitHub...");
     # https:// fails for me on a fresh Debian for want of CAs; use http:// or git://
     my $url = 'http://github.com/plainblack/webgui.git';
-    if( -f '/tmp/WebGUI/.git/config' ) {
-        $url = '/tmp/WebGUI';
-        update("Debug -- doing a local checkout of WebGUI from /tmp/WebGUI; if this isn't what you wanted, move that aside.");
+    if( -f '/root/WebGUI/.git/config' ) {
+        $url = '/root/WebGUI';
+        update("Debug -- doing a local checkout of WebGUI from /root/WebGUI; if this isn't what you wanted, move that aside.");
     }
     run( "git clone $url WebGUI", nofatal => 1, ) or goto pick_install_directory;
 };
@@ -1091,12 +1094,14 @@ progress(40);
 # fetch cpanm
 #
 
-do {
-    # XXX if the first bit of this script is a .sh, this will become redundant
-    update( "Installing the cpanm utility to use to install Perl modules..." );
-    run( 'curl --insecure --location --silent http://cpanmin.us --output WebGUI/sbin/cpanm', noprompt => 1, );
-    run( 'chmod ugo+x WebGUI/sbin/cpanm', noprompt => 1 );
-};
+if( -f '/root/cpanm.test') 
+    update( "Devel -- Installing the cpanm utility to use to install Perl modules from a cached copy" );
+    run "cp -a /root/cpanm.test WebGUI/sbin/cpanm", noprompt =>1;
+} else {
+    update "Installing the cpanm utility to use to install Perl modules..." ;
+    run 'curl --insecure --location --silent http://cpanmin.us --output WebGUI/sbin/cpanm', noprompt => 1;
+    run 'chmod ugo+x WebGUI/sbin/cpanm', noprompt => 1;
+}
 
 progress(45);
 
@@ -1104,15 +1109,18 @@ progress(45);
 # wgd
 #
 
-do {
+if( -f '/root/wgd.test' ) {
+    update( "Devel -- Installing the wgd utility from a cached copy" );
+    run "cp -a /root/wgd.test WebGUI/sbin/wgd", noprompt =>1;
+} else {
     update( "Installing the wgd (WebGUI Developer) utility to use to run upgrades...", noprompt => 1, );
   try_wgd_again:
     run( 'curl --insecure --location --silent http://haarg.org/wgd > WebGUI/sbin/wgd', nofatal => 1, ) or do {
         update( "Installing the wgd (WebGUI Developer) utility to use to run upgrades... trying again to fetch..." );
         goto try_wgd_again;
     };
-    run( 'chmod ugo+x WebGUI/sbin/wgd', noprompt => 1, );
-};
+    run 'chmod ugo+x WebGUI/sbin/wgd', noprompt => 1;
+}
 
 progress(50);
 
@@ -1245,6 +1253,8 @@ do {
     update qq{Populating $install_dir/domains/$site_name/public/uploads with bundled static HTML, JS, and CSS... };
     run "$perl WebGUI/sbin/wgd reset --uploads", noprompt => 1;
     # run "cp -a WebGUI/www/extras $install_dir/domains/public/", noprompt => 1;     # matches $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", ), above # XXX nginx points into WebGUI/www/extras
+    run "chown $run_as_user $install_dir", noprompt => 1;
+    run "chown -R $run_as_user $install_dir/domains/$site_name/public/uploads", noprompt => 1;
 };
 
 progress(75);
@@ -1289,7 +1299,7 @@ do {
         #    bail "Copying $starting_dir/setupfiles/mime.types to $install_dir/WebGUI/etc/mime.types failed: $@";
         open my $fh, '>', "$install_dir/WebGUI/etc/mime.types" or 
             bail "Failed to open $install_dir/WebGUI/etc/mime.types for write: $!";
-        $fh->print(mime_types()) or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!";
+        # $fh->print(mime_types()) or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!"; # is there a problem with the one it comes with?
         $fh->close or bail "Writing $install_dir/WebGUI/etc/mime.types failed; $!";
     }
 
@@ -1348,6 +1358,7 @@ do {
         are necessary even for brand new installs.
     } );
     run( "$perl WebGUI/sbin/wgd reset --upgrade", noprompt => 1, );
+    scankey($mwh); # XXXXXXXX testing... want to see the output of this
 };
 
 progress(90);
@@ -1389,7 +1400,6 @@ do {
 cd $install_dir/WebGUI
 export PERL5LIB="\$PERL5LIB:$install_dir/WebGUI/lib"
 plackup --port $webgui_port app.psgi &
-# nginx $install_dir/nginx.conf & # use /etc/init.d/rc.d/nginx start or stop; should be set to happen at boot
 EOF
     close $fh;
      
@@ -1402,8 +1412,9 @@ EOF
 
     update( qq{
         Installation complete.
-        See $install_dir/webgui.sh for an example of starting up WebGUI.
-        The default WebGUI Administrator password is 123qwe.
+        Go to http://$site_name and set up the new site.
+        The admin user is "Admin" with password "123qwe".
+
         Please hit any reasonable key to exit the installer.
     } );
     scankey($mwh);
@@ -1457,94 +1468,6 @@ END {
 #
 # files needed for the wG install that aren't part of wG and don't come with it
 #
-
-sub mime_types {
-    <<EOF;
-types {
-    text/html                             html htm shtml;
-    text/css                              css;
-    text/xml                              xml;
-    image/gif                             gif;
-    image/jpeg                            jpeg jpg;
-    application/x-javascript              js;
-    application/atom+xml                  atom;
-    application/rss+xml                   rss;
-
-    text/mathml                           mml;
-    text/plain                            txt;
-    text/vnd.sun.j2me.app-descriptor      jad;
-    text/vnd.wap.wml                      wml;
-    text/x-component                      htc;
-    text/csv			                  csv;
-
-    image/png                             png;
-    image/tiff                            tif tiff;
-    image/vnd.wap.wbmp                    wbmp;
-    image/x-icon                          ico;
-    image/x-jng                           jng;
-    image/x-ms-bmp                        bmp;
-    image/svg+xml                         svg svgz;
-    image/webp                            webp;
-
-    application/java-archive              jar war ear;
-    application/mac-binhex40              hqx;
-    application/msword                    doc;
-    application/pdf                       pdf;
-    application/postscript                ps eps ai;
-    application/rdf+xml		              rdf;
-    application/rtf                       rtf;
-    application/vnd.ms-excel              xls;
-    application/vnd.ms-powerpoint         ppt;
-    application/vnd.wap.wmlc              wmlc;
-    application/vnd.google-earth.kml+xml  kml;
-    application/vnd.google-earth.kmz      kmz;
-    application/x-7z-compressed           7z;
-    application/x-cocoa                   cco;
-    application/x-java-archive-diff       jardiff;
-    application/x-java-jnlp-file          jnlp;
-    application/x-makeself                run;
-    application/x-perl                    pl pm;
-    application/x-pilot                   prc pdb;
-    application/x-rar-compressed          rar;
-    application/x-redhat-package-manager  rpm;
-    application/x-sea                     sea;
-    application/x-shockwave-flash         swf;
-    application/x-stuffit                 sit;
-    application/x-tar		              tar;
-    application/x-tcl                     tcl tk;
-    application/x-x509-ca-cert            der pem crt;
-    application/x-xpinstall               xpi;
-    application/xhtml+xml                 xhtml;
-    application/zip                       zip;
-
-    application/octet-stream              bin exe dll so ;
-    application/octet-stream              deb;
-    application/octet-stream              dmg;
-    application/octet-stream              eot;
-    application/octet-stream              iso img;
-    application/octet-stream              msi msp msm;
-
-    audio/midi                            mid midi kar;
-    audio/mpeg                            mp3;
-    audio/ogg                             ogg;
-    audio/x-m4a                           m4a;
-    audio/x-realaudio                     ra;
-
-    video/3gpp                            3gpp 3gp;
-    video/mp4                             mp4;
-    video/mpeg                            mpeg mpg;
-    video/quicktime                       qt mov;
-    video/webm                            webm;
-    video/x-flv                           flv;
-    video/x-m4v                           m4v;
-    video/x-mng                           mng;
-    video/x-ms-asf                        asx asf;
-    video/x-ms-wmv                        wmv;
-    video/x-msvideo                       avi;
-    webgui/package                        wgpkg;
-}
-EOF
-}
 
 sub nginx_conf {
     <<'EOF';
@@ -1666,8 +1589,9 @@ export PATH="$PATH:/usr/local/bin"  # starman gets installed into here
 # See how we were called.
 case "$1" in
   	start)
+        # sdw:  I don't like the nohup, but I'm having a problem where the 'service' program goes zombie waiting for this to properly daemonize, and it doesn't; XXX fix this
         cd [% webgui_root %]
-   		starman  --pid=[% pid_files %]/webgui.pid --quiet --port=[% webgui_port %] --preload-app --access-log=[% log_files %]/access_log --error-log=[% log_files %]/error_log --user=[% run_as_user %] --daemonize --start all
+   		nohup starman  --pid=[% pid_files %]/webgui.pid --quiet --port=[% webgui_port %] --preload-app --access-log=[% log_files %]/access_log --error-log=[% log_files %]/error_log --user=[% run_as_user %] --daemonize > [% log_files %]/starman.startup.log
     	;;
   	stop)
     		kill `cat [% pid_files %]/webgui.pid`
@@ -1676,9 +1600,9 @@ case "$1" in
 #    		/data/wre/sbin/wreservice.pl --quiet --restart all
 #    	;;
   	*)
-		echo $"WebGUI Service Controller"
+    	echo $"WebGUI Service Controller"
    		echo $"Usage:"
-		echo $"	$0 { start | stop }"
+    	echo $"	$0 { start | stop }"
    		exit 1
 esac
 
