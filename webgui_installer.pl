@@ -1094,7 +1094,7 @@ progress(40);
 # fetch cpanm
 #
 
-if( -f '/root/cpanm.test') 
+if( -f '/root/cpanm.test') {
     update( "Devel -- Installing the cpanm utility to use to install Perl modules from a cached copy" );
     run "cp -a /root/cpanm.test WebGUI/sbin/cpanm", noprompt =>1;
 } else {
