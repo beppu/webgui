@@ -487,7 +487,7 @@ sub run {
 
         my $read_bits = $sel->[VEC_BITS];
         my $error_bits = $sel->[VEC_BITS];
-        select( $read_bits, undef, $error_bits, undef ) );
+        select( $read_bits, undef, $error_bits, undef );
         my @read_fhs = IO::Select->handles($sel, $read_bits);
         my @error_fhs = IO::Select->handles($sel, $error_bits);
 
