@@ -1373,7 +1373,7 @@ do {
     } elsif( $linux eq 'redhat' ) {
         update "Attempting to start the WebGUI server process...\n";
         run "$sudo_command /sbin/chkconfig webgui8 on", noprompt => 1 ;
-        run "$sudo_command /sbin/service webgui8 start", noprompt => 1 ;
+        run "$sudo_command /sbin/service webgui8 start", noprompt => 1, background =>1 ; # XXX working around this process going zombie
     }
 };
 
@@ -1589,9 +1589,10 @@ export PATH="$PATH:/usr/local/bin"  # starman gets installed into here
 # See how we were called.
 case "$1" in
   	start)
-        # sdw:  I don't like the nohup, but I'm having a problem where the 'service' program goes zombie waiting for this to properly daemonize, and it doesn't; XXX fix this
+        # sdw:  I'm having a problem where the 'service' program goes zombie waiting for this to properly daemonize; XXX fix this
+        # nophup ... > [% log_files %]/starman.startup.log # didn't fix it
         cd [% webgui_root %]
-   		nohup starman  --pid=[% pid_files %]/webgui.pid --quiet --port=[% webgui_port %] --preload-app --access-log=[% log_files %]/access_log --error-log=[% log_files %]/error_log --user=[% run_as_user %] --daemonize > [% log_files %]/starman.startup.log
+   		starman  --pid=[% pid_files %]/webgui.pid --quiet --port=[% webgui_port %] --preload-app --access-log=[% log_files %]/access_log --error-log=[% log_files %]/error_log --user=[% run_as_user %] --daemonize
     	;;
   	stop)
     		kill `cat [% pid_files %]/webgui.pid`
