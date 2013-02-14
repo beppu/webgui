@@ -1502,7 +1502,7 @@ END {
 sub nginx_conf {
     <<'EOF';
 # sendfile        on; # duplicate with /etc/nginx/nginx.conf; causes a fatal error; have to trust that it's right in /etc/nginx/nginx.conf or else check that it's right in there
-gzip  on;
+# gzip  on;           # in at least one report, duplicate with /etc/nginx/nginx.coknf; causes a fatal error
 gzip_types text/plain text/css application/json application/json-rpc application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 gzip_comp_level 5;
 
