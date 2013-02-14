@@ -586,7 +586,7 @@ $SIG{USR1} = sub {
 do {
     update(qq{
         Welcome to the WebGUI8 installer utility!
-        Currently Linux is supported and packages are automatically installed on Debian.
+        Currently supported platforms are Debian GNU/Linux and CentOS GNU/Linux.
         You may press control-C at any time to exit.
         Examine commands before they're run to make sure that they're what you want to do!
         Press any reasonable key to begin.
