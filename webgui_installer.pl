@@ -1333,10 +1333,10 @@ do {
 
 do {
     if( $linux eq 'debian' ) {
-        eval { 
-            template(services_debian(), "/etc/rc.d/init.d/webgui8XXXX", { } ) # XXXXXXXX doesn't exist yet and certainly isn't tested
-        } or bail "Failed to template startup file into /etc/rc.d/init.d/webgui8XXXX: $@";
-        run "chmod ugo+x /etc/rc.d/init.d/webgui8", noprompt => 1; # XXXX
+#        eval { 
+#            template(services_debian(), "/etc/rc.d/init.d/webgui8XXXX", { } ) # XXXXXXXX doesn't exist yet and certainly isn't tested
+#        } or bail "Failed to template startup file into /etc/rc.d/init.d/webgui8XXXX: $@";
+#        run "chmod ugo+x /etc/rc.d/init.d/webgui8", noprompt => 1; # XXXX
     } elsif( $linux eq 'redhat' ) {
         eval { 
             template(services_redhat(), "/etc/rc.d/init.d/webgui8", { } ) 
