@@ -1237,7 +1237,8 @@ do {
     $config->set( dbpass          => $mysql_user_password, );
     $config->set( dsn             => "DBI:mysql:${database_name};host=127.0.0.1;port=3306" ); # XXX faster if we use the mysql.sock?
     $config->set( uploadsPath     => "$install_dir/domains/$site_name/public/uploads", );
-    $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", );
+    # $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", ); # XXX not currently copying this; make it match what we give nginx
+    $config->set( extrasPath      => "$install_dir/WebGUI/www/extras", ); # XXX not currently copying this; make it match what we give nginx
     $config->set( maintenancePage =>  "$install_dir/WebGUI/www/maintenance.html", );
     # XXX the searchIndexPlugins scripts that come with the WRE
 
@@ -1265,7 +1266,7 @@ do {
     mkdir "$install_dir/domains/$site_name/public/uploads" or bail "Couldn't create $install_dir/domains/$site_name/public/uploads: $!";
     update qq{Populating $install_dir/domains/$site_name/public/uploads with bundled static HTML, JS, and CSS... };
     run "$perl WebGUI/sbin/wgd reset --uploads", noprompt => 1;
-    # run "cp -a WebGUI/www/extras $install_dir/domains/public/", noprompt => 1;     # matches $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", ), above # XXX nginx points into WebGUI/www/extras
+    # run "cp -a WebGUI/www/extras $install_dir/domains/public/", noprompt => 1;     # matches $config->set( extrasPath      => "$install_dir/domains/$site_name/public/extras", ), above # XXX nginx points into WebGUI/www/extras ... 
     run "chown $run_as_user $install_dir", noprompt => 1;
     run "chown -R $run_as_user $install_dir/domains/$site_name/public/uploads", noprompt => 1;
 };
