@@ -87,37 +87,39 @@ sub www_viewActiveSessions {
    my $i18n = WebGUI::International->new($session);
    $session->response->content_type("application/json");
    if ( canView($session) ){
-      my $limit = $session->form->param('iDisplayLength');
-      my $echo = $session->form->param('sEcho');
-      my $p = WebGUI::Paginator->new($session,$session->url->page('op=viewActiveSessions'));
       my $sqlCommand = q|select users.username,users.userId,userSession.sessionId,userSession.expires,
             userSession.lastPageView,userSession.lastIP from users,userSession where users.userId=userSession.userId
             and users.userId<>1 order by users.username,userSession.lastPageView desc |; # datatables search param sSearch
+      my $limit = $session->form->param('iDisplayLength');
       if ( $limit ){
-        $sqlCommand .= qq| limit $limit|; # sqlInjection WARNING!!!
+        $sqlCommand .= qq| limit ?|;
       }
-      $p->setDataByQuery( $sqlCommand );
+
+      my $sth = $session->db->prepare($sqlCommand);
+      $sth->execute( $limit );    
+
       my $output = [];
-      foreach my $data (@{ $p->getPageData() }) {
+      while ( my $data = $sth->hashRef ) {
          push(@{ $output },{
-              username     => $data->{username},
-              userId       => $data->{userId}, 
-              sessionId    => $data->{sessionId},
               expires      => $session->datetime->epochToHuman($data->{expires}),
               lastPageView => $session->datetime->epochToHuman($data->{lastPageView}),
-              lastIP       => $data->{lastIP}
+              lastIP       => $data->{lastIP},
+              username     => $data->{username},
+              userId       => $data->{userId}, 
+              sessionId    => $data->{sessionId}
          });
       }
+      my $rowCount = @{ $output };
       return to_json {
-         iTotalRecords        => $p->getRowCount,
+         iTotalRecords        => $rowCount,
          iTotalDisplayRecords => $limit,
          data                 => $output,
-         sEcho                => $echo
+         sEcho                => $session->form->param('sEcho')
       };
    
    }else{
       $session->response->status(403);
-      return to_json { header => $i18n->get(35), error => $i18n->get(36) };#return $self->session->style->userStyle($output);
+      return to_json { header => $i18n->get(35), error => $i18n->get(36) };
       
    }
 }
