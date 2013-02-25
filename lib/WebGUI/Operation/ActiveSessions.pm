@@ -53,21 +53,21 @@ $session->form->process("sid").  Afterwards, it calls www_viewActiveSessions.
 =cut
 
 sub www_killSession { 
-	my $session = shift;
+   my $session = shift;
    my $i18n = WebGUI::International->new($session);
    $session->response->content_type("application/json");
-   // should not delete our own session
+   # should not delete our own session
    if ( $session->form->process("sid") eq $session->getId ){
       $session->response->status(304);
       return to_json { header => $i18n->get(108)->{message}, error => $i18n->get(36) };
 
-   // delete the session
+   # delete the session
    }elsif ( canView($session) ){ # && $session->request->method eq 'DELETE'
       $session->db->deleteRow("userSession","sessionId",$session->form->process("sid"));
       $session->db->deleteRow("userSessionScratch","sessionId",$session->form->process("sid"));
 	   return to_json { }; # json success
 
-   // Permission denied
+   # Permission denied
    }else{
       $session->response->status(403);
       return to_json { header => $i18n->get(35), error => $i18n->get(36) };#return $self->session->style->userStyle($output);
