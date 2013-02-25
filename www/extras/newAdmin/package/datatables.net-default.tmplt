@@ -1,0 +1,67 @@
+==== Template ================================================================
+Asset ID    : MAhpP6pfRL2Prmn-zY4qGw
+Menu Title  : Datatables.net Default
+Parent      : apps
+Title       : Datatables.net Default
+URL         : newAdmin/datatables.net-default
+==== extraHeadTags ===========================================================
+
+==== synopsis ================================================================
+
+==== template ================================================================
+[% UNLESS config ~%]<table id="[% table.id %]" class="[% table.class %]"></table>
+<script type="text/ejs" id="[% table.id %]hyperLink-js"><a class="<%= this.class %>" href="<%= this.uri %>"><%= this.title %></a></script>[% END %]
+<script type="text/javascript">
+$(function(){
+   $('#[% table.id %]').dataTable([% IF config %][% config %][% ELSE ~%]{
+      "bJQueryUI": true, // enable jquery themeroller
+      "bAutoWidth" : true,
+      "bProcessing" : true,
+      "bRetrieve" : true,
+      "aoColumns":[
+      [%~ FOREACH columnConfig IN columns %]
+         { "sTitle":"[% columnConfig.title %]", "mData":"[% columnConfig.column %]" 
+         [%~ IF columnConfig.link ~%]
+           , "mRender":function ( uri, type, full ) {
+              return can.view.render('[% table.id %]hyperLink-js', { class:"[% columnConfig.cssClass %]", title:"[% columnConfig.link %]", uri:uri })
+           } 
+         [%~ END %] }
+         [%~ UNLESS columnConfig == columns.last %],[% END %]
+      [%~ END %]
+      ],
+      "bServerSide" : true,
+      "sAjaxDataProp": "[% data %]",
+      "sAjaxSource": '[% url.list %]'
+   
+   }[%~ END %]);
+});    
+</script>
+==== Properties ==============================================================
+display:
+  isHidden: 1
+  newWindow: 0
+meta:
+  inheritUrlFromParent: 0
+  isExportable: 1
+  isPackage: 0
+  isPrototype: 0
+  usePackedHeadTags: 0
+properties:
+  assetSize: 2387
+  attachmentsJson: '[]'
+  lastModified: 1361805111
+  namespace: DataTable
+  parser: WebGUI::Asset::Template::TemplateToolkit
+  revisedBy: 3
+  showInForms: 1
+  skipNotification: 0
+  status: approved
+  storageIdExample: ~
+  tagId: XWQWTLDJR6_sM4sBpEslUw
+  usePacked: 0
+security:
+  encryptPage: 0
+  groupIdEdit: 3
+  groupIdView: 7
+  ownerUserId: 3
+

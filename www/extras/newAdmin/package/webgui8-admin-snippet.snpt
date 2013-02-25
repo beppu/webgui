@@ -1,0 +1,56 @@
+==== Snippet =================================================================
+Asset ID    : Px8yrgWATbWCetQAj_D-3A
+Menu Title  : webgui8-admin-snippet
+Parent      : newAdmin
+Title       : webgui8-admin-snippet
+URL         : webgui8-admin-snippet
+==== extraHeadTags ===========================================================
+
+==== snippet =================================================================
+/*
+ * Include this in every page we want to include the adminOn option
+ */
+$(function(){
+   // Make sure we have our turn admin on link!
+   if ( $('#turn-admin-on').size() <= 0 ){
+      $('body').append('<a href="javascript://" id="turn-admin-on" style="position:absolute;top:0;right:10px">Turn Admin On</a>');
+   }
+
+   $('#turn-admin-on').click(function(){
+      if ( $('#adminDiv').size() <= 0 ){ // Only fill out body if the admin menu has not been loaded
+         $('#adminDiv').remove();// start with a clean slate
+         $('body').append('<div id="adminDiv"></div>'); // this has to be removed once we get out of admin mode
+         $('#adminDiv').load('/webgui8-admin-menu');
+         $('#toolbar').show();
+      }
+   });
+});
+==== synopsis ================================================================
+
+==== Properties ==============================================================
+display:
+  cacheTimeout: 3600
+  isHidden: 1
+  newWindow: 0
+meta:
+  inheritUrlFromParent: 0
+  isExportable: 1
+  isPackage: 0
+  isPrototype: 0
+  usePackedHeadTags: 0
+properties:
+  assetSize: 1679
+  lastModified: 1361795089
+  mimeType: text/html
+  revisedBy: 3
+  skipNotification: 0
+  status: approved
+  tagId: nbZtAqkQQzOvR7jTqy26Tw
+  templateParser: ''
+  usePacked: 0
+security:
+  encryptPage: 0
+  groupIdEdit: 3
+  groupIdView: 7
+  ownerUserId: 3
+

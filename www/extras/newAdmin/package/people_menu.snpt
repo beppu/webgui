@@ -1,0 +1,120 @@
+==== Snippet =================================================================
+Asset ID    : WgIa2LlITWiMSWvfUNQlMg
+Menu Title  : people.menu
+Parent      : newAdmin 
+Title       : people.menu
+URL         : people_menu
+==== extraHeadTags ===========================================================
+
+==== snippet =================================================================
+<!-- Overlay wrapper content -->
+<ul> 
+   <li><a class="adminOverlayTabs-click default ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-1" target="op=viewActiveSessions">Sessions</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-2" target="op=listGroups">Groups</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-3" target="op=viewLoginHistory">Login History</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-4" target="op=editProfileSettings">User Profiling</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-5" target="op=listUsers">Users</a></li>
+</ul>
+<div class="adminOverlayContainer ui-corner-all" id="adminOverlayTabs-1">
+   <div class="adminTabContainerSubMenu">
+      <img src="^Extras(/adminConsole/activeSessions.gif);">
+   </div>
+
+   <table id="sessionsDatatable" class="webguiAdminTable" border="0" cellpadding="0" cellspacing="0">
+      <thead></thead>
+      <tbody></tbody>
+      <tfoot></tfoot>
+   </table>
+
+</div> 
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-2"></div>
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-3"></div>
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-4"></div>
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-5"></div>
+<!-- end overlay wrapper content -->
+<!-- any custom javascript -->
+<script type="text/javascript">
+$(function(){
+   // =============== Admin datatable stuff =============
+   $('#adminOverlayContent').tabs(); // Make sure the tabs are rendered if we have any
+   try{
+      $('.adminOverlayTabs-click').click(function(event){
+         var target = $(event.target).attr('href');
+         var operation = $(event.target).attr('target');
+         if ( operation === 'op=viewActiveSessions' ){    
+            $('#sessionsDatatable').dataTable({
+               "bJQueryUI": true, // enable jquery themeroller
+               "bAutoWidth" : true,
+               "bProcessing" : true,
+               "bRetrieve" : true,
+               "aoColumns":[ 
+                  { "sTitle": "Session" , "mData": "sessionId" },
+                  { "sTitle": "Last Ip", "mData": "lastIP" },
+                  { "sTitle": "Last Page View" , "mData": "lastPageView" },
+                  { "sTitle": "User Id", "mData": "userId" },
+                  { "sTitle": "Expires" , "mData": "expires" },
+                  { "sTitle": "Username", "mData": "username" },
+                  { "sTitle": "Kill"  , "mData": "sessionId", "mRender":
+                    function ( data, type, full ) {
+                      return '<a class="killSession" href="/?op=killSession;sid=' + data + 
+                         '"><img src="^Extras(/toolbar/bullet/delete.gif);"</a>';
+                    } 
+                  }
+               ],
+               "bServerSide" : true,
+               "sAjaxDataProp": "data",
+               "sAjaxSource": '/?' + operation
+            });
+            /* ====== Admin-datatable stuff ======
+             * Formatted numbers sorting 
+            $.fn.dataTableExt.oSort['formatted-num-asc'] = function(x,y){
+               x = parseInt( x.replace(/[^\d\-\.\/]/g,'') );
+               y = parseInt( y.replace(/[^\d\-\.\/]/g,'') );
+               return x - y;
+            };
+            $.fn.dataTableExt.oSort['formatted-num-desc'] = function(x,y){
+               x = parseInt( x.replace(/[^\d\-\.\/]/g,'') );
+               y = parseInt( y.replace(/[^\d\-\.\/]/g,'') );
+               return y - x;
+            };*/
+
+         }else{
+            $( target ).load( '/?' + operation );
+
+         }     
+      });
+      
+   }catch(exception){}
+   
+});    
+</script>
+
+==== synopsis ================================================================
+
+==== Properties ==============================================================
+display:
+  cacheTimeout: 3600
+  isHidden: 1
+  newWindow: 0
+meta:
+  inheritUrlFromParent: 0
+  isExportable: 1
+  isPackage: 0
+  isPrototype: 0
+  usePackedHeadTags: 0
+properties:
+  assetSize: 6859
+  lastModified: 1345343254
+  mimeType: text/html
+  revisedBy: 3
+  skipNotification: 0
+  status: approved
+  tagId: fItRC8XfRZi7pjHVgzbiIQ
+  templateParser: ''
+  usePacked: 0
+security:
+  encryptPage: 0
+  groupIdEdit: 3
+  groupIdView: 7
+  ownerUserId: 3
+

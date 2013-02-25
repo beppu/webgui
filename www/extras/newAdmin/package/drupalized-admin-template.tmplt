@@ -1,0 +1,79 @@
+==== Template ================================================================
+Asset ID    : WLe7zoKhSEuoP8NE-_kh4g
+Menu Title  : Drupalized Admin Template
+Parent      : newAdmin
+Title       : Drupalized Admin Template
+URL         : newAdmin/drupalized-admin-template
+==== extraHeadTags ===========================================================
+
+==== synopsis ================================================================
+
+==== template ================================================================
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->        
+<head profile="http://www.w3.org/1999/xhtml/vocab">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width">
+  
+  <title>^c; - ^Page(title);</title>
+
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/normalize.css);">
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/main.css);">
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/toolbar.css);">
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/admin-datatable.css);">
+ 
+  <script src="^Extras(/newAdmin/js/jquery-1.9.1.js);"></script>
+  <script src="^Extras(/newAdmin/js/can.jquery.js);"></script>
+  <script src="^Extras(/newAdmin/js/jquery.dataTables.min.js);"></script>  
+  <script src="^Extras(/newAdmin/js/plugins.js);"></script>
+
+<!-- theming -->  
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/jquery-ui-1.10.1.smoothness.css);" />
+  <script src="^Extras(/newAdmin/js/jquery-ui-1.10.1.custom.min.js);"></script>
+<!-- theming end -->
+
+<tmpl_var head.tags>    
+  
+</head>
+<body>
+
+<tmpl_var body.content>
+
+   <script src="^Extras(/newAdmin/js/application.js);"></script>
+</body>        
+</html>
+==== Properties ==============================================================
+display:
+  isHidden: 1
+  newWindow: 0
+meta:
+  inheritUrlFromParent: 0
+  isExportable: 1
+  isPackage: 0
+  isPrototype: 0
+  usePackedHeadTags: 0
+properties:
+  assetSize: 3421
+  attachmentsJson: '[]'
+  lastModified: 1345324320
+  namespace: style
+  parser: WebGUI::Asset::Template::HTMLTemplate
+  revisedBy: 3
+  showInForms: 1
+  skipNotification: 0
+  status: approved
+  storageIdExample: ~
+  tagId: hToE4mfDRXSzz7k9JCozvQ
+  usePacked: 0
+security:
+  encryptPage: 0
+  groupIdEdit: 3
+  groupIdView: 7
+  ownerUserId: 3
+
