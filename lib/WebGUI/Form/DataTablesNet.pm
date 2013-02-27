@@ -54,7 +54,7 @@ sub definition {
        config        => { defaultValue => undef },
        cssClasses    => { defaultValue => 'webguiAdminTable' },
        id            => { defaultValue => 'DBASH-' . $session->id->generate() },
-       templateId    => { defaultValue => 'MAhpP6pfRL2Prmn-zY4qGw' },
+       templateId    => { defaultValue => 'DBASH-MAhpP6pfRL2Prmn-zY4qGw' },
        restDataParam => { defaultValue => 'data'},
        restDataUrl   => { defaultValue => undef, },
        restDeleteUrl => { defaultValue => undef, },
