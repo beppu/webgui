@@ -1,16 +1,16 @@
 ==== Template ================================================================
 Asset ID    : DBASH-MAhpP6pfRL2Prmnw
 Menu Title  : Datatables.net Default
-Parent      : apps
+Parent      : newadmin
 Title       : Datatables.net Default
-URL         : newAdmin/datatables.net-default
+URL         : newadmin/datatables.net-default
 ==== extraHeadTags ===========================================================
 
 ==== synopsis ================================================================
 
 ==== template ================================================================
 [% UNLESS config ~%]<table id="[% table.id %]" class="[% table.class %]"></table>
-<script type="text/ejs" id="[% table.id %]hyperLink-js"><a class="<%= this.class %>" href="<%= this.uri %>"><%= this.title %></a></script>[% END %]
+<script type="text/ejs" id="[% table.id %]hyperLink-js"><a class="<%= this.class %>" href="<%= this.uri %>"><% if ( this.image ) { %><img src="<%= this.image %>" title="<%= this.title %>"><% }else{ %><%= this.title %><% } %></a></script>[% END %]
 <script type="text/javascript">
 $(function(){
    $('#[% table.id %]').dataTable([% IF config %][% config %][% ELSE ~%]{
@@ -21,18 +21,22 @@ $(function(){
       "aoColumns":[
       [%~ FOREACH columnConfig IN columns %]
          { "sTitle":"[% columnConfig.title %]", "mData":"[% columnConfig.column %]" 
-         [%~ IF columnConfig.link ~%]
+         [%~ IF columnConfig.linkUri ~%]
            , "mRender":function ( uri, type, full ) {
-              return can.view.render('[% table.id %]hyperLink-js', { class:"[% columnConfig.cssClass %]", title:"[% columnConfig.link %]", uri:uri })
+              return can.view.render('[% table.id %]hyperLink-js', { 
+                 class:"[% columnConfig.cssClass %]", 
+                 title:"[% columnConfig.linkTitle %]", 
+                   uri:"[% columnConfig.linkUri %]" + uri, 
+[% IF columnConfig.linkImage %]image:"[% columnConfig.linkImage %]"[% END %]
+              })
            } 
          [%~ END %] }
          [%~ UNLESS columnConfig == columns.last %],[% END %]
-      [%~ END %]
+      [%~ END ~%]
       ],
       "bServerSide" : true,
       "sAjaxDataProp": "[% data %]",
-      "sAjaxSource": '[% url.list %]'
-   
+      "sAjaxSource": '[% url.list %]'   
    }[%~ END %]);
 });    
 </script>
@@ -47,9 +51,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 2387
+  assetSize: 2918
   attachmentsJson: '[]'
-  lastModified: 1361805111
+  lastModified: 1362019889
   namespace: DataTable
   parser: WebGUI::Asset::Template::TemplateToolkit
   revisedBy: 3
@@ -57,7 +61,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: XWQWTLDJR6_sM4sBpEslUw
+  tagId: 0IzAcopOQZqFxudAXjCWXg
   usePacked: 0
 security:
   encryptPage: 0

@@ -45,12 +45,13 @@ to validate user input.
 sub process {
    my $session = shift;
    my $columnConfig = [
-     { column => "sessionId",    title => "Session Id" },
      { column => "userId",       title => "UserId" },
      { column => "lastIP",       title => "Last Ip" },
      { column => "lastPageView", title => "Last View" },
      { column => "username",     title => "Username" },
-     { column => "expires",      title => "Expires" }
+     { column => "expires",      title => "Expires" },
+	  { column => "sessionId",    title => "Kill Session",
+       linkTitle => "Kiss Session", linkUri => '/?op=killSession&sid=', linkImage => "^Extras(/toolbar/bullet/delete.gif);" }
    ];
 	
    my $datatable = WebGUI::Form::DataTablesNet->new(
