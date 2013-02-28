@@ -1,9 +1,9 @@
 ==== Template ================================================================
 Asset ID    : DBASH-WLe7zoKhSEuoP8NE
 Menu Title  : Drupalized Admin Template
-Parent      : newAdmin
+Parent      : newadmin
 Title       : Drupalized Admin Template
-URL         : newAdmin/drupalized-admin-template
+URL         : apps/drupalized-admin-template
 ==== extraHeadTags ===========================================================
 
 ==== synopsis ================================================================
@@ -38,6 +38,10 @@ URL         : newAdmin/drupalized-admin-template
   <script src="^Extras(/newAdmin/js/jquery-ui-1.10.1.custom.min.js);"></script>
 <!-- theming end -->
 
+<!-- Javascript templates here -->
+<script type="text/ejs" id="DBASH-hyperLink-js"><a class="<%= this.class %>" href="<%= this.uri %>"><% if ( this.image ) { %><img src="<%= this.image %>" title="<%= this.title %>"><% }else{ %><%= this.title %><% } %></a></script>
+<!-- JS templates end -->
+
 <tmpl_var head.tags>    
   
 </head>
@@ -59,9 +63,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 3421
+  assetSize: 4008
   attachmentsJson: '[]'
-  lastModified: 1345324320
+  lastModified: 1362024467
   namespace: style
   parser: WebGUI::Asset::Template::HTMLTemplate
   revisedBy: 3
@@ -69,7 +73,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: hToE4mfDRXSzz7k9JCozvQ
+  tagId: QA8jMm5HTH6_g6xdN5AfcQ
   usePacked: 0
 security:
   encryptPage: 0

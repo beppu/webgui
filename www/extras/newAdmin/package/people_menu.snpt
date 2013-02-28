@@ -1,7 +1,7 @@
 ==== Snippet =================================================================
 Asset ID    : DBASH-WgIa2LlITWiMSWvf
 Menu Title  : people.menu
-Parent      : newAdmin 
+Parent      : newadmin
 Title       : people.menu
 URL         : people_menu
 ==== extraHeadTags ===========================================================
@@ -19,12 +19,7 @@ URL         : people_menu
    <div class="adminTabContainerSubMenu">
       <img src="^Extras(/adminConsole/activeSessions.gif);">
    </div>
-
-   <table id="sessionsDatatable" class="webguiAdminTable" border="0" cellpadding="0" cellspacing="0">
-      <thead></thead>
-      <tbody></tbody>
-      <tfoot></tfoot>
-   </table>
+   <table id="sessionsDatatable" class="webguiAdminTable"></table>
 
 </div> 
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-2"></div>
@@ -42,41 +37,7 @@ $(function(){
          var target = $(event.target).attr('href');
          var operation = $(event.target).attr('target');
          if ( operation === 'op=viewActiveSessions' ){    
-            $('#sessionsDatatable').dataTable({
-               "bJQueryUI": true, // enable jquery themeroller
-               "bAutoWidth" : true,
-               "bProcessing" : true,
-               "bRetrieve" : true,
-               "aoColumns":[ 
-                  { "sTitle": "Session" , "mData": "sessionId" },
-                  { "sTitle": "Last Ip", "mData": "lastIP" },
-                  { "sTitle": "Last Page View" , "mData": "lastPageView" },
-                  { "sTitle": "User Id", "mData": "userId" },
-                  { "sTitle": "Expires" , "mData": "expires" },
-                  { "sTitle": "Username", "mData": "username" },
-                  { "sTitle": "Kill"  , "mData": "sessionId", "mRender":
-                    function ( data, type, full ) {
-                      return '<a class="killSession" href="/?op=killSession;sid=' + data + 
-                         '"><img src="^Extras(/toolbar/bullet/delete.gif);"</a>';
-                    } 
-                  }
-               ],
-               "bServerSide" : true,
-               "sAjaxDataProp": "data",
-               "sAjaxSource": '/?' + operation
-            });
-            /* ====== Admin-datatable stuff ======
-             * Formatted numbers sorting 
-            $.fn.dataTableExt.oSort['formatted-num-asc'] = function(x,y){
-               x = parseInt( x.replace(/[^\d\-\.\/]/g,'') );
-               y = parseInt( y.replace(/[^\d\-\.\/]/g,'') );
-               return x - y;
-            };
-            $.fn.dataTableExt.oSort['formatted-num-desc'] = function(x,y){
-               x = parseInt( x.replace(/[^\d\-\.\/]/g,'') );
-               y = parseInt( y.replace(/[^\d\-\.\/]/g,'') );
-               return y - x;
-            };*/
+            ^WF();
 
          }else{
             $( target ).load( '/?' + operation );
@@ -103,13 +64,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 6859
-  lastModified: 1345343254
+  assetSize: 4303
+  lastModified: 1362022718
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: fItRC8XfRZi7pjHVgzbiIQ
+  tagId: Hyv7LB1QSn6_cVUy_oYytg
   templateParser: ''
   usePacked: 0
 security:

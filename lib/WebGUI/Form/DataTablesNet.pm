@@ -53,13 +53,14 @@ sub definition {
        columnConfig  => { defaultValue => undef },
        config        => { defaultValue => undef },
        cssClasses    => { defaultValue => 'webguiAdminTable' },
-       id            => { defaultValue => 'DBASH-' . $session->id->generate() },
+       id            => { defaultValue => 'DBASH-' . $session->id->generate() }, # Required if the noScript option is set, do NOT use the defaultValue
+       noScript      => { defaultValue => undef }, # Supress the <table...</table> and <script...</script> tags
        templateId    => { defaultValue => 'DBASH-MAhpP6pfRL2Prmnw' },
        restDataParam => { defaultValue => 'data'},
        restDataUrl   => { defaultValue => undef, },
        restDeleteUrl => { defaultValue => undef, },
        restCreateUrl => { defaultValue => undef, },
-       restUpdateUrl => { defaultValue => undef, },       
+       restUpdateUrl => { defaultValue => undef, },
        dateFormat    => { defaultValue => $session->user->get('dateFormat') || '%y-%m-%d' }  # use user setting  or...
     };
     return $class->SUPER::definition( $session, $definition );
@@ -103,11 +104,12 @@ sub toHtml {
     my $this = shift;
     
     my $content =  {
-       config  => $this->get('config'), # Use this if a configuration is provided, remember it is rendered as in html
-       columns => $this->get('columnConfig'),
-       data    => $this->get('restDataParam'), 
-       table   => { id => $this->get('id'), class => $this->get('cssClasses') },
-       url     => {   list => $this->get('restDataUrl'),
+       config   => $this->get('config'), # Use this if a configuration is provided, remember it is rendered as in html
+       columns  => $this->get('columnConfig'),
+       data     => $this->get('restDataParam'), 
+       noScript => $this->get('noScript'),
+       table    => { id => $this->get('id'), class => $this->get('cssClasses') },
+       url      => {  list => $this->get('restDataUrl'),
                     create => $this->get('restCreateUrl'),
                     update => $this->get('restUpdateUrl'),
                     delete => $this->get('restDeleteUrl') }

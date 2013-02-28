@@ -55,7 +55,7 @@ sub process {
    ];
 	
    my $datatable = WebGUI::Form::DataTablesNet->new(
-      $session, { columnConfig => $columnConfig , restDataUrl => "/?op=viewActiveSessions" }
+      $session, { columnConfig => $columnConfig, noScript => 1, restDataUrl => "/?op=viewActiveSessions", id => "sessionsDatatable" }
    );
    return $datatable->toHtml();
 

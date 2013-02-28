@@ -99,7 +99,7 @@ sub www_viewActiveSessions {
       }
 
       my $sth = $session->db->prepare($sqlCommand);
-      $sth->execute( $limit );    
+      $limit ? $sth->execute( $limit ) : $sth->execute();
 
       my $output = [];
       while ( my $data = $sth->hashRef ) {

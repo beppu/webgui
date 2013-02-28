@@ -9,9 +9,8 @@ URL         : newadmin/datatables.net-default
 ==== synopsis ================================================================
 
 ==== template ================================================================
-[% UNLESS config ~%]<table id="[% table.id %]" class="[% table.class %]"></table>
-<script type="text/ejs" id="[% table.id %]hyperLink-js"><a class="<%= this.class %>" href="<%= this.uri %>"><% if ( this.image ) { %><img src="<%= this.image %>" title="<%= this.title %>"><% }else{ %><%= this.title %><% } %></a></script>[% END %]
-<script type="text/javascript">
+[% UNLESS config || noScript ~%]<table id="[% table.id %]" class="[% table.class %]"></table>[% END %]
+[% UNLESS noScript %]<script type="text/javascript">[% END %]
 $(function(){
    $('#[% table.id %]').dataTable([% IF config %][% config %][% ELSE ~%]{
       "bJQueryUI": true, // enable jquery themeroller
@@ -19,27 +18,27 @@ $(function(){
       "bProcessing" : true,
       "bRetrieve" : true,
       "aoColumns":[
-      [%~ FOREACH columnConfig IN columns %]
+      [%~ FOREACH columnConfig IN columns ~%]
          { "sTitle":"[% columnConfig.title %]", "mData":"[% columnConfig.column %]" 
          [%~ IF columnConfig.linkUri ~%]
            , "mRender":function ( uri, type, full ) {
-              return can.view.render('[% table.id %]hyperLink-js', { 
+              return can.view.render('DBASH-hyperLink-js', { 
                  class:"[% columnConfig.cssClass %]", 
                  title:"[% columnConfig.linkTitle %]", 
                    uri:"[% columnConfig.linkUri %]" + uri, 
 [% IF columnConfig.linkImage %]image:"[% columnConfig.linkImage %]"[% END %]
               })
            } 
-         [%~ END %] }
-         [%~ UNLESS columnConfig == columns.last %],[% END %]
-      [%~ END ~%]
+         [%~ END %]}[% UNLESS columnConfig == columns.last %],
+         [% END %]
+      [% END %]
       ],
       "bServerSide" : true,
       "sAjaxDataProp": "[% data %]",
       "sAjaxSource": '[% url.list %]'   
    }[%~ END %]);
 });    
-</script>
+[% UNLESS noScript %]</script>[% END %]
 ==== Properties ==============================================================
 display:
   isHidden: 1
@@ -51,9 +50,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 2918
+  assetSize: 2560
   attachmentsJson: '[]'
-  lastModified: 1362019889
+  lastModified: 1362024366
   namespace: DataTable
   parser: WebGUI::Asset::Template::TemplateToolkit
   revisedBy: 3
@@ -61,7 +60,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: 0IzAcopOQZqFxudAXjCWXg
+  tagId: 4gyxZaHuTmSsk6EeJ6Q-jQ
   usePacked: 0
 security:
   encryptPage: 0
