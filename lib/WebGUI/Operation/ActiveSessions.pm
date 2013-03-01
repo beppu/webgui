@@ -89,17 +89,49 @@ sub www_viewActiveSessions {
    my $session = shift;
    my $i18n = WebGUI::International->new($session);
    $session->response->content_type("application/json");
+   my $webParams = $session->request->parameters->mixed;
    if ( canView($session) ){
-      my $sqlCommand = q|select users.username,users.userId,userSession.sessionId,userSession.expires,
-            userSession.lastPageView,userSession.lastIP from users,userSession where users.userId=userSession.userId
-            and users.userId<>1 order by users.username,userSession.lastPageView desc |; # datatables search param sSearch
-      my $limit = $session->form->param('iDisplayLength');
-      if ( $limit ){
-        $sqlCommand .= qq| limit ?|;
+      my @sqlParams = ();
+      my @likableItemPositions = ();
+      my $searchParam = undef;      
+      my $search = $session->form->param('sSearch');
+      if ( $search ){
+         $searchParam = q|and users.username like ?|;
+         push(@likableItemPositions, scalar( @sqlParams ) );
+         push(@sqlParams, $search);
       }
-
-      my $sth = $session->db->prepare($sqlCommand);
-      $limit ? $sth->execute( $limit ) : $sth->execute();
+      
+      my $limitParam = undef;      
+      my $limit = $session->form->param('iDisplayLength');
+      if ( $limit > 0 ){
+         $limitParam = qq| limit ?|;
+         push(@sqlParams, $limit);
+         
+$session->log->error( $limitParam, ' ' + $limit);         
+         
+         
+      }
+      
+      my $sqlCommand = qq|select users.username,users.userId,userSession.sessionId,userSession.expires,
+            userSession.lastPageView,userSession.lastIP from users,userSession where users.userId=userSession.userId
+            and users.userId<>1 $searchParam order by users.username,userSession.lastPageView desc |;
+            
+      my $sth = $session->db->prepare( $sqlCommand );
+      # Find the items that are going to require the %{search_term}% special characters 
+      my %like_params = map { $_ => 1 } @likableItemPositions;
+      if ( @sqlParams ){
+         for( my $index = 0; $index < $#sqlParams; $index++ ){
+            my $position = $index + 1;
+            my $value = $sqlParams[ $index ];
+            # Like values need the special characters
+            if ( %like_params && $like_params{ $index } ){
+               $value .= '%';
+               $value = '%' . $value;
+            }
+            $sth->bind_param( $position, $value );
+         }   
+      }  
+      $sth->execute();
 
       my $output = [];
       while ( my $data = $sth->hashRef ) {
@@ -113,18 +145,19 @@ sub www_viewActiveSessions {
          });
       }
       my $rowCount = @{ $output };
-      return to_json {
-         iTotalRecords        => $rowCount,
-         iTotalDisplayRecords => $limit,
-         data                 => $output,
-         sEcho                => $session->form->param('sEcho')
-      };
+      
+      $webParams->{iTotalRecords} = $rowCount;
+      $webParams->{iTotalDisplayRecords} = $limit;
+      $webParams->{data} = $output;
    
    }else{
-      $session->response->status(403);
-      return to_json { header => $i18n->get(35), error => $i18n->get(36) };
+      $session->response->status(403);   
+      $webParams->{header} = $i18n->get(35);
+      $webParams->{error}  = $i18n->get(36);
       
    }
+   
+   return to_json $webParams;
 }
 
 1;
