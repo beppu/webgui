@@ -40,11 +40,30 @@ to validate user input.
 
 =cut
 
+our $supportedWidgets = {
+	datatable => { package => 'WebGUI::Form::DataTablesNet', parseConfigMethod => 'getDatatableConfig' }  
+};
 
 #-------------------------------------------------------------------
 sub process {
    my $session = shift;
 	my $widget = shift;
+	
+	if ( $supportedWidgets->{ $widget } ){
+      # Get the method used to configure the widget
+      my $widgetConfigMethod = \&{ $supportedWidgets->{ $widget }->{parseConfigMethod} };
+		# Get the widget and return html to the user;
+		my $currentInstance = $supportedWidgets->{ $widget }->{package}->new( $session, $widgetConfigMethod->( @_ ) );
+		return $currentInstance->toHtml();
+	
+   }else{
+		WebGUI::Error::InvalidParam->throw( error => qq{Unsuported widget: $widget} );
+		
+   }
+
+}
+
+sub getDatatableConfig {
 	my @tableConfig =  @_;
 	
 	my $config = {};
@@ -76,8 +95,8 @@ sub process {
       for my $key ( keys( %{ $singleConfig } ) ){
          $config->{ $key } = $singleConfig->{ $key };
       }
-   }
-
+   }		  
+		  
 #   my $columnConfig = [
 #     { column => "userId",       title => "UserId" },
 #     { column => "lastIP",       title => "Last Ip" },
@@ -90,9 +109,8 @@ sub process {
    #my $datatable = WebGUI::Form::DataTablesNet->new(
    #   $session, { config => $rawConfig, columnConfig => $columnConfig, noScript => 1, restDataUrl => "/?op=viewActiveSessions", id => "sessionsDatatable" }
    #);
-
-   my $datatable = WebGUI::Form::DataTablesNet->new( $session, $config );
-   return $datatable->toHtml();
+   
+	return $config;
 
 }
 
