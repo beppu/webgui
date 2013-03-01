@@ -103,24 +103,20 @@ sub www_viewActiveSessions {
       
       my $limitParam = undef;      
       my $limit = $session->form->param('iDisplayLength');
-      if ( $limit > 0 ){
+      if ( $limit ){
          $limitParam = qq| limit ?|;
          push(@sqlParams, $limit);
-         
-$session->log->error( $limitParam, ' ' + $limit);         
-         
-         
       }
       
       my $sqlCommand = qq|select users.username,users.userId,userSession.sessionId,userSession.expires,
             userSession.lastPageView,userSession.lastIP from users,userSession where users.userId=userSession.userId
-            and users.userId<>1 $searchParam order by users.username,userSession.lastPageView desc |;
+            and users.userId<>1 $searchParam order by users.username,userSession.lastPageView desc $limitParam|;
             
       my $sth = $session->db->prepare( $sqlCommand );
       # Find the items that are going to require the %{search_term}% special characters 
       my %like_params = map { $_ => 1 } @likableItemPositions;
       if ( @sqlParams ){
-         for( my $index = 0; $index < $#sqlParams; $index++ ){
+         for( my $index = 0; $index <= $#sqlParams; $index++ ){
             my $position = $index + 1;
             my $value = $sqlParams[ $index ];
             # Like values need the special characters
