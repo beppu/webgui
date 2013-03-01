@@ -29,7 +29,7 @@ $(function(){
 [% IF columnConfig.linkImage %]image:"[% columnConfig.linkImage %]"[% END %]
               })
            } 
-         [%  ELSIF columnConfig.checkbox  %]
+         [%~  ELSIF columnConfig.checkbox  ~%]
            , "mRender":function ( id, type, full ) {
               return can.view.render('DBASH-checkbox', { 
                  class:"[% columnConfig.cssClass %]", 
@@ -38,7 +38,7 @@ $(function(){
               })
            } 
          [% END %]}[% UNLESS columnConfig == columns.last %],
-                   [%~ END ~%]
+                   [% END %]
       [% END %]
       ],
       "bServerSide" : true,
@@ -60,7 +60,7 @@ meta:
 properties:
   assetSize: 3090
   attachmentsJson: '[]'
-  lastModified: 1362092705
+  lastModified: 1362097534
   namespace: DataTable
   parser: WebGUI::Asset::Template::TemplateToolkit
   revisedBy: 3
@@ -68,7 +68,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: 3djyZpLSS4u-etwCixkVFQ
+  tagId: bI-FpG5rQWe5biO8lXOIww
   usePacked: 0
 security:
   encryptPage: 0
