@@ -12,7 +12,7 @@ URL         : newadmin/datatables.net-default
 [% UNLESS config || noScript ~%]<table id="[% table.id %]" class="[% table.class %]"></table>[% END %]
 [% UNLESS noScript %]<script type="text/javascript">[% END %]
 $(function(){
-   $('#[% table.id %]').dataTable([% IF config %][% config %][% ELSE ~%]{
+   var oTable = $('#[% table.id %]').dataTable([% IF config %][% config %][% ELSE ~%]{
       "bJQueryUI": true, // enable jquery themeroller
       "bAutoWidth" : true,
       "bProcessing" : true,
@@ -22,15 +22,23 @@ $(function(){
          { "sTitle":"[% columnConfig.title %]", "mData":"[% columnConfig.column %]" 
          [%~ IF columnConfig.linkUri ~%]
            , "mRender":function ( uri, type, full ) {
-              return can.view.render('DBASH-hyperLink-js', { 
+              return can.view.render('DBASH-hyperLink', { 
                  class:"[% columnConfig.cssClass %]", 
                  title:"[% columnConfig.linkTitle %]", 
                    uri:"[% columnConfig.linkUri %]" + uri, 
 [% IF columnConfig.linkImage %]image:"[% columnConfig.linkImage %]"[% END %]
               })
            } 
-         [%~ END %]}[% UNLESS columnConfig == columns.last %],
-         [% END %]
+         [%  ELSIF columnConfig.checkbox  %]
+           , "mRender":function ( id, type, full ) {
+              return can.view.render('DBASH-checkbox', { 
+                 class:"[% columnConfig.cssClass %]", 
+                  name:"[% columnConfig.name %]", 
+                 value:id, 
+              })
+           } 
+         [% END %]}[% UNLESS columnConfig == columns.last %],
+                   [%~ END ~%]
       [% END %]
       ],
       "bServerSide" : true,
@@ -50,9 +58,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 2560
+  assetSize: 3090
   attachmentsJson: '[]'
-  lastModified: 1362024366
+  lastModified: 1362092705
   namespace: DataTable
   parser: WebGUI::Asset::Template::TemplateToolkit
   revisedBy: 3
@@ -60,7 +68,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: 4gyxZaHuTmSsk6EeJ6Q-jQ
+  tagId: 3djyZpLSS4u-etwCixkVFQ
   usePacked: 0
 security:
   encryptPage: 0

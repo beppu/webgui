@@ -3,7 +3,7 @@ Asset ID    : DBASH-WLe7zoKhSEuoP8NE
 Menu Title  : Drupalized Admin Template
 Parent      : newadmin
 Title       : Drupalized Admin Template
-URL         : apps/drupalized-admin-template
+URL         : newadmin/drupalized-admin-template
 ==== extraHeadTags ===========================================================
 
 ==== synopsis ================================================================
@@ -39,7 +39,15 @@ URL         : apps/drupalized-admin-template
 <!-- theming end -->
 
 <!-- Javascript templates here -->
-<script type="text/ejs" id="DBASH-hyperLink-js"><a class="<%= this.class %>" href="<%= this.uri %>"><% if ( this.image ) { %><img src="<%= this.image %>" title="<%= this.title %>"><% }else{ %><%= this.title %><% } %></a></script>
+<script type="text/ejs" id="DBASH-link"><a class="<%= this.class %>" href="<%= this.uri %>"><% if ( this.image ) { %><img src="<%= this.image %>" title="<%= this.title %>"><% }else{ %><%= this.title %><% } %></a></script>
+<script type="text/ejs" id="DBASH-checkbox">
+   <input type="checkbox" class="<%= this.class %>" name="<%= this.name %>" value="<%= this.value %>">
+</script>   
+<script type="text/ejs" id="DBASH-links">
+   <% this.each(function(property) { %>
+      <a <%= (el) -> el.attr(property.attributes.serialize()) %>><%= property.attr('label') %></a>
+   <% }); %>    
+</script>
 <!-- JS templates end -->
 
 <tmpl_var head.tags>    
@@ -63,9 +71,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 4008
+  assetSize: 4745
   attachmentsJson: '[]'
-  lastModified: 1362024467
+  lastModified: 1362095399
   namespace: style
   parser: WebGUI::Asset::Template::HTMLTemplate
   revisedBy: 3
@@ -73,7 +81,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: QA8jMm5HTH6_g6xdN5AfcQ
+  tagId: Ofd0OJXFRVyJZbspiGuxHQ
   usePacked: 0
 security:
   encryptPage: 0

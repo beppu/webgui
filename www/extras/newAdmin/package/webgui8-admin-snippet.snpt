@@ -3,7 +3,7 @@ Asset ID    : DBASH-Px8yrgWATbWCetQA
 Menu Title  : webgui8-admin-snippet
 Parent      : newadmin
 Title       : webgui8-admin-snippet
-URL         : webgui8-admin-snippet
+URL         : newadmin/webgui8-admin-snippet
 ==== extraHeadTags ===========================================================
 
 ==== snippet =================================================================
@@ -39,13 +39,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 1679
-  lastModified: 1361795089
+  assetSize: 1688
+  lastModified: 1362095433
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: nbZtAqkQQzOvR7jTqy26Tw
+  tagId: dep88lkKS7qh4Pa-EpFEUA
   templateParser: ''
   usePacked: 0
 security:

@@ -3,7 +3,7 @@ Asset ID    : DBASH-WgIa2LlITWiMSWvf
 Menu Title  : people.menu
 Parent      : newadmin
 Title       : people.menu
-URL         : people_menu
+URL         : newadmin/people_menu
 ==== extraHeadTags ===========================================================
 
 ==== snippet =================================================================
@@ -18,6 +18,8 @@ URL         : people_menu
 <div class="adminOverlayContainer ui-corner-all" id="adminOverlayTabs-1">
    <div class="adminTabContainerSubMenu">
       <img src="^Extras(/adminConsole/activeSessions.gif);">
+      <input type="checkbox" id="kill-all-toggle" /> All &nbsp;
+      <button type="button" id="kill-sessions-button">Kill Selected</button>
    </div>
    <table id="sessionsDatatable" class="webguiAdminTable"></table>
 
@@ -38,6 +40,51 @@ $(function(){
          var operation = $(event.target).attr('target');
          if ( operation === 'op=viewActiveSessions' ){    
             ^WF();
+            //  toggle all session checkboxes
+            $('#kill-all-toggle').click(function(){
+               var master = $(this).is(':checked');
+               $('.killSession').each(function(){ 
+                  $(this).prop('checked',master);
+               });
+            });
+
+            // When we want to kill a session 
+            $('#kill-sessions-button').click(function(){
+               var ids = "";
+               $(".killSession").each(function(){
+                  if ( $(this).is(':checked') ){
+                     ids += $(this).attr('value') + ',';
+                  }
+               });
+
+               $.ajax({
+                  type: "GET",
+                  url: '/?' + operation,
+                  data:{"ids":ids},
+                  dataType: "text",
+                  beforeSend: function(){
+                     alert( "Are you sure you want to delete the record(s)." );
+                  },
+                  success: function(data){
+                     var asd = document.getElementById("message");
+                     if (data.indexOf("ERROR::")==-1){
+                        $('#message').html("Records deleted!" + ids);
+                        oTable.fnDraw();
+                                
+                     }else{
+                        $('#message').html("Error, no records deleted!");
+                        oTable.fnDraw(false);
+                              
+                     }
+                  },
+                  error:function (xhr, ajaxOptions, thrownError){
+                     alert(xhr.status);
+                     alert(thrownError);
+                    oTable.fnDraw();
+                  }
+               });
+
+            });
 
          }else{
             $( target ).load( '/?' + operation );
@@ -64,13 +111,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 4303
-  lastModified: 1362022718
+  assetSize: 7046
+  lastModified: 1362095643
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: Hyv7LB1QSn6_cVUy_oYytg
+  tagId: KsKsEDUETayDutIFCswfhw
   templateParser: ''
   usePacked: 0
 security:

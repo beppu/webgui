@@ -50,8 +50,7 @@ sub process {
      { column => "lastPageView", title => "Last View" },
      { column => "username",     title => "Username" },
      { column => "expires",      title => "Expires" },
-	  { column => "sessionId",    title => "Kill Session",
-       linkTitle => "Kiss Session", linkUri => '/?op=killSession&sid=', linkImage => "^Extras(/toolbar/bullet/delete.gif);" }
+	  { column => "sessionId",    title => "Kill Session", checkbox => "1", cssClass => "killSession", name => 'killSession' }
    ];
 	
    my $datatable = WebGUI::Form::DataTablesNet->new(

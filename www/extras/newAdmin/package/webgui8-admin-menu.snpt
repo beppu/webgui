@@ -3,7 +3,7 @@ Asset ID    : DBASH-rYylYUTCSiyIdxGm
 Menu Title  : WebGUI8-Admin-Menu
 Parent      : newadmin
 Title       : WebGUI8-Admin-Menu
-URL         : webgui8-admin-menu
+URL         : newadmin/webgui8-admin-menu
 ==== extraHeadTags ===========================================================
 
 ==== snippet =================================================================
@@ -145,13 +145,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 9458
-  lastModified: 1361778351
+  assetSize: 9467
+  lastModified: 1362095420
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: BKaz8u0kQHWbway2nGpJsg
+  tagId: 5Pa7MK__REClFi993JG4DQ
   templateParser: ''
   usePacked: 0
 security:
