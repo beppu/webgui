@@ -1,0 +1,69 @@
+==== Snippet =================================================================
+Asset ID    : DBASH-rDQGaeWNXi4p7dhQ
+Menu Title  : Help
+Parent      : newadmin
+Title       : Help
+URL         : newadmin/help
+==== extraHeadTags ===========================================================
+
+==== snippet =================================================================
+<!-- Overlay wrapper content -->
+<ul> 
+   <li><a class="default adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-1" target="#">Other</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-2" target="op=viewHelpIndex">Template Help</a></li>
+</ul>
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-1">
+   ^AssetProxy(dbash-external-help); 
+</div>
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-2">
+</div>
+<!-- end overlay wrapper content -->
+<!-- any custom javascript -->
+<script type="text/javascript">
+$(function(){
+   // =============== Admin datatable stuff =============
+   $('#adminOverlayContent').tabs(); // Make sure the tabs are rendered if we have any
+   try{
+      $('.adminOverlayTabs-click').click(function(event){
+         var target = $(event.target).attr('href');
+         var operation = $(event.target).attr('target');
+         if ( operation !== '#' && operation !== '' ){
+            $( target ).load( '/?' + operation );
+
+         }     
+      });
+      
+   }catch(exception){}
+   
+});    
+</script>
+
+==== synopsis ================================================================
+
+==== Properties ==============================================================
+display:
+  cacheTimeout: 3600
+  isHidden: 1
+  newWindow: 0
+meta:
+  inheritUrlFromParent: 0
+  isExportable: 1
+  isPackage: 0
+  isPrototype: 0
+  usePackedHeadTags: 0
+properties:
+  assetSize: 2370
+  lastModified: 1362182443
+  mimeType: text/html
+  revisedBy: 3
+  skipNotification: 0
+  status: approved
+  tagId: 4WkG31ArT2_9rm7hHb_3Zg
+  templateParser: ''
+  usePacked: 0
+security:
+  encryptPage: 0
+  groupIdEdit: 3
+  groupIdView: 3
+  ownerUserId: 3
+

@@ -20,11 +20,11 @@ URL         : newadmin/webgui8-admin-menu
       <ul id="toolbar-menu">
          <li class="first"><a class="showAdminPanel" href="" title="Administer content and comments.">Content</a></li>
          <li><a class="showAdminPanel" href="" title="Select and configure your themes.">Appearance</a></li>
-         <li><a class="showAdminPanel" href="/people_menu" title="Manage user accounts, groups, and permissions.">People</a></li>
+         <li><a class="showAdminPanel" href="/newadmin/people_menu" title="Manage user accounts, groups, and permissions.">People</a></li>
          <li><a class="showAdminPanel" href="" title="Extend site functionality.">Modules</a></li>
          <li><a class="showAdminPanel" href="" title="Administer settings.">Configuration</a></li>
          <li><a class="showAdminPanel" href="" title="View reports, updates, and errors.">Reports</a></li>
-         <li><a class="showAdminPanel" href="/tempspace/help" title="Reference for usage, configuration, and modules.">Help</a></li>
+         <li><a class="showAdminPanel" href="/newadmin/help" title="Reference for usage, configuration, and modules.">Help</a></li>
       </ul>
       <a href="javascript://" title="Hide/Show shortcuts" class="toggle toggle-active">Hide shortcuts</a>
    </div>
@@ -145,13 +145,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 9467
-  lastModified: 1362095420
+  assetSize: 9483
+  lastModified: 1362179022
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: 5Pa7MK__REClFi993JG4DQ
+  tagId: tG4lGYu1QJGtjhKCFfCxmg
   templateParser: ''
   usePacked: 0
 security:

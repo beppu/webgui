@@ -12,14 +12,14 @@ URL         : newadmin/datatables.net-default
 [% UNLESS config || noScript ~%]<table id="[% table.id %]" class="[% table.class %]"></table>[% END %]
 [% UNLESS noScript %]<script type="text/javascript">[% END %]
 $(function(){
-   var oTable = $('#[% table.id %]').dataTable([% IF config %][% config %][% ELSE ~%]{
+   [% table.id %] = $('#[% table.id %]').dataTable([% IF config %][% config %][% ELSE ~%]{
       "bJQueryUI": true, // enable jquery themeroller
       "bAutoWidth" : true,
       "bProcessing" : true,
       "bRetrieve" : true,
       "aoColumns":[
       [%~ FOREACH columnConfig IN columns ~%]
-         { "sTitle":"[% columnConfig.title %]", "mData":"[% columnConfig.column %]" 
+         { "sTitle":"[% columnConfig.title %]", "mData":"[% columnConfig.column %]","bSortable":[% IF columnConfig.sortable == 'true' %]true[% ELSE %]false[% END %]  
          [%~ IF columnConfig.linkUri ~%]
            , "mRender":function ( uri, type, full ) {
               return can.view.render('DBASH-hyperLink', { 
@@ -43,7 +43,7 @@ $(function(){
       ],
       "bServerSide" : true,
       "sAjaxDataProp": "[% data %]",
-      "sAjaxSource": '[% url.list %]'   
+      "sAjaxSource": '[% url.list %]'
    }[%~ END %]);
 });    
 [% UNLESS noScript %]</script>[% END %]
@@ -58,9 +58,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 3090
+  assetSize: 3255
   attachmentsJson: '[]'
-  lastModified: 1362097534
+  lastModified: 1362181802
   namespace: DataTable
   parser: WebGUI::Asset::Template::TemplateToolkit
   revisedBy: 3
@@ -68,7 +68,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: bI-FpG5rQWe5biO8lXOIww
+  tagId: 509yDmATQXaMAZ5CYMKvEw
   usePacked: 0
 security:
   encryptPage: 0

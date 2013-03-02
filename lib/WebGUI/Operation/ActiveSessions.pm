@@ -61,10 +61,14 @@ sub www_killSession {
       $session->response->status(304);
       return to_json { header => $i18n->get(108)->{message}, error => $i18n->get(36) };
 
-   # delete the session
+   # delete the sessions
    }elsif ( canView($session) ){ # && $session->request->method eq 'DELETE'
-      $session->db->deleteRow("userSession","sessionId",$session->form->process("sid"));
-      $session->db->deleteRow("userSessionScratch","sessionId",$session->form->process("sid"));
+      my @sessionIds = split(',', $session->form->process("sid") );
+      foreach my $sessionId ( @sessionIds ){ # NOT the right way to do it but for now it works
+         $session->db->deleteRow("userSession","sessionId", $sessionId);
+         $session->db->deleteRow("userSessionScratch","sessionId", $sessionId);
+         
+      }
 	   return to_json { }; # json success
 
    # Permission denied
@@ -101,11 +105,13 @@ sub www_viewActiveSessions {
          push(@sqlParams, $search);
       }
       
-      my $limitParam = undef;      
-      my $limit = $session->form->param('iDisplayLength');
-      if ( $limit ){
-         $limitParam = qq| limit ?|;
-         push(@sqlParams, $limit);
+      my $limitParam = undef;
+      my $start = $session->form->param('iDisplayStart');
+      my $length = $session->form->param('iDisplayLength');
+      if ( $length ){
+         $limitParam = qq| LIMIT ?, ?|;
+         push(@sqlParams, $start);         
+         push(@sqlParams, $length);
       }
       
       my $sqlCommand = qq|select users.username,users.userId,userSession.sessionId,userSession.expires,
@@ -121,8 +127,7 @@ sub www_viewActiveSessions {
             my $value = $sqlParams[ $index ];
             # Like values need the special characters
             if ( %like_params && $like_params{ $index } ){
-               $value .= '%';
-               $value = '%' . $value;
+               $value = '%' . $value . '%';
             }
             $sth->bind_param( $position, $value );
          }   
@@ -142,8 +147,10 @@ sub www_viewActiveSessions {
       }
       my $rowCount = @{ $output };
       
-      $webParams->{iTotalRecords} = $rowCount;
-      $webParams->{iTotalDisplayRecords} = $limit;
+      $sqlCommand = qq|select count(*) from users,userSession where users.userId=userSession.userId and users.userId<>1|;      
+      
+      $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
+      $webParams->{iTotalDisplayRecords} = $rowCount; #Total records, after filtering
       $webParams->{data} = $output;
    
    }else{

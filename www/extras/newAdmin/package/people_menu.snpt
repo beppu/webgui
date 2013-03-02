@@ -17,6 +17,7 @@ URL         : newadmin/people_menu
 </ul>
 <div class="adminOverlayContainer ui-corner-all" id="adminOverlayTabs-1">
    <div class="adminTabContainerSubMenu">
+      <div class="error ui-state-error ui-state-highlight ui-corner-all"><div id="message"></div></div>
       <img src="^Extras(/adminConsole/activeSessions.gif);">
       <input type="checkbox" id="kill-all-toggle" /> All &nbsp;
       <button type="button" id="kill-sessions-button">Kill Selected</button>
@@ -27,19 +28,31 @@ URL         : newadmin/people_menu
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-2"></div>
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-3"></div>
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-4"></div>
-<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-5"></div>
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-5">
+  
+   <!-- table id="myTableId"></table>
+  WF(datatables, "id:myTableId", "config:true"); -->
+
+</div>
 <!-- end overlay wrapper content -->
 <!-- any custom javascript -->
 <script type="text/javascript">
 $(function(){
+   var sessionsDatatable; // Make sure we can reference this object in the code below
    // =============== Admin datatable stuff =============
    $('#adminOverlayContent').tabs(); // Make sure the tabs are rendered if we have any
-   try{
+   //try{
       $('.adminOverlayTabs-click').click(function(event){
          var target = $(event.target).attr('href');
          var operation = $(event.target).attr('target');
-         if ( operation === 'op=viewActiveSessions' ){    
-            ^WF();
+         if ( operation === 'op=viewActiveSessions' ){  
+            ^WF(datatable, "{column:'userId';title:'UserId'}",
+                           "{column:'lastIP';title:'Last Ip'}",
+                           "{column:'lastPageView';title:'Last View'}",
+                           "{column:'username';title:'Username'}",
+                           "{column:'expires';title:'Expires'}",
+                           "{column:'sessionId';title:'Kill Session';checkbox:'1';cssClass:'killSession';name:'killSession'}",
+"noScript:1", "restDataUrl:'/?op=viewActiveSessions'", "id:'sessionsDatatable'");
             //  toggle all session checkboxes
             $('#kill-all-toggle').click(function(){
                var master = $(this).is(':checked');
@@ -50,37 +63,37 @@ $(function(){
 
             // When we want to kill a session 
             $('#kill-sessions-button').click(function(){
-               var ids = "";
+               var sid = "";
                $(".killSession").each(function(){
-                  if ( $(this).is(':checked') ){
-                     ids += $(this).attr('value') + ',';
+                  // Do not kill my session
+                  if ( $(this).is(':checked') && $.cookie("wgSession") !== $(this).attr('value') ){
+                     sid += $(this).attr('value') + ',';
                   }
                });
 
                $.ajax({
                   type: "GET",
-                  url: '/?' + operation,
-                  data:{"ids":ids},
+                  url: '/?op=killSession',
+                  data:{"sid":sid},
                   dataType: "text",
                   beforeSend: function(){
                      alert( "Are you sure you want to delete the record(s)." );
                   },
                   success: function(data){
-                     var asd = document.getElementById("message");
-                     if (data.indexOf("ERROR::")==-1){
-                        $('#message').html("Records deleted!" + ids);
-                        oTable.fnDraw();
+                     if ( data.indexOf("ERROR::")==-1 ){
+                        $('#message').html("Records deleted!");
+                        sessionsDatatable.fnDraw();
                                 
                      }else{
                         $('#message').html("Error, no records deleted!");
-                        oTable.fnDraw(false);
+                        sessionsDatatable.fnDraw(false);
                               
                      }
                   },
                   error:function (xhr, ajaxOptions, thrownError){
-                     alert(xhr.status);
-                     alert(thrownError);
-                    oTable.fnDraw();
+                    $('#message').html( xhr.status + ' ' + thrownError);
+                    sessionsDatatable.fnDraw();
+
                   }
                });
 
@@ -92,7 +105,7 @@ $(function(){
          }     
       });
       
-   }catch(exception){}
+   //}catch(exception){}
    
 });    
 </script>
@@ -101,7 +114,7 @@ $(function(){
 
 ==== Properties ==============================================================
 display:
-  cacheTimeout: 3600
+  cacheTimeout: 1
   isHidden: 1
   newWindow: 0
 meta:
@@ -111,13 +124,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 7046
-  lastModified: 1362095643
+  assetSize: 8478
+  lastModified: 1362182052
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: KsKsEDUETayDutIFCswfhw
+  tagId: 6uf5M1jKSMWHfDYB47qbCQ
   templateParser: ''
   usePacked: 0
 security:
