@@ -16,6 +16,9 @@ use WebGUI::International;
 use WebGUI::Paginator;
 use WebGUI::SQL;
 use JSON;
+use Moose;
+
+extends 'WebGUI::Session::Rest';
 
 =head1 NAME
 
@@ -55,11 +58,11 @@ $session->form->process("sid").  Afterwards, it calls www_viewActiveSessions.
 sub www_killSession { 
    my $session = shift;
    my $i18n = WebGUI::International->new($session);
-   $session->response->content_type("application/json");
+   my $rest = WebGUI::Session::Rest->new( session => $session );
    # should not delete our own session
    if ( $session->form->process("sid") eq $session->getId ){
-      $session->response->status(304);
-      return to_json { header => $i18n->get(108)->{message}, error => $i18n->get(36) };
+      $rest->message( $i18n->get(108) );
+      return $rest->notModified;
 
    # delete the sessions
    }elsif ( canView($session) ){ # && $session->request->method eq 'DELETE'
@@ -69,12 +72,12 @@ sub www_killSession {
          $session->db->deleteRow("userSessionScratch","sessionId", $sessionId);
          
       }
-	   return to_json { }; # json success
+	   return $rest->response; # json success
 
    # Permission denied
    }else{
-      $session->response->status(403);
-      return to_json { header => $i18n->get(35), error => $i18n->get(36) };#return $self->session->style->userStyle($output);
+      $rest->message( $i18n->get(36) );
+      return $rest->forbidden;
       
    }   
 
@@ -92,7 +95,7 @@ delete (kill) each one via www_killSession
 sub www_viewActiveSessions {
    my $session = shift;
    my $i18n = WebGUI::International->new($session);
-   $session->response->content_type("application/json");
+   my $rest = WebGUI::Session::Rest->new( session => $session );
    my $webParams = $session->request->parameters->mixed;
    if ( canView($session) ){
       my @sqlParams = ();
@@ -152,15 +155,15 @@ sub www_viewActiveSessions {
       $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
       $webParams->{iTotalDisplayRecords} = $rowCount; #Total records, after filtering
       $webParams->{data} = $output;
-   
+      $rest->data( $webParams );
+      return $rest->response;
+      
    }else{
-      $session->response->status(403);   
-      $webParams->{header} = $i18n->get(35);
-      $webParams->{error}  = $i18n->get(36);
+      $rest->message( $i18n->get(36) );
+      return $rest->forbidden;      
       
    }
    
-   return to_json $webParams;
 }
 
 1;
