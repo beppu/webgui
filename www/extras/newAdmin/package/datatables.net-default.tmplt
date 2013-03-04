@@ -29,7 +29,7 @@ $(function(){
 [% IF columnConfig.linkImage %]image:"[% columnConfig.linkImage %]"[% END %]
               })
            } 
-         [%~  ELSIF columnConfig.checkbox  ~%]
+         [%~ ELSIF columnConfig.checkbox  ~%]
            , "mRender":function ( id, type, full ) {
               return can.view.render('DBASH-checkbox', { 
                  class:"[% columnConfig.cssClass %]", 
@@ -43,10 +43,29 @@ $(function(){
       ],
       "bServerSide" : true,
       "sAjaxDataProp": "[% data %]",
-      "sAjaxSource": '[% url.list %]'
+      "sAjaxSource": "[% url.list %]",
+      "fnServerData": function ( sSource, aoData, fnCallback ) {
+         $.ajax({
+            "dataType": 'json',
+            "url": sSource,
+            "data": aoData     
+         })
+         .done(function(data, textStatus, jqXHR){ return; })
+         .fail(function(jqXHR, textStatus, errorThrown){ 
+            var response = JSON.parse( jqXHR.responseText );
+            [% IF errorTagId %]
+               $('#[% errorTagId %]').html(response.error);
+            [% ELSE %]
+               alert(response.error);
+            [% END %]
+            [% table.id %].fnDestroy();
+         })
+         .always(function(data, textStatus, jqXHR){ fnCallback(data); })
+      }
    }[%~ END %]);
 });    
 [% UNLESS noScript %]</script>[% END %]
+
 ==== Properties ==============================================================
 display:
   isHidden: 1
@@ -58,9 +77,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 3255
+  assetSize: 4252
   attachmentsJson: '[]'
-  lastModified: 1362181802
+  lastModified: 1362420643
   namespace: DataTable
   parser: WebGUI::Asset::Template::TemplateToolkit
   revisedBy: 3
@@ -68,7 +87,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: 509yDmATQXaMAZ5CYMKvEw
+  tagId: MSqv5UO-SOS01Bun0i-MFA
   usePacked: 0
 security:
   encryptPage: 0

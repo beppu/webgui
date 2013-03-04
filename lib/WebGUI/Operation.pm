@@ -76,6 +76,9 @@ Returns a hash reference containing operation and package names.
 
 sub getOperations {
 	return {
+		# Placeholder for future plugins
+		'PLUGIN::' => 'Plugin',
+		#
 		'fork' => 'Fork',
 		'killSession' => 'ActiveSessions',
 		'viewActiveSessions' => 'ActiveSessions',

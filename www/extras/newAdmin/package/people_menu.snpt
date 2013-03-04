@@ -47,13 +47,20 @@ $(function(){
          var operation = $(event.target).attr('target');
          if ( operation === 'op=viewActiveSessions' ){ 
             $('#messageWrapper').hide(); 
-            ^WF(datatable, "{column:'userId';title:'UserId'}",
+            if ( sessionsDatatable != null ){
+               sessionsDatatable.fnDraw();
+
+            }else{
+               ^WF(datatable, "{column:'userId';title:'UserId'}",
                            "{column:'lastIP';title:'Last Ip'}",
                            "{column:'lastPageView';title:'Last View'}",
                            "{column:'username';title:'Username'}",
                            "{column:'expires';title:'Expires'}",
                            "{column:'sessionId';title:'Kill Session';checkbox:'1';cssClass:'killSession';name:'killSession'}",
-"noScript:1", "restDataUrl:'/?op=viewActiveSessions'", "id:'sessionsDatatable'");
+"noScript:1", "restDataUrl:'/?op=viewActiveSessions'", "id:'sessionsDatatable'", "errorTagId:'message'");
+             
+            }
+     
             //  toggle all session checkboxes
             $('#kill-all-toggle').click(function(){
                var master = $(this).is(':checked');
@@ -69,7 +76,7 @@ $(function(){
                var sid = "";
                $(".killSession").each(function(){
                   // Do not kill my session
-                  if ( $(this).is(':checked') ){
+                  if ( $.cookie("wgSession") !== $(this).attr('value') && $(this).is(':checked') ){
                      sid += $(this).attr('value') + ',';
                   }
                });
@@ -78,34 +85,36 @@ $(function(){
                   $( "#dialog-confirm" ).dialog({
                      modal: true,
                      buttons: {
-                        "Delete all items": function() {
-                            $.ajax({
-                               type: "GET",
-                               url: '/?op=killSession',
-                               data:{"sid":sid},
-                               dataType: "text",
-                               success: function(data){
-                                  if ( data.indexOf("ERROR::")==-1 ){
-                                     $('#message').html("Records deleted!");
-                                     sessionsDatatable.fnDraw();
+                        "Delete all items": function(){
+                           $.ajax({
+                              type: "GET",
+                              url: '/?op=killSession',
+                              data:{"sid":sid},
+                              dataType: "text"}
+                           )
+                           .done(function(data, textStatus, jqXHR){
+                              if ( data.indexOf("ERROR::")==-1 ){
+                                 $('#message').html("Records deleted!");
+                                 sessionsDatatable.fnDraw();
                                 
-                                  }else{
-                                     $('#message').html("Error, no records deleted!");
-                                     sessionsDatatable.fnDraw(false);
+                              }else{
+                                 $('#message').html("Error, no records deleted!");
+                                 sessionsDatatable.fnDraw(false);
                               
-                                  }
-                                  $('#messageWrapper').show();
-                               },error:function (xhr, ajaxOptions, thrownError){
-                                  $('#message').html( xhr.status + ' ' + thrownError);
-                                  $('#messageWrapper').show();
-                                  sessionsDatatable.fnDraw();
-                               }
-                            });
-                            $( this ).dialog( "close" );
-                         },
-                         Cancel: function() {
-                            $( this ).dialog( "close" );
-                         }
+                              }
+                              $('#messageWrapper').show();
+                           })
+                           .fail(function(jqXHR, textStatus, errorThrown){ 
+                              var response = JSON.parse( jqXHR.responseText );
+                              $('#message').html( xhr.status + ' ' + thrownError);
+                              $('#messageWrapper').show();
+                              sessionsDatatable.fnDraw();
+                           })
+                           $( this ).dialog( "close" );
+                        },
+                        Cancel: function() {
+                           $( this ).dialog( "close" );
+                        }
                      }
                   });
                }
@@ -148,13 +157,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 10402
-  lastModified: 1362189932
+  assetSize: 10832
+  lastModified: 1362421029
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: U_uMaiQ1TM6Nqews8bfefw
+  tagId: fgmbCqVnRGCiatWA2JV1ww
   templateParser: ''
   usePacked: 0
 security:
