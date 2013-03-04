@@ -11,10 +11,8 @@ package WebGUI::Operation::LoginHistory;
 #-------------------------------------------------------------------
 
 use strict;
-use WebGUI::AdminConsole;
 use WebGUI::International;
-use WebGUI::Paginator;
-use WebGUI::SQL;
+use WebGUI::Session::Rest;
 
 =head1 NAME
 
@@ -32,8 +30,8 @@ the current user.
 =cut
 
 sub canView {
-    my $session     = shift;
-    my $user        = shift || $session->user;
+    my $session = shift;
+    my $user    = shift || $session->user;
     return $user->isInGroup( $session->setting->get("groupIdAdminLoginHistory") );
 }
 
@@ -50,49 +48,90 @@ they used.
 
 sub www_viewLoginHistory {
 	my $session = shift;
-        return $session->privilege->adminOnly() unless canView($session);
-	my ($output, $p, @row, $i, $sth, %data);
 	my $i18n = WebGUI::International->new($session);
-	$sth = $session->db->read("select * from users,userLoginLog where users.userId=userLoginLog.userId order by userLoginLog.timeStamp desc");	
-	while (%data = $sth->hash) {
-		$data{username} = $i18n->get('unknown user') if ($data{userId} eq "0");
-		$row[$i] = '<tr class="tableData"><td>'.$data{username}.' ('.$data{userId}.')</td>';
-		$row[$i] .= '<td>'.$data{status}.'</td>';
-		$row[$i] .= '<td>'.$session->datetime->epochToHuman($data{timeStamp}).'</td>';
-		$row[$i] .= '<td>'.$data{ipAddress}.'</td>';
-		$row[$i] .= '<td>'.$data{userAgent}.'</td>';
-        $row[$i] .= '<td>'.$data{sessionId}.'</td>';
-        if ($data{lastPageViewed}) {
-            if ($data{lastPageViewed} == $data{timeStamp}) {
-                $row[$i] .= "<td>Active</td>";
-                $row[$i] .= "<td>Active</td></tr>";
-            } else {
-                $row[$i] .= '<td>'.$session->datetime->epochToHuman($data{lastPageViewed},"%H:%n%p %M/%D/%y").'</td>';
-                my ($interval, $units) = $session->datetime->secondsToInterval($data{lastPageViewed} - $data{timeStamp});
-                $row[$i] .= "<td>$interval $units</td></tr>";
+	my $rest = WebGUI::Session::Rest->new( session => $session );
+   my $webParams = $session->request->parameters->mixed;
+	if ( canView($session) ) {		
+      my @sqlParams = ();
+      my @likableItemPositions = ();
+      my $searchParam = "";      
+      my $search = $session->form->param('sSearch');
+      if ( $search ){
+         $searchParam = q|and username like ?|;
+         push(@likableItemPositions, scalar( @sqlParams ) );
+         push(@sqlParams, $search);
+      }
+      
+      my $limitParam = "";
+      my $start = $session->form->param('iDisplayStart');
+      my $length = $session->form->param('iDisplayLength');
+      if ( $length ){
+         $limitParam = qq| LIMIT ?, ?|;
+         push(@sqlParams, $start);         
+         push(@sqlParams, $length);
+      }
+
+      my $sqlCommand = qq|select * from users,userLoginLog where users.userId=userLoginLog.userId $searchParam order by userLoginLog.timeStamp desc $limitParam|;
+            
+      my $sth = $session->db->prepare( $sqlCommand );
+      # Find the items that are going to require the %{search_term}% special characters 
+      my %like_params = map { $_ => 1 } @likableItemPositions;
+      if ( @sqlParams ){
+         for( my $index = 0; $index <= $#sqlParams; $index++ ){
+            my $position = $index + 1;
+            my $value = $sqlParams[ $index ];
+            # Like values need the special characters
+            if ( %like_params && $like_params{ $index } ){
+               $value = '%' . $value . '%';
             }
-        } else {
-            $row[$i] .= "<td></td>";
-            $row[$i] .= "<td></td></tr>";
-        }
-		$i++;
-	}
-	$sth->finish;
-	$p = WebGUI::Paginator->new($session,$session->url->page('op=viewLoginHistory'));
-	$p->setDataByArrayRef(\@row);
-	$output .= '<table border="1" cellpadding="5" cellspacing="0" align="center">';
-	$output .= '<tr class="tableHeader"><td>'.$i18n->get(428).'</td>';
-	$output .= '<td>'.$i18n->get(434).'</td>';
-	$output .= '<td>'.$i18n->get(429).'</td>';
-	$output .= '<td>'.$i18n->get(431).'</td>';
-    $output .= '<td>'.$i18n->get(433).'</td>';
-    $output .= '<td>' . $i18n->get( 435 ) . '</td>';
-    $output .= '<td>' . $i18n->get( 430 ) . '</td>';
-    $output .= '<td>' . $i18n->get( "session length" ) . '</td></tr>';
-        $output .= $p->getPage($session->form->process("pn"));
-        $output .= '</table>';
-        $output .= $p->getBar($session->form->process("pn"));
-	return WebGUI::AdminConsole->new($session,"loginHistory")->render($output);
+            $sth->bind_param( $position, $value );
+         }   
+      }  
+      $sth->execute();
+
+      my $output = [];
+      while ( my $data = $sth->hashRef ) {
+         my $lastPageViewed = 'Active';
+         my $sessionLength  = 'Active';
+         if ( $data->{lastPageViewed} ) {
+            if ( $data->{lastPageViewed} != $data->{timeStamp} ) {
+               $lastPageViewed = $session->datetime->epochToHuman( $data->{lastPageViewed},"%H:%n%p %M/%D/%y" );
+               my ($interval, $units) = $session->datetime->secondsToInterval( $data->{lastPageViewed} - $data->{timeStamp} );
+               $sessionLength = qq|$interval $units|;
+            }
+            
+         } else {
+            $lastPageViewed = '';
+            $sessionLength  = '';
+            
+         }        
+        
+         push(@{ $output },{
+            username       => $data->{userId} eq '0' ? $i18n->get('unknown user') : $data->{username} . ' ' . $data->{userId},
+            status         => $data->{status},
+            timeStamp      => $session->datetime->epochToHuman( $data->{timeStamp} ),
+            ipAddress      => $data->{ipAddress},            
+            userAgent      => $data->{userAgent},
+            sessionId      => $data->{sessionId},            
+            lastPageViewed => $lastPageViewed,
+            sessionLength  => $sessionLength
+         });
+      }
+      my $rowCount = @{ $output };
+      
+      $sqlCommand = qq|select count(*) from users,userLoginLog where users.userId=userLoginLog.userId|;      
+      
+      $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
+      $webParams->{iTotalDisplayRecords} = $rowCount; #Total records, after filtering
+      $webParams->{data} = $output;
+      $rest->data( $webParams );
+      return $rest->response;
+      
+	}else {
+      $rest->message( $i18n->get(36) );
+      return $rest->forbidden;
+		
+   }
 }
 
 1;

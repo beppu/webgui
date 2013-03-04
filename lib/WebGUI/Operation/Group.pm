@@ -19,6 +19,7 @@ use WebGUI::International;
 use WebGUI::Mail::Send;
 use WebGUI::Operation::User;
 use WebGUI::Paginator;
+use WebGUI::Session::Rest;
 use WebGUI::SQL;
 use Tie::IxHash;
 
@@ -892,62 +893,125 @@ A WebGUI::Session object
 sub www_listGroups {
 	my $session = shift;
 	my $i18n = WebGUI::International->new($session);
-	if (canEditAll($session)) {
-		my $output = getGroupSearchForm($session, "listGroups");
-		my ($groupCount) = $session->db->quickArray("select count(*) from groups where isEditable=1");
-        if($groupCount > 250) {
-            $output .= $i18n->get('high group count'); 
-        }
-        return _submenu($session,$output) unless ($session->form->process("doit") || $groupCount<250 || $session->form->process("pn") > 1);
-		$output .= '<table border="1" cellpadding="5" cellspacing="0" align="center">';
-		$output .= '<tr><td class="tableHeader">'.$i18n->get(84).'</td><td class="tableHeader">'
-			.$i18n->get(85).'</td><td class="tableHeader">'
-			.$i18n->get(748).'</td></tr>';
-		my $p = doGroupSearch($session, "op=listGroups",1);
-		foreach my $row (@{$p->getPageData}) {
-			my ($userCount) = $session->db->quickArray("select count(*) from groupings where groupId=".$session->db->quote($row->{groupId}));
-			$output .= '
-			<tr>
-				<td valign="top" class="tableData"><a href="'.$session->url->page("op=editGroup;gid=".$row->{groupId}).'">'.$row->{groupName}.'</a></td>
-				<td valign="top" class="tableData">'.$row->{description}.'</td>
-				<td valign="top" class="tableData">'.$userCount.'</td>
-			</tr>
-			';	
-		}
-        	$output .= '</table>';
-		$output .= $p->getBarTraditional;
-		return _submenu($session,$output);
-	} elsif (canView($session)) {
-		my ($output, $p, $sth, @data, @row, $i, $userCount);
-        	my @editableGroups = $session->db->buildArray("select groupId from groupings where userId=".$session->db->quote($session->user->userId)." and groupAdmin=1");
-        	push (@editableGroups,0);
-        	$sth = $session->db->read("select groupId,groupName,description from groups
-                	where groupId in (".$session->db->quoteAndJoin(\@editableGroups).") order by groupName");
-        	while (@data = $sth->array) {
-                	$row[$i] = '<tr>';
-                	$row[$i] .= '<td valign="top" class="tableData"><a href="'
-                        	.$session->url->page('op=manageUsersInGroup;gid='.$data[0]).'">'.$data[1].'</td>';
-                	$row[$i] .= '<td valign="top" class="tableData">'.$data[2].'</td>';
-                	($userCount) = $session->db->quickArray("select count(*) from groupings where groupId=".$session->db->quote($data[0]));
-                	$row[$i] .= '<td valign="top" class="tableData">'.$userCount.'</td></tr>';
-                	$row[$i] .= '</tr>';
-                	$i++;
-        	}
-        	$sth->finish;
-        	$p = WebGUI::Paginator->new($session,$session->url->page('op=listGroups'));
-        	$p->setDataByArrayRef(\@row);
-        	$output .= '<table border="1" cellpadding="5" cellspacing="0" align="center">';
-        	$output .= '<tr><td class="tableHeader">'.$i18n->get(84).'</td><td class="tableHeader">'
-                	.$i18n->get(85).'</td><td class="tableHeader">'
-                	.$i18n->get(748).'</td></tr>';
-        	$output .= $p->getPage($session->form->process("pn"));
-        	$output .= '</table>';
-        	$output .= $p->getBarTraditional($session->form->process("pn"));
-        	return _submenu($session,$output,'89');
-	}
-    else {
-	    return $session->privilege->adminOnly();
-    }
+	my $rest = WebGUI::Session::Rest->new( session => $session );
+   my $webParams = $session->request->parameters->mixed;
+	if ( canEditAll($session) ) {		
+      my @sqlParams = ();
+      my @likableItemPositions = ();
+      my $searchParam = "";      
+      my $search = $session->form->param('sSearch');
+      if ( $search ){
+         $searchParam = q|and groupName like ?|;
+         push(@likableItemPositions, scalar( @sqlParams ) );
+         push(@sqlParams, $search);
+      }
+      
+      my $limitParam = "";
+      my $start = $session->form->param('iDisplayStart');
+      my $length = $session->form->param('iDisplayLength');
+      if ( $length ){
+         $limitParam = qq| LIMIT ?, ?|;
+         push(@sqlParams, $start);         
+         push(@sqlParams, $length);
+      }
+
+      my $sqlCommand = qq|select groupId,groupName,description from groups where isEditable=1 $searchParam order by groupName $limitParam|;
+            
+      my $sth = $session->db->prepare( $sqlCommand );
+      # Find the items that are going to require the %{search_term}% special characters 
+      my %like_params = map { $_ => 1 } @likableItemPositions;
+      if ( @sqlParams ){
+         for( my $index = 0; $index <= $#sqlParams; $index++ ){
+            my $position = $index + 1;
+            my $value = $sqlParams[ $index ];
+            # Like values need the special characters
+            if ( %like_params && $like_params{ $index } ){
+               $value = '%' . $value . '%';
+            }
+            $sth->bind_param( $position, $value );
+         }   
+      }  
+      $sth->execute();
+
+      my $output = [];
+      while ( my $data = $sth->hashRef ) {
+         push(@{ $output },{
+              groupId     => $data->{groupId},
+              groupName   => $data->{groupName},
+              description => $data->{description}
+         });
+      }
+      my $rowCount = @{ $output };
+      
+      $sqlCommand = qq|select count(*) from groups where isEditable=1|;      
+      
+      $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
+      $webParams->{iTotalDisplayRecords} = $rowCount; #Total records, after filtering
+      $webParams->{data} = $output;
+      $rest->data( $webParams );
+      return $rest->response;		
+			
+	} elsif ( canView($session) ) {
+      my @sqlParams = ();
+      my @likableItemPositions = ();
+      my $searchParam = undef;      
+      my $search = $session->form->param('sSearch');
+      if ( $search ){
+         $searchParam = q|and groupId not in ( ? )|;
+         push(@likableItemPositions, scalar( @sqlParams ) );
+         push(@sqlParams, $search);
+      }
+      
+      my $limitParam = undef;
+      my $start = $session->form->param('iDisplayStart');
+      my $length = $session->form->param('iDisplayLength');
+      if ( $length ){
+         $limitParam = qq| LIMIT ?, ?|;
+         push(@sqlParams, $start);         
+         push(@sqlParams, $length);
+      }
+
+      my $sqlCommand = qq|select groupId,groupName,description from groups where isEditable=1 $searchParam order by groupName $limitParam|;
+            
+      my $sth = $session->db->prepare( $sqlCommand );
+      # Find the items that are going to require the %{search_term}% special characters 
+      my %like_params = map { $_ => 1 } @likableItemPositions;
+      if ( @sqlParams ){
+         for( my $index = 0; $index <= $#sqlParams; $index++ ){
+            my $position = $index + 1;
+            my $value = $sqlParams[ $index ];
+            # Like values need the special characters
+            if ( %like_params && $like_params{ $index } ){
+               $value = '%' . $value . '%';
+            }
+            $sth->bind_param( $position, $value );
+         }   
+      }  
+      $sth->execute();
+
+      my $output = [];
+      while ( my $data = $sth->hashRef ) {
+         push(@{ $output },{
+              groupId     => $data->{groupId},
+              groupName   => $data->{groupName},
+              description => $data->{description}
+         });
+      }
+      my $rowCount = @{ $output };
+      
+      $sqlCommand = qq|select count(*) from groups where isEditable=1|;      
+      
+      $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
+      $webParams->{iTotalDisplayRecords} = $rowCount; #Total records, after filtering
+      $webParams->{data} = $output;
+      $rest->data( $webParams );
+      return $rest->response;		
+
+	}else {
+      $rest->message( $i18n->get(36) );
+      return $rest->forbidden;
+		
+   }
 }
 
 

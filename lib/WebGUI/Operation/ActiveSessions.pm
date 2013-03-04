@@ -100,7 +100,7 @@ sub www_viewActiveSessions {
    if ( canView($session) ){
       my @sqlParams = ();
       my @likableItemPositions = ();
-      my $searchParam = undef;      
+      my $searchParam = "";      
       my $search = $session->form->param('sSearch');
       if ( $search ){
          $searchParam = q|and users.username like ?|;
@@ -108,7 +108,7 @@ sub www_viewActiveSessions {
          push(@sqlParams, $search);
       }
       
-      my $limitParam = undef;
+      my $limitParam = "";
       my $start = $session->form->param('iDisplayStart');
       my $length = $session->form->param('iDisplayLength');
       if ( $length ){
