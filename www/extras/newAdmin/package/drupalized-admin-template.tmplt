@@ -32,6 +32,7 @@ URL         : newadmin/drupalized-admin-template
   <script src="^Extras(/newAdmin/js/jquery.cookie.js);"></script>
   <script src="^Extras(/newAdmin/js/can.jquery.js);"></script>
   <script src="^Extras(/newAdmin/js/jquery.dataTables.min.js);"></script>  
+  <script src="^Extras(/newAdmin/js/URI.js);"></script>
   <script src="^Extras(/newAdmin/js/plugins.js);"></script>
 
 <!-- theming -->  
@@ -40,10 +41,11 @@ URL         : newadmin/drupalized-admin-template
 <!-- theming end -->
 
 <!-- Javascript templates here -->
-<script type="text/ejs" id="DBASH-link"><a class="<%= this.class %>" href="<%= this.uri %>"><% if ( this.image ) { %><img src="<%= this.image %>" title="<%= this.title %>"><% }else{ %><%= this.title %><% } %></a></script>
+<script type="text/ejs" id="DBASH-div"><div <%= (el) -> el.data('data',this) %> class="dbash-div <%= this.class %>" op="<%= this.uri %>"><% if ( this.image ) { %><img src="<%= this.image %>" title="<%= this.title %>"><% }else{ %><%= this.title %><% } %></div></script>
 <script type="text/ejs" id="DBASH-checkbox">
    <input type="checkbox" class="<%= this.class %>" name="<%= this.name %>" value="<%= this.value %>">
 </script>   
+<script type="text/ejs" id="DBASH-link"><a <%= (el) -> el.data('link',this) %> class="dbash-link <%= this.class %>" href="<%= this.uri %>"><% if ( this.image ) { %><img src="<%= this.image %>" title="<%= this.title %>"><% }else{ %><%= this.title %><% } %></a></script>
 <script type="text/ejs" id="DBASH-links">
    <% this.each(function(property) { %>
       <a <%= (el) -> el.attr(property.attributes.serialize()) %>><%= property.attr('label') %></a>
@@ -72,9 +74,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 4864
+  assetSize: 5610
   attachmentsJson: '[]'
-  lastModified: 1362450223
+  lastModified: 1362508422
   namespace: style
   parser: WebGUI::Asset::Template::HTMLTemplate
   revisedBy: 3
@@ -82,7 +84,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: xvH5kNY4QTipmZqxGOKmcA
+  tagId: NfDv1MyJQ02Vz79UdwRekw
   usePacked: 0
 security:
   encryptPage: 0

@@ -143,11 +143,24 @@ $(function(){
 
             }else{
                ^WF(datatable, 
-                  "{column:'groupId';title:'Id';linkUri:'/?op=editGroup&gid='}",
+                  "{column:'groupId';title:'Id';linkUri:'/?op=editGroup&gid=';cssClass:'groupEdit'}",
                   "{column:'groupName';title:'Name'}",
                   "{column:'description';title:'Description'}",
                   "noScript:1", "restDataUrl:'/?op=listGroups'", 
                   "id:'groupDatatable'", "errorTagId:'message'");
+
+                  $('#groupDatatable').on('click', "tr", function(event){ 
+                     event.preventDefault();
+                     try{
+                        var uri = new URI( event['target']['href'] );
+                        var query = URI.parseQuery( uri.search() );
+                        alert( query.op + ' ' + query.gid );
+
+                     }catch(error){
+                        alert("NOT AVAILABLE!");
+
+                     }
+                  }); 
             }
 
 	}else if ( operation === 'op=viewLoginHistory' ){ 
@@ -207,13 +220,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 15157
-  lastModified: 1362497204
+  assetSize: 15894
+  lastModified: 1362509362
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: 8fmaIL5_RPeK5Bsb9GWE5A
+  tagId: 8Sbv6jupQv67rU1_AKaK5g
   templateParser: ''
   usePacked: 0
 security:
