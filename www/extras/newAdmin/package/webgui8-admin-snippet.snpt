@@ -1,5 +1,5 @@
 ==== Snippet =================================================================
-Asset ID    : DBASH-Px8yrgWATbWCetQA
+Asset ID    : DBASH-0000000000000007
 Menu Title  : webgui8-admin-snippet
 Parent      : newadmin
 Title       : webgui8-admin-snippet
@@ -20,7 +20,7 @@ $(function(){
       if ( $('#adminDiv').size() <= 0 ){ // Only fill out body if the admin menu has not been loaded
          $('#adminDiv').remove();// start with a clean slate
          $('body').append('<div id="adminDiv"></div>'); // this has to be removed once we get out of admin mode
-         $('#adminDiv').load('/webgui8-admin-menu');
+         $('#adminDiv').load('/newadmin/webgui8-admin-menu');
          $('#toolbar').show();
       }
    });
@@ -39,13 +39,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 1688
-  lastModified: 1362095433
+  assetSize: 1706
+  lastModified: 1362450440
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: dep88lkKS7qh4Pa-EpFEUA
+  tagId: rWSVwAgeQ1KYbiF7ZRrt8A
   templateParser: ''
   usePacked: 0
 security:

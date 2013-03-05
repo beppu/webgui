@@ -11,14 +11,9 @@ package WebGUI::Operation::ActiveSessions;
 #-------------------------------------------------------------------
 
 use strict;
-use WebGUI::AdminConsole;
 use WebGUI::International;
-use WebGUI::Paginator;
-use WebGUI::SQL;
 use JSON;
 use Moose;
-
-extends 'WebGUI::Session::Rest';
 
 =head1 NAME
 
@@ -61,8 +56,7 @@ sub www_killSession {
    my $rest = WebGUI::Session::Rest->new( session => $session );
    # should not delete our own session
    if ( $session->form->process("sid") eq $session->getId ){
-      $rest->message( $i18n->get(108) );
-      return $rest->notModified;
+      return $rest->notModified( $i18n->get(108) );
 
    # delete the sessions
    }elsif ( canView($session) ){ # && $session->request->method eq 'DELETE'
@@ -76,8 +70,7 @@ sub www_killSession {
 
    # Permission denied
    }else{
-      $rest->message( $i18n->get(36) );
-      return $rest->forbidden;
+      return $rest->forbidden( $i18n->get(36) );
       
    }   
 
@@ -159,8 +152,7 @@ sub www_viewActiveSessions {
       return $rest->response;
       
    }else{
-      $rest->message( $i18n->get(36) );
-      return $rest->forbidden;      
+      return $rest->forbidden( $i18n->get(36) );      
       
    }
    

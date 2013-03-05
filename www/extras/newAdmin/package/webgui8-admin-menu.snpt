@@ -1,5 +1,5 @@
 ==== Snippet =================================================================
-Asset ID    : DBASH-rYylYUTCSiyIdxGm
+Asset ID    : DBASH-0000000000000006
 Menu Title  : WebGUI8-Admin-Menu
 Parent      : newadmin
 Title       : WebGUI8-Admin-Menu
@@ -145,13 +145,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 9483
-  lastModified: 1362179022
+  assetSize: 9360
+  lastModified: 1362449872
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: tG4lGYu1QJGtjhKCFfCxmg
+  tagId: Lv0tZ3fhQGS6xX9uElNbig
   templateParser: ''
   usePacked: 0
 security:

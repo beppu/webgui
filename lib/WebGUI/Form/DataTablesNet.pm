@@ -55,7 +55,7 @@ sub definition {
        cssClasses    => { defaultValue => 'webguiAdminTable' },
        id            => { defaultValue => 'DBASH-' . $session->id->generate() }, # Required if the noScript option is set, do NOT use the defaultValue
        noScript      => { defaultValue => undef }, # Supress the <table...</table> and <script...</script> tags
-       templateId    => { defaultValue => 'DBASH-MAhpP6pfRL2Prmnw' },
+       templateId    => { defaultValue => 'DBASH-0000000000000001' },
        restDataParam => { defaultValue => 'data'},
        restDataUrl   => { defaultValue => undef, },
        restDeleteUrl => { defaultValue => undef, },

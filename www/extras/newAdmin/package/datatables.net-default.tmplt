@@ -1,5 +1,5 @@
 ==== Template ================================================================
-Asset ID    : DBASH-MAhpP6pfRL2Prmnw
+Asset ID    : DBASH-0000000000000001
 Menu Title  : Datatables.net Default
 Parent      : newadmin
 Title       : Datatables.net Default
@@ -77,9 +77,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 4252
+  assetSize: 4196
   attachmentsJson: '[]'
-  lastModified: 1362420643
+  lastModified: 1362449809
   namespace: DataTable
   parser: WebGUI::Asset::Template::TemplateToolkit
   revisedBy: 3
@@ -87,7 +87,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: MSqv5UO-SOS01Bun0i-MFA
+  tagId: pJUsVT-wS62KBAuW5C6TZQ
   usePacked: 0
 security:
   encryptPage: 0

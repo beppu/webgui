@@ -1,5 +1,5 @@
 ==== Template ================================================================
-Asset ID    : DBASH-WLe7zoKhSEuoP8NE
+Asset ID    : DBASH-0000000000000003
 Menu Title  : Drupalized Admin Template
 Parent      : newadmin
 Title       : Drupalized Admin Template
@@ -58,7 +58,7 @@ URL         : newadmin/drupalized-admin-template
 
 <tmpl_var body.content>
 
-   <script src="^Extras(/newAdmin/js/application.js);"></script>
+   <script src="/newadmin/webgui8-admin-snippet"></script>
 </body>        
 </html>
 ==== Properties ==============================================================
@@ -72,9 +72,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 4876
+  assetSize: 4864
   attachmentsJson: '[]'
-  lastModified: 1362097186
+  lastModified: 1362450223
   namespace: style
   parser: WebGUI::Asset::Template::HTMLTemplate
   revisedBy: 3
@@ -82,7 +82,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: 1SjvmNn5Q6ainZWSCY4Ivw
+  tagId: xvH5kNY4QTipmZqxGOKmcA
   usePacked: 0
 security:
   encryptPage: 0

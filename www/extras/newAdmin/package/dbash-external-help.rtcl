@@ -1,5 +1,5 @@
 ==== Wobject::Article ========================================================
-Asset ID    : DBASH-pGS8O6g3dsmhky5w
+Asset ID    : DBASH-0000000000000002
 Menu Title  : External Resource Help
 Parent      : newadmin
 Title       : External Resource Help
@@ -44,14 +44,14 @@ meta:
   usePackedHeadTags: 0
 properties:
   assetSize: 1184
-  lastModified: 1362177972
+  lastModified: 1362449835
   linkTitle: ''
   linkURL: ''
   revisedBy: 3
   skipNotification: 0
   status: approved
-  storageId: 1HRFZmrMT8a5t2S_AQfBuw
-  tagId: ofVlYwudSluUpXWSYBbWSw
+  storageId: HAsCKvEbRTukR1iWwcnS3g
+  tagId: rs9pW5XNQRG7c5RjTVSjpA
 security:
   encryptPage: 0
   groupIdEdit: 3

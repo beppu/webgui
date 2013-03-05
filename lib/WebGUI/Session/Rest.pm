@@ -57,6 +57,8 @@ sub deleted{
 
 sub forbidden{
    my $this = shift;
+   my $message = shift;
+   $this->message( $message ) if $message;
    $this->status(403);
    
    $this->response;  
@@ -64,6 +66,8 @@ sub forbidden{
 
 sub notFound{
    my $this = shift;
+   my $message = shift;
+   $this->message( $message ) if $message;
    $this->status(404);
    
    $this->response;  
@@ -71,6 +75,8 @@ sub notFound{
 
 sub notModified{
    my $this = shift;
+   my $message = shift;
+   $this->message( $message ) if $message;
    $this->status(304);
    
    $this->response;  
@@ -78,6 +84,8 @@ sub notModified{
 
 sub unauthorized{
    my $this = shift;
+   my $message = shift;
+   $this->message( $message ) if $message;
    $this->status(401);
    
    $this->response;

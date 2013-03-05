@@ -128,8 +128,7 @@ sub www_viewLoginHistory {
       return $rest->response;
       
 	}else {
-      $rest->message( $i18n->get(36) );
-      return $rest->forbidden;
+      return $rest->forbidden( $i18n->get(36) );
 		
    }
 }
