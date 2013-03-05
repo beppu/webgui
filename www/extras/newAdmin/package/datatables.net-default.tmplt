@@ -10,8 +10,7 @@ URL         : newadmin/datatables.net-default
 
 ==== template ================================================================
 [% UNLESS config || noScript ~%]<table id="[% table.id %]" class="[% table.class %]"></table>[% END %]
-[% UNLESS noScript %]<script type="text/javascript">[% END %]
-$(function(){
+[% UNLESS noScript %]<script type="text/javascript">$(function(){[% END %]
    [% table.id %] = $('#[% table.id %]').dataTable([% IF config %][% config %][% ELSE ~%]{
       "bJQueryUI": true, // enable jquery themeroller
       "bAutoWidth" : true,
@@ -20,16 +19,16 @@ $(function(){
       "aoColumns":[
       [%~ FOREACH columnConfig IN columns ~%]
          { "sTitle":"[% columnConfig.title %]", "mData":"[% columnConfig.column %]","bSortable":[% IF columnConfig.sortable == 'true' %]true[% ELSE %]false[% END %]  
-         [%~ IF columnConfig.linkUri ~%]
-           , "mRender":function ( uri, type, full ) {
-              return can.view.render('DBASH-hyperLink', { 
+         [%~ IF columnConfig.linkUri %][% foundLink = 1 ~%]
+           ,"mRender":function ( uri, type, full ) {
+              return can.view.render('DBASH-link', { 
                  class:"[% columnConfig.cssClass %]", 
-                 title:"[% columnConfig.linkTitle %]", 
-                   uri:"[% columnConfig.linkUri %]" + uri, 
-[% IF columnConfig.linkImage %]image:"[% columnConfig.linkImage %]"[% END %]
+                 title:[% IF columnConfig.linkTitle %]"[% columnConfig.linkTitle %]"[% ELSE %]uri[% END %], 
+                   uri:"[% columnConfig.linkUri %]" + uri
+[% IF columnConfig.linkImage %],image:"[% columnConfig.linkImage %]"[% END %]
               })
            } 
-         [%~ ELSIF columnConfig.checkbox  ~%]
+         [%~ ELSIF columnConfig.checkbox ~%]
            , "mRender":function ( id, type, full ) {
               return can.view.render('DBASH-checkbox', { 
                  class:"[% columnConfig.cssClass %]", 
@@ -43,7 +42,7 @@ $(function(){
       ],
       "bServerSide" : true,
       "sAjaxDataProp": "[% data %]",
-      "sAjaxSource": "[% url.list %]",
+      "sAjaxSource": "[% url.list %]"[% IF foundLink %],
       "fnServerData": function ( sSource, aoData, fnCallback ) {
          $.ajax({
             "dataType": 'json',
@@ -61,10 +60,9 @@ $(function(){
             [% table.id %].fnDestroy();
          })
          .always(function(data, textStatus, jqXHR){ fnCallback(data); })
-      }
+      }[% END %]
    }[%~ END %]);
-});    
-[% UNLESS noScript %]</script>[% END %]
+[% UNLESS noScript %]});</script>[% END %]
 
 ==== Properties ==============================================================
 display:
@@ -77,9 +75,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 4196
+  assetSize: 4415
   attachmentsJson: '[]'
-  lastModified: 1362449809
+  lastModified: 1362497087
   namespace: DataTable
   parser: WebGUI::Asset::Template::TemplateToolkit
   revisedBy: 3
@@ -87,7 +85,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: pJUsVT-wS62KBAuW5C6TZQ
+  tagId: g-ITC_K-Tvm_GA87QYWWVA
   usePacked: 0
 security:
   encryptPage: 0

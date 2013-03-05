@@ -20,7 +20,7 @@ $(function(){
       if ( $('#adminDiv').size() <= 0 ){ // Only fill out body if the admin menu has not been loaded
          $('#adminDiv').remove();// start with a clean slate
          $('body').append('<div id="adminDiv"></div>'); // this has to be removed once we get out of admin mode
-         $('#adminDiv').load('/newadmin/webgui8-admin-menu');
+         $('#adminDiv').load("/newadmin/webgui8-admin-menu");
          $('#toolbar').show();
       }
    });
@@ -40,12 +40,12 @@ meta:
   usePackedHeadTags: 0
 properties:
   assetSize: 1706
-  lastModified: 1362450440
+  lastModified: 1362495607
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: rWSVwAgeQ1KYbiF7ZRrt8A
+  tagId: _0WwsNTsSD_R2EetSA3gDA
   templateParser: ''
   usePacked: 0
 security:

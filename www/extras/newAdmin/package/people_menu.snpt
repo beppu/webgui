@@ -71,7 +71,8 @@ $(function(){
                            "{column:'username';title:'Username'}",
                            "{column:'expires';title:'Expires'}",
                            "{column:'sessionId';title:'Kill Session';checkbox:'1';cssClass:'killSession';name:'killSession'}",
-"noScript:1", "restDataUrl:'/?op=viewActiveSessions'", "id:'sessionsDatatable'", "errorTagId:'message'");
+                           "noScript:1", "restDataUrl:'/?op=viewActiveSessions'",
+                           "id:'sessionsDatatable'", "errorTagId:'message'");
              
             }
      
@@ -142,11 +143,11 @@ $(function(){
 
             }else{
                ^WF(datatable, 
-                  "{column:'groupId';title:'Id'}",
+                  "{column:'groupId';title:'Id';linkUri:'/?op=editGroup&gid='}",
                   "{column:'groupName';title:'Name'}",
                   "{column:'description';title:'Description'}",
-"noScript:1", "restDataUrl:'/?op=listGroups'", "id:'groupDatatable'", "errorTagId:'message'");
-             
+                  "noScript:1", "restDataUrl:'/?op=listGroups'", 
+                  "id:'groupDatatable'", "errorTagId:'message'");
             }
 
 	}else if ( operation === 'op=viewLoginHistory' ){ 
@@ -164,7 +165,8 @@ $(function(){
                   "{column:'sessionId';title:'Session Signature'}",                     
                   "{column:'lastPageViewed';title:'Last Page View'}",
                   "{column:'sessionLength';title:'Session Length'}",
-"noScript:1", "restDataUrl:'/?op=viewLoginHistory'", "id:'loginHistoryDatatable'", "errorTagId:'message'");
+                  "noScript:1", "restDataUrl:'/?op=viewLoginHistory'",
+                  "id:'loginHistoryDatatable'", "errorTagId:'message'");
              
             }
 
@@ -205,13 +207,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 14982
-  lastModified: 1362451171
+  assetSize: 15157
+  lastModified: 1362497204
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: pllNPewSQJaLoiJGp2-1PA
+  tagId: 8fmaIL5_RPeK5Bsb9GWE5A
   templateParser: ''
   usePacked: 0
 security:
