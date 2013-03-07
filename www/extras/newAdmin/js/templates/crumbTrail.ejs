@@ -1,0 +1,5 @@
+<ul <% if ( id ){ %>id=<%= id %><% } %> class="webgui_breadcrumb_container">
+   <% items.each( function( menuItem ){ %>
+      <li <%= (el) -> el.data('link', menuItem) %> class="webgui_breadcrumb_item"><a id="<%= menuItem.id %>" class="webgui-crumb-link" href="<%= menuItem.href %>" title="<%= menuItem.title %>"><%= menuItem.link %></a></li>
+   <% }) %>
+</ul>
