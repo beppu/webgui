@@ -1,10 +1,23 @@
-// Main webgui configuration object for scripts.  This can be put into a template and
+/*
+ *Helper methods.
+*/
+//if ($(selector).exists()) {
+//    // Do something
+//}
+$.fn.exists = function(){return this.length>0;};
+
+// Main webgui namespace object for scripts.  This can be put into a template and
 //   retrieved from the WebGUI config system
-WEBGUI_ADMIN_CONFIG = {
-   "template" : {
-      "path":"/js/templates/"
-   }
-};
+   WebGUI = {
+      Prime : {
+         error: "",
+         errorTag: "#errors",
+         errorTemplate: "webgui-ajax-error-template.ejs",
+         template : {
+            "path":"/js/templates/"
+         }         
+      }
+   };
 
 /*
  * Must create these types of menu items to be added to the dynamic menus.
@@ -23,7 +36,6 @@ var MenuDynamic = can.Construct({},{
          }else{
             return false;
          }
-
       }else{
          return false;
       }
@@ -48,7 +60,7 @@ var MenuDynamic = can.Construct({},{
 var MenuFromJson = can.Control({
    defaults: {
       levels: 5,
-      view: WEBGUI_ADMIN_CONFIG.template.path + 'crumbTrail.ejs' 
+      view: WebGUI.Prime.template.path + 'crumbTrail.ejs' 
    }
 },{
    'init': function( element , options ) {
@@ -75,7 +87,7 @@ var MenuFromJson = can.Control({
 var CrumbTrailMenu = can.Control({
    defaults: {
       levels: 5,
-      view: WEBGUI_ADMIN_CONFIG.template.path + 'crumbTrail.ejs' 
+      view: WebGUI.Prime.template.path + 'crumbTrail.ejs' 
    }      
 
 },{
@@ -108,7 +120,7 @@ var CrumbTrailMenu = can.Control({
       }
 
       var divId = this.options.divId; // Where we display the contents of the requested path
-      renderPage( divId, link.href );
+      loadPage( divId, link.href );
 
    },
    add:function(menuItem){
@@ -124,10 +136,23 @@ var CrumbTrailMenu = can.Control({
 });
 
 // given a page and a div id render the contents
-function renderPage(targetDiv, operation){
-   if ( $(targetDiv).length > 0 ){
+function loadPage(targetDiv, operation){
+   if ( $(targetDiv).exists() ){
       $(targetDiv).load( operation );
    }else{
       throw "You must provide a target to render the content of: " + operation;// ::i18n::
    }
+}
+
+// Generic logger function for failed ajax calls
+function logAjaxError(error){
+   $(document).ajaxError(function(event, request, settings){
+      if ( error ){
+         $( WebGUI.Prime.errorTag ).append( 
+            can.view( WebGUI.Prime.template.path + WebGUI.Prime.errorTemplate, 
+               { message: error, settings: settings } 
+            ) 
+         );
+      }
+   });
 }
