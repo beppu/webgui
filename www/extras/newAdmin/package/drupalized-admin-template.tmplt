@@ -26,6 +26,7 @@ URL         : newadmin/drupalized-admin-template
   <link rel="stylesheet" href="^Extras(/newAdmin/css/normalize.css);">
   <link rel="stylesheet" href="^Extras(/newAdmin/css/main.css);">
   <link rel="stylesheet" href="^Extras(/newAdmin/css/toolbar.css);">
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/menus.css);">
   <link rel="stylesheet" href="^Extras(/newAdmin/css/admin-datatable.css);">
  
   <script src="^Extras(/newAdmin/js/jquery-1.9.1.js);"></script>
@@ -34,6 +35,7 @@ URL         : newadmin/drupalized-admin-template
   <script src="^Extras(/newAdmin/js/jquery.dataTables.min.js);"></script>  
   <script src="^Extras(/newAdmin/js/URI.js);"></script>
   <script src="^Extras(/newAdmin/js/plugins.js);"></script>
+  <script src="^Extras(/newAdmin/js/application.js);"></script>
 
 <!-- theming -->  
   <link rel="stylesheet" href="^Extras(/newAdmin/css/jquery-ui-1.10.1.smoothness.css);" />
@@ -60,7 +62,7 @@ URL         : newadmin/drupalized-admin-template
 
 <tmpl_var body.content>
 
-   <script src="/newadmin/webgui8-admin-snippet"></script>
+<script src="/newadmin/webgui8-admin-snippet"></script>
 </body>        
 </html>
 ==== Properties ==============================================================
@@ -74,9 +76,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 5610
+  assetSize: 5865
   attachmentsJson: '[]'
-  lastModified: 1362508422
+  lastModified: 1362797326
   namespace: style
   parser: WebGUI::Asset::Template::HTMLTemplate
   revisedBy: 3
@@ -84,7 +86,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: NfDv1MyJQ02Vz79UdwRekw
+  tagId: 6VEPB7ZVTbmpTDsKZOPF9g
   usePacked: 0
 security:
   encryptPage: 0

@@ -46,17 +46,19 @@ $(function(){[% END %]
       "sAjaxSource": "[% url.list %]",
       "fnServerData": function ( sSource, aoData, fnCallback ) {
          $.ajax({
-            "dataType": 'json',
             "url": sSource,
-            "data": aoData     
+            "data": aoData,
+            "dataType": 'json'     
          })
-         .done(function(data, textStatus, jqXHR){ return; })
          .fail(function(jqXHR, textStatus, errorThrown){ 
+
+//console.log(jqXHR);//console.log("my object: %o", myObj)
             var response = JSON.parse( jqXHR.responseText );
+alert( response.NetworkError );
             [% IF errorTagId %]
-               $('#[% errorTagId %]').html(response.error);
+               $('#[% errorTagId %]').html(response.message);
             [% ELSE %]
-               alert(response.error);
+               alert( response.message );
             [% END %]
             [% table.id %].fnDestroy();
          })
@@ -76,9 +78,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 4294
+  assetSize: 4327
   attachmentsJson: '[]'
-  lastModified: 1362504561
+  lastModified: 1362548525
   namespace: DataTable
   parser: WebGUI::Asset::Template::TemplateToolkit
   revisedBy: 3
@@ -86,7 +88,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: sUCjtuLrQIukHoqi_yMZ2w
+  tagId: SwwNihQUSbWYH2aqZl4Zhw
   usePacked: 0
 security:
   encryptPage: 0

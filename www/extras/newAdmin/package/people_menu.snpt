@@ -26,11 +26,12 @@ URL         : newadmin/people_menu
 
 </div> 
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-2">
-   <div class="adminTabContainerSubMenu">
+   <div class="adminTabContainerSubMenu .ui-widget-header">
       <div id="messageWrapper" class="error ui-state-error ui-state-highlight ui-corner-all" style="padding-left:.5em;display:none"><span class="ui-icon ui-icon-alert" style="float:left" /><div id="message" class="ui-state-error-text"></div></div>
       <img src="^Extras(/adminConsole/groups.gif);">
+      <div id="groupCrumbTrailMenu"></div>
    </div>
-   <table id="groupDatatable" class="webguiAdminTable"></table>
+   <div id="groupContainer" class="ui-widget-content ui-corner-all"></div>
 </div>
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-3">
    <div class="adminTabContainerSubMenu">
@@ -61,7 +62,7 @@ $(function(){
          var operation = $(event.target).attr('target');
          if ( operation === 'op=viewActiveSessions' ){ 
             $('#messageWrapper').hide(); 
-            if ( sessionsDatatable != null ){
+            if ( sessionsDatatable ){
                sessionsDatatable.fnDraw();
 
             }else{
@@ -105,7 +106,7 @@ $(function(){
                               type: "GET",
                               url: '/?op=killSession',
                               data:{"sid":sid},
-                              dataType: "text"}
+                              dataType: "json"}
                            )
                            .done(function(data, textStatus, jqXHR){
                               if ( data.indexOf("ERROR::")==-1 ){
@@ -120,8 +121,8 @@ $(function(){
                               $('#messageWrapper').show();
                            })
                            .fail(function(jqXHR, textStatus, errorThrown){ 
-                              var response = JSON.parse( jqXHR.responseText );
-                              $('#message').html( xhr.status + ' ' + thrownError);
+                              var response = jqXHR.responseText;
+                              $('#message').html( textStatus + ' ' + errorThrown);
                               $('#messageWrapper').show();
                               sessionsDatatable.fnDraw();
                            })
@@ -138,34 +139,42 @@ $(function(){
            
 	 }else if ( operation === 'op=listGroups' ){ 
             $('#messageWrapper').hide(); 
-            if ( groupDatatable != null ){
-               groupDatatable.fnDraw();
+            $('#groupContainer').html('<table id="groupDatatable" class="webguiAdminTable"></table>'); // hate to do this but needs to be done for now
+            ^WF(datatable, 
+               "{column:'groupId';title:'Id';linkUri:'/?op=editGroup&gid=';cssClass:'groupEdit'}",
+               "{column:'groupName';title:'Name'}",
+               "{column:'description';title:'Description'}",
+               "noScript:1", "restDataUrl:'/?op=listGroups'", 
+               "id:'groupDatatable'", "errorTagId:'message'");
 
-            }else{
-               ^WF(datatable, 
-                  "{column:'groupId';title:'Id';linkUri:'/?op=editGroup&gid=';cssClass:'groupEdit'}",
-                  "{column:'groupName';title:'Name'}",
-                  "{column:'description';title:'Description'}",
-                  "noScript:1", "restDataUrl:'/?op=listGroups'", 
-                  "id:'groupDatatable'", "errorTagId:'message'");
+               var groupCrumbTrailMenu = new CrumbTrailMenu('#groupCrumbTrailMenu',{ divId:"#groupContainer", view:"^Extras(/newAdmin/js/templates/crumbTrail.ejs);" });
 
-                  $('#groupDatatable').on('click', "tr", function(event){ 
-                     event.preventDefault();
-                     try{
-                        var uri = new URI( event['target']['href'] );
-                        var query = URI.parseQuery( uri.search() );
-                        alert( query.op + ' ' + query.gid );
-
-                     }catch(error){
-                        alert("NOT AVAILABLE!");
-
+               $('#groupDatatable').on('click', "tr", function(event){ 
+                  event.preventDefault();
+                  try{
+                     var jsonSource = event['target']['href'];
+                     var uri = new URI( jsonSource );
+                     var query = URI.parseQuery( uri.search() );
+                     if ( query.op && query.gid ){
+                        var jsonFunction = function(){
+                           $.ajax({ url:jsonSource, dataType:"json" })
+                            .done(function(data, textStatus, jqXHR){
+                               $('#groupContainer').html( can.view(WebGUI.Prime.template.path + "groups.ejs", data) );
+                             })
+                             .fail(function(jqXHR, textStatus, errorThrown){
+                                logAjaxError("Error requesting page"); 
+                             });
+                        };
+                        // Add the menu to click...
+                        groupCrumbTrailMenu.add(new MenuDynamic(jsonFunction, "Edit Group","Editing group: " + query.gid));
                      }
-                  }); 
-            }
+                  }catch(error){ // just ignore for now. ::TODO::
+                  }
+               }); 
 
 	}else if ( operation === 'op=viewLoginHistory' ){ 
             $('#messageWrapper').hide(); 
-            if ( loginHistoryDatatable != null ){
+            if ( loginHistoryDatatable ){
                loginHistoryDatatable.fnDraw();
 
             }else{
@@ -184,13 +193,16 @@ $(function(){
             }
 
          }else{
-            $( target ).load( '/?' + operation );
-
+            $( target ).load( '/?' + operation , function(response, status, xhr) {
+               if (status == "error") {
+                  $('#message').html( exception );
+               }
+            });
          }     
       });
       
    }catch(exception){
-      $('#message').html( exception );
+      //$('#message').html( exception );
 
    }
    
@@ -198,14 +210,11 @@ $(function(){
 </script>
 
 <div id="dialog-confirm" title="Are you sure you wan't to delete these records?" style="display:none">
-<p><span class="ui-icon ui-icon-alert" style="float:left;margin:0 7px 20px 0;"></span>These items will be permanently deleted and cannot be recovered. Are you sure?</p>
+   <p>
+      <span class="ui-icon ui-icon-alert" style="float:left;margin:0 7px 20px 0;"></span>
+      These items will be permanently deleted and cannot be recovered. Are you sure?
+   </p>
 </div>
-
-
-
-
-
-
 ==== synopsis ================================================================
 
 ==== Properties ==============================================================
@@ -220,13 +229,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 15894
-  lastModified: 1362509362
+  assetSize: 17540
+  lastModified: 1362799622
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: 8Sbv6jupQv67rU1_AKaK5g
+  tagId: k1ZM9bI6QduavIvwG3HnMg
   templateParser: ''
   usePacked: 0
 security:

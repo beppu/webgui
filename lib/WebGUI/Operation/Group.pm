@@ -461,179 +461,157 @@ A WebGUI::Session object
 
 sub www_editGroup {
 	my $session = shift;
-	return $session->privilege->adminOnly() unless (canEditGroup($session,$session->form->process("gid")));
-        my ($output, $f, $g);
-	if ($session->form->process("gid") eq "new") {
-		$g = WebGUI::Group->new($session,"");
-	} else {
-		$g = WebGUI::Group->new($session,$session->form->process("gid"));
-	}
+   my $rest = WebGUI::Session::Rest->new( session => $session );	
 	my $i18n = WebGUI::International->new($session);
-	$f = WebGUI::HTMLForm->new($session);
-	$f->submit;
-        $f->hidden(
-		-name => "op",
-		-value => "editGroupSave",
-	);
-        $f->hidden(
-		-name => "gid",
-		-value => $session->form->process("gid")
-	);
-        $f->readOnly(
-		-label => $i18n->get(379),
-		-value => $g->getId,
-        );
-        $f->text(
-		-name => "groupName",
-		-label => $i18n->get(84),
-		-hoverHelp => $i18n->get('84 description'),
-		-value => $g->name,
-        );
-        $f->textarea(
-		-name => "description",
-		-label => $i18n->get(85),
-		-hoverHelp => $i18n->get('85 description'),
-		-value => $g->description,
-        );
-        $f->yesNo(
-		-name=>"isEditable",
-		-label=>$i18n->get('is editable'), 
-		-hoverHelp=>$i18n->get('is editable help'), 
-		-value=>$g->isEditable,
-		);
-        $f->yesNo(
-		-name=>"showInForms",
-		-label=>$i18n->get('show in forms'), 
-		-hoverHelp=>$i18n->get('show in forms help'), 
-		-value=>$g->showInForms,
-		);
-        $f->interval(
-		-name=>"expireOffset",
-		-label=>$i18n->get(367), 
-		-hoverHelp=>$i18n->get('367 description'), 
-		-value=>$g->expireOffset
-		);
-	$f->yesNo(
-		-name=>"expireNotify",
-		-value=>$g->expireNotify,
-		-label=>$i18n->get(865),
-		-hoverHelp=>$i18n->get('865 description'),
-		);
-	$f->integer(
-		-name=>"expireNotifyOffset",
-		-value=>$g->expireNotifyOffset,
-		-label=>$i18n->get(864),
-		-hoverHelp=>$i18n->get('864 description'),
-		);
-        $f->textarea(
-                -name=>"expireNotifyMessage",
-		-value=>$g->expireNotifyMessage,
-		-label=>$i18n->get(866),
-		-hoverHelp=>$i18n->get('866 description'),
-                );
-        $f->integer(
-                -name=>"deleteOffset",
-                -value=>$g->deleteOffset,
-                -label=>$i18n->get(863),
-                -hoverHelp=>$i18n->get('863 description'),
-                );
-	if ($session->setting->get("useKarma")) {
-		$f->integer(
-                        -name=>"karmaThreshold",
-                        -label=>$i18n->get(538),
-                        -hoverHelp=>$i18n->get('538 description'),
-                        -value=>$g->karmaThreshold
-                        );
-	}
-	$f->textarea(
-		-name=>"ipFilter",
-		-value=>$g->ipFilter,
-		-label=>$i18n->get(857),
-		-hoverHelp=>$i18n->get('857 description'),
-		);
-	$f->textarea(
-		-name=>"scratchFilter",
-		-value=>$g->scratchFilter,
-		-label=>$i18n->get(945),
-		-hoverHelp=>$i18n->get('945 description'),
-		);
-	if ($session->form->process("gid") eq "3") {
-		$f->hidden(
-			-name=>"autoAdd",
-			-value=>0
-			);
-		$f->hidden(
-			-name=>"autoDelete",
-			-value=>0
-			);
+	my $groupId = $session->form->process("gid");
+	
+	return $rest->forbidden( $i18n->get(36) )
+	   unless ( canEditGroup($session, $groupId ) );
+
+	my $group = undef;
+	if ( $groupId ){
+		$group = WebGUI::Group->new( $session ,$groupId );
 	} else {
-		$f->yesNo(
-			-name=>"autoAdd",
-			-value=>$g->autoAdd,
-			-label=>$i18n->get(974),
-			-hoverHelp=>$i18n->get('974 description'),
-			);
-		$f->yesNo(
-			-name=>"autoDelete",
-			-value=>$g->autoDelete,
-			-label=>$i18n->get(975),
-			-hoverHelp=>$i18n->get('975 description'),
-			);
+		$group = WebGUI::Group->new($session,"");
 	}
-	$f->databaseLink(
-                -value=>[$g->databaseLinkId]
-                );
-	$f->textarea(
-		-name=>"dbQuery",
-		-value=>$g->dbQuery,
-		-label=>$i18n->get(1005),
-		-hoverHelp=>$i18n->get('1005 description'),
-		);
+	
+	my $output = {
+		op => "editGroupSave",
+		id => $groupId,
+		groupName => {
+			label => $i18n->get(84),
+			value => $group->name,
+			description => $i18n->get('84 description')			  
+		},
+		description => {
+			label => $i18n->get(85),
+			value => $group->description,
+			description => $i18n->get('85 description')			  
+		},
+		isEditable => {
+			label => $i18n->get('is editable'),
+			value => $group->isEditable,
+			description => $i18n->get('is editable help')					
+		},
+		showInForms => {
+			label => $i18n->get('show in forms'),
+			value => $group->showInForms,
+			description => $i18n->get('show in forms help')					
+		},
+		expireOffset => {
+			label => $i18n->get(367),
+			value => $group->expireOffset,
+			description => $i18n->get('367 description')				
+		},
+		expireNotify => {
+			label => $i18n->get(865),
+			value => $group->expireNotify,
+			description => $i18n->get('865 description')			
+		},
+		expireNotifyOffset => {
+			label => $i18n->get(864),
+			value => $group->expireNotifyOffset,
+			description => $i18n->get('864 description')			
+		},
+		expireNotifyMessage => {
+			label => $i18n->get(866),
+			value => $group->expireNotifyMessage,
+			description => $i18n->get('866 description')			
+		},
+		deleteOffset => {
+			label => $i18n->get(863),
+			value => $group->deleteOffset,
+			description => $i18n->get('863 description')			
+		},
+		ipFilter => {
+			label => $i18n->get(857),
+			value => $group->ipFilter,
+			description => $i18n->get('857 description')			
+		},
+		scratchFilter => {
+			label => $i18n->get(945),
+			value => $group->scratchFilter,
+			description => $i18n->get('945 description')			
+		},				
+		databaseLink => {
+			label => '',
+			value => $group->databaseLinkId,
+			description => ''			
+		},
+		dbQuery => {
+			label => $i18n->get(1005),
+			value => $group->dbQuery,
+			description => $i18n->get('1005 description')			
+		},		
+		ldapGroup => {
+			label => $i18n->get("LDAPLink_ldapGroup","AuthLDAP"),
+			value => $group->ldapGroup,
+			description => $i18n->get("LDAPLink_ldapGroup description","AuthLDAP")			
+		},				
+		ldapGroupProperty => {
+			label => $i18n->get("LDAPLink_ldapGroupProperty","AuthLDAP"),
+			value => $group->ldapGroupProperty,
+			default => "member",
+			description => $i18n->get("LDAPLink_ldapGroupProperty description","AuthLDAP")			
+		},					
+		ldapRecursiveProperty => {
+			label => $i18n->get("LDAPLink_ldapRecursiveProperty","AuthLDAP"),
+			value => $group->ldapRecursiveProperty,
+			description => $i18n->get("LDAPLink_ldapRecursiveProperty description","AuthLDAP")			
+		},
+		ldapRecursiveFilter => {
+			label => $i18n->get("LDAPLink_ldapRecursiveFilter","AuthLDAP"),
+			value => $group->ldapRecursiveFilter,
+			description => $i18n->get("LDAPLink_ldapRecursiveFilterDescription","AuthLDAP")			
+		},
+		groupCacheTimeout => {
+			label => $i18n->get(1004),
+			value => $group->groupCacheTimeout,
+			description => $i18n->get('1004 description')		
+		},
 		
-    tie my %links, "Tie::IxHash";
+		
+	};
+
+	# Conditional input, autoadd during save process unless the group is not 3
+	if ( $groupId ne "3") {
+		$output->{autoAdd} = {
+			label => $i18n->get(974),
+			value => $group->autoAdd,
+			description => $i18n->get('974 description')				
+		};
+		
+		$output->{autoDelete} = {
+			label => $i18n->get(975),
+			value => $group->autoDelete,
+			description => $i18n->get('975 description')				
+		};
+
+	}		
+	
+	# Karmafied???
+	if ( $session->setting->get("useKarma") ){
+		$output->{karmaThreshold} = {
+			label => $i18n->get(538),
+			value => $group->karmaThreshold,
+			description => $i18n->get('538 description')				
+		};		
+
+	}	
+	
+	# The LDAP portion
+   tie my %links, "Tie::IxHash";
 	%links = %{WebGUI::LDAPLink->getList($session)};
-	%links = (""=>$i18n->get("noldaplink"),%links);
-	$f->selectBox(
-	                -name=>"ldapLinkId",
-					-label=>$i18n->get("ldapConnection","AuthLDAP"),
-					-hoverHelp=>$i18n->get("ldapConnection description","AuthLDAP"),
-					-options=>\%links,
-					-value=>[$g->ldapLinkId]
-				  );
-	$f->text(
-	       -name=>"ldapGroup",
-		   -label=>$i18n->get("LDAPLink_ldapGroup","AuthLDAP"),
-		   -hoverHelp=>$i18n->get("LDAPLink_ldapGroup description","AuthLDAP"),
-	       -value=>$g->ldapGroup
-		);
-    $f->text(
-	       -name=>"ldapGroupProperty",
-		   -label=>$i18n->get("LDAPLink_ldapGroupProperty","AuthLDAP"),
-		   -hoverHelp=>$i18n->get("LDAPLink_ldapGroupProperty description","AuthLDAP"),
-		   -value=>$g->ldapGroupProperty,
-		   -defaultValue=>"member"
-	    );
-    $f->text(
-	       -name=>"ldapRecursiveProperty",
-		   -label=>$i18n->get("LDAPLink_ldapRecursiveProperty","AuthLDAP"),
-		   -hoverHelp=>$i18n->get("LDAPLink_ldapRecursiveProperty description","AuthLDAP"),
-		   -value=>$g->ldapRecursiveProperty
-	    );
-	$f->textarea(
-	       -name=>"ldapRecursiveFilter",
-		   -label=>$i18n->get("LDAPLink_ldapRecursiveFilter","AuthLDAP"),
-		   -hoverHelp=>$i18n->get("LDAPLink_ldapRecursiveFilterDescription","AuthLDAP"),
-		   -value=>$g->ldapRecursiveFilter
-	    );
-	$f->interval(
-		-name=>"groupCacheTimeout",
-		-label=>$i18n->get(1004), 
-		-hoverHelp=>$i18n->get('1004 description'), 
-		-value=>$g->groupCacheTimeout
-		);
-	$f->submit;
-	$output .= $f->print;
-        return _submenu($session,$output,'87');
+	%links = (""=>$i18n->get("noldaplink"),%links);   
+	$output->{ldapLinkId} = {
+		label => $i18n->get("ldapConnection","AuthLDAP"),
+		value => $group->ldapLinkId,
+		description => $i18n->get("ldapConnection description","AuthLDAP"),
+		options => \%links
+	};		
+
+	$rest->data( $output );
+   return $rest->response;
 }
 
 #-------------------------------------------------------------------
@@ -653,44 +631,49 @@ A WebGUI::Session object
 =cut
 
 sub www_editGroupSave {
-    my $session = shift;
-    my $gid = $session->form->process("gid");
-    return $session->privilege->adminOnly
-        unless canEditGroup($session, $gid) && $session->form->validToken;
-    my $g = WebGUI::Group->new($session, $gid);
-    # We don't want them to use an existing name.  If needed, we'll add a number to the name to keep it unique.
-    my $groupName = $session->form->process("groupName");
-    while (my $existingGroupId = WebGUI::Group->find($session, $groupName)->getId) {
-        last
-            if $existingGroupId eq $gid;
-        $groupName =~ s/\A(.*?)(\d*)\z/
-            my $newNum = ($2 || 0) + 1;
-            substr($1, 0, 100 - length($newNum)) . $newNum;  #prevent name from growing over 100 chars
-        /emsx;
-    }
-    $g->name($groupName);
-    $g->description($session->form->process("description"));
-    $g->expireOffset($session->form->interval("expireOffset"));
-	$g->karmaThreshold($session->form->process("karmaThreshold"));
-	$g->isEditable($session->form->process("isEditable"));
-	$g->showInForms($session->form->process("showInForms"));
-	$g->ipFilter($session->form->process("ipFilter"));
-	$g->scratchFilter($session->form->process("scratchFilter"));
-	$g->expireNotify($session->form->yesNo("expireNotify"));
-	$g->expireNotifyOffset($session->form->process("expireNotifyOffset"));
-	$g->expireNotifyMessage($session->form->process("expireNotifyMessage"));
-	$g->deleteOffset($session->form->process("deleteOffset"));
-	$g->autoAdd($session->form->yesNo("autoAdd"));
-	$g->autoDelete($session->form->yesNo("autoDelete"));
-	$g->databaseLinkId($session->form->process("databaseLinkId"));
-	$g->dbQuery($session->form->process("dbQuery"));
-	$g->groupCacheTimeout($session->form->interval("groupCacheTimeout"));
-	$g->ldapLinkId($session->form->selectBox("ldapLinkId"));
-	$g->ldapGroup($session->form->text("ldapGroup"));
-	$g->ldapGroupProperty($session->form->text("ldapGroupProperty"));
-	$g->ldapRecursiveProperty($session->form->text("ldapRecursiveProperty"));
-	$g->ldapRecursiveFilter($session->form->process("ldapRecursiveFilter"));
-	return www_listGroups($session);
+	my $session = shift;
+   my $rest = WebGUI::Session::Rest->new( session => $session );	
+	my $i18n = WebGUI::International->new($session);
+	my $groupId = $session->form->process("gid") || 'new';
+	
+	return $rest->forbidden( $i18n->get(36) )
+	   unless ( canEditGroup( $session, $groupId ) && $session->form->validToken );
+	
+   my $group = WebGUI::Group->new($session, $groupId);
+   # We don't want them to use an existing name.  If needed, we'll add a number to the name to keep it unique.
+   my $groupName = $session->form->process("groupName");
+   while ( my $existingGroupId = WebGUI::Group->find($session, $groupName)->getId ) {
+      last
+         if $existingGroupId eq $groupId;
+      $groupName =~ s/\A(.*?)(\d*)\z/
+         my $newNum = ($2 || 0) + 1;
+         substr($1, 0, 100 - length($newNum)) . $newNum;  #prevent name from growing over 100 chars
+      /emsx;
+   }
+   $group->name($groupName);
+   $group->description($session->form->process("description"));
+   $group->expireOffset($session->form->interval("expireOffset"));
+	$group->karmaThreshold($session->form->process("karmaThreshold"));
+	$group->isEditable($session->form->process("isEditable"));
+	$group->showInForms($session->form->process("showInForms"));
+	$group->ipFilter($session->form->process("ipFilter"));
+	$group->scratchFilter($session->form->process("scratchFilter"));
+	$group->expireNotify($session->form->yesNo("expireNotify"));
+	$group->expireNotifyOffset($session->form->process("expireNotifyOffset"));
+	$group->expireNotifyMessage($session->form->process("expireNotifyMessage"));
+	$group->deleteOffset($session->form->process("deleteOffset"));
+	$group->autoAdd($session->form->yesNo("autoAdd"));
+	$group->autoDelete($session->form->yesNo("autoDelete"));
+	$group->databaseLinkId($session->form->process("databaseLinkId"));
+	$group->dbQuery($session->form->process("dbQuery"));
+	$group->groupCacheTimeout($session->form->interval("groupCacheTimeout"));
+	$group->ldapLinkId($session->form->selectBox("ldapLinkId"));
+	$group->ldapGroup($session->form->text("ldapGroup"));
+	$group->ldapGroupProperty($session->form->text("ldapGroupProperty"));
+	$group->ldapRecursiveProperty($session->form->text("ldapRecursiveProperty"));
+	$group->ldapRecursiveFilter($session->form->process("ldapRecursiveFilter"));
+	$rest->data( { id => $group->getId } );
+   return $rest->response;
 }
 
 #-------------------------------------------------------------------

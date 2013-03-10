@@ -14,7 +14,7 @@ $.fn.exists = function(){return this.length>0;};
          errorTag: "#errors",
          errorTemplate: "webgui-ajax-error-template.ejs",
          template : {
-            "path":"/js/templates/"
+            "path":"/extras/newAdmin/js/templates/"
          }         
       }
    };
