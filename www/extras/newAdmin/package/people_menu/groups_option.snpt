@@ -7,8 +7,6 @@ URL         : newadmin/people_menu/groups_option
 ==== extraHeadTags ===========================================================
 
 ==== snippet =================================================================
-         $( document ).tooltip();
-
             $('#messageWrapper').hide(); 
             $('#groupContainer').html('<table id="groupDatatable" class="webguiAdminTable"></table>'); // hate to do this but needs to be done for now
             ^WF(datatable, 
@@ -53,13 +51,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 3103
-  lastModified: 1363024975
+  assetSize: 3043
+  lastModified: 1363028776
   mimeType: text/javascript
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: GmzUVqvPTHOuN1XIqonFBw
+  tagId: Xy3iZ5WTSuugZzexfNVytw
   templateParser: ''
   usePacked: 0
 security:

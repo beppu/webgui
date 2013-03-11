@@ -13,9 +13,10 @@ $.fn.exists = function(){return this.length>0;};
          error: "",
          errorTag: "#errors",
          errorTemplate: "webgui-ajax-error-template.ejs",
-         template : {
+         template: {
             "path":"/extras/newAdmin/js/templates/"
-         }         
+         },
+         tooltips: true
       }
    };
 

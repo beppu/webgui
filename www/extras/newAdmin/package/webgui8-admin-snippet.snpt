@@ -22,6 +22,10 @@ $(function(){
          $('body').append('<div id="adminDiv"></div>'); // this has to be removed once we get out of admin mode
          $('#adminDiv').load("/newadmin/webgui8-admin-menu");
          $('#toolbar').show();
+         // Enable/disable tooltips on the website
+         if ( WebGUI.Prime.tooltips ){
+            $( document ).tooltip();
+         }
       }
    });
 });
@@ -39,13 +43,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 1706
-  lastModified: 1362797400
+  assetSize: 1947
+  lastModified: 1363029026
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: PpwGzWEkSMOHrC5covaSaQ
+  tagId: e33TL-BHRRGuESSpXjJp7Q
   templateParser: ''
   usePacked: 0
 security:
