@@ -474,7 +474,7 @@ sub www_editGroup {
 	} else {
 		$group = WebGUI::Group->new($session,"");
 	}
-	
+
 	my $output = {
 		op => "editGroupSave",
 		id => $groupId,
@@ -500,9 +500,18 @@ sub www_editGroup {
 		},
 		expireOffset => {
 			label => $i18n->get(367),
-			value => $group->expireOffset,
+			value => $session->datetime->secondsToExactInterval( $group->expireOffset ),
 			description => $i18n->get('367 description')				
 		},
+		unitsOfTime => {
+			seconds => $i18n->get(704),
+			minutes => $i18n->get(705),
+			hours   => $i18n->get(706),
+			days    => $i18n->get(700),
+			weeks   => $i18n->get(701),
+			months  => $i18n->get(702),
+			years   => $i18n->get(703)
+      },		
 		expireNotify => {
 			label => $i18n->get(865),
 			value => $group->expireNotify,

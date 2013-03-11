@@ -30,7 +30,7 @@ URL         : newadmin/drupalized-admin-template
   <link rel="stylesheet" href="^Extras(/newAdmin/css/admin-datatable.css);">
  
   <script src="^Extras(/newAdmin/js/jquery-1.9.1.js);"></script>
-  <script src="^Extras(/newAdmin/js/jquery.cookie.js);"></script>
+  <script src="^Extras(/newAdmin/js/jquerypp.custom.js);"></script>
   <script src="^Extras(/newAdmin/js/can.jquery.js);"></script>
   <script src="^Extras(/newAdmin/js/jquery.dataTables.min.js);"></script>  
   <script src="^Extras(/newAdmin/js/URI.js);"></script>
@@ -76,9 +76,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 5865
+  assetSize: 5869
   attachmentsJson: '[]'
-  lastModified: 1362797326
+  lastModified: 1362977867
   namespace: style
   parser: WebGUI::Asset::Template::HTMLTemplate
   revisedBy: 3
@@ -86,7 +86,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: 6VEPB7ZVTbmpTDsKZOPF9g
+  tagId: 8EUqHp9FTSSfNcAvkqUIXQ
   usePacked: 0
 security:
   encryptPage: 0

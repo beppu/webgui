@@ -109,15 +109,8 @@ $(function(){
                               dataType: "json"}
                            )
                            .done(function(data, textStatus, jqXHR){
-                              if ( data.indexOf("ERROR::")==-1 ){
-                                 $('#message').html("Records deleted!");
-                                 sessionsDatatable.fnDraw();
-                                
-                              }else{
-                                 $('#message').html("Error, no records deleted!");
-                                 sessionsDatatable.fnDraw(false);
-                              
-                              }
+                              $('#message').html("Records deleted!");
+                              sessionsDatatable.fnDraw();
                               $('#messageWrapper').show();
                            })
                            .fail(function(jqXHR, textStatus, errorThrown){ 
@@ -135,7 +128,6 @@ $(function(){
                   });
                }
             });
-
            
 	 }else if ( operation === 'op=listGroups' ){ 
             $('#messageWrapper').hide(); 
@@ -147,32 +139,32 @@ $(function(){
                "noScript:1", "restDataUrl:'/?op=listGroups'", 
                "id:'groupDatatable'", "errorTagId:'message'");
 
-               var groupCrumbTrailMenu = new CrumbTrailMenu('#groupCrumbTrailMenu',{ divId:"#groupContainer", view:"^Extras(/newAdmin/js/templates/crumbTrail.ejs);" });
+            var groupCrumbTrailMenu = new CrumbTrailMenu('#groupCrumbTrailMenu',{ divId:"#groupContainer", view: WebGUI.Prime.template.path + "crumbTrail.ejs" });
 
-               $('#groupDatatable').on('click', "tr", function(event){ 
-                  event.preventDefault();
-                  try{
-                     var jsonSource = event['target']['href'];
-                     var uri = new URI( jsonSource );
-                     var query = URI.parseQuery( uri.search() );
-                     if ( query.op && query.gid ){
-                        var jsonFunction = function(){
-                           $.ajax({ url:jsonSource, dataType:"json" })
-                            .done(function(data, textStatus, jqXHR){
-                               $('#groupContainer').html( can.view(WebGUI.Prime.template.path + "groups.ejs", data) );
-                             })
-                             .fail(function(jqXHR, textStatus, errorThrown){
-                                logAjaxError("Error requesting page"); 
-                             });
-                        };
-                        // Add the menu to click...
-                        groupCrumbTrailMenu.add(new MenuDynamic(jsonFunction, "Edit Group","Editing group: " + query.gid));
-                     }
-                  }catch(error){ // just ignore for now. ::TODO::
+            $('#groupDatatable').on('click', "tr", function(event){ 
+               event.preventDefault();
+               try{
+                  var jsonSource = event['target']['href'];
+                  var uri = new URI( jsonSource );
+                  var query = URI.parseQuery( uri.search() );
+                  if ( query.op && query.gid ){
+                     var jsonFunction = function(){
+                        $.ajax({ url:jsonSource, dataType:"json" })
+                         .done(function(data, textStatus, jqXHR){
+                            $('#groupContainer').html( can.view(WebGUI.Prime.template.path + "groups.ejs", data) );
+                         })
+                         .fail(function(jqXHR, textStatus, errorThrown){
+                            logAjaxError("Error requesting page"); 
+                         });
+                     };
+                     // Add the menu to click...
+                     groupCrumbTrailMenu.add(new MenuDynamic(jsonFunction, "Edit Group","Editing group: " + query.gid));
                   }
-               }); 
+               }catch(error){ // just ignore for now. ::TODO::
+               }
+            }); 
 
-	}else if ( operation === 'op=viewLoginHistory' ){ 
+	 }else if ( operation === 'op=viewLoginHistory' ){ 
             $('#messageWrapper').hide(); 
             if ( loginHistoryDatatable ){
                loginHistoryDatatable.fnDraw();
@@ -229,13 +221,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 17540
-  lastModified: 1362799622
+  assetSize: 16996
+  lastModified: 1362978515
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: k1ZM9bI6QduavIvwG3HnMg
+  tagId: 5schjpl0SEShXQVk0-HYYA
   templateParser: ''
   usePacked: 0
 security:

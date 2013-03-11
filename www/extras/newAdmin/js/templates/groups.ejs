@@ -1,12 +1,6 @@
 <form name="groupEditForm">
   <input type="hidden" name="op" value="<%= op %>" />
    <table>
-      <thead>
-         <tr>
-            <th>Label</th><th>Value</th>
-         </tr>
-      </thead>
-      <tbody>
         <tr>
            <td>Group ID</td><td><input type="hidden" name="gid" value="<%= id %>" /><%= id %></td>
         </tr>
@@ -26,8 +20,10 @@
         </tr>
         <tr>
            <td><%= expireOffset.label %></td><td><input type="text" name="expireOffset" value="<%= expireOffset.value %>" />
-                                                 <select>
-                                                    <option value="">Fill these out</option>
+                                                 <select name="expireOffsetUnitOfTime">
+                                                 <% can.each(unitsOfTime,function(data, index){ %>
+                                                    <option value="<%= index %>"><%= data %></option>
+                                                 <% }) %>
                                                  </select></td>
         </tr> 
         <tr>
@@ -88,13 +84,12 @@
         </tr>
         <tr>
            <td><%= groupCacheTimeout.label %></td><td><input type="text" name="groupCacheTimeout" value="<%= groupCacheTimeout.value %>" />
-               <select name="">
-               <% can.each(groupCacheTimeout.options,function(data, index){ %>
-                  <option value="<%= index %>"><%= data %></option>
-               <% }) %>
-               </select>               
+                                                 <select name="groupCacheTimeoutInterval">
+                                                 <% can.each(unitsOfTime,function(data, index){ %>
+                                                    <option value="<%= index %>"><%= data %></option>
+                                                 <% }) %>
+                                                 </select>
            </td>
         </tr>   
-      </tbody>
    </table>
 </form>
