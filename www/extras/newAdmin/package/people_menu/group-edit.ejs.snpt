@@ -10,6 +10,7 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
 <button id="save-group-button" type="button">Save</button>
 <form id="groupEditForm" name="groupEditForm">
   <input type="hidden" name="op" value="<%= op %>" />
+  <%== token %>
    <table>
         <tr>
            <td>Group ID</td><td><input type="hidden" name="gid" value="<%= id %>" /><%= id %></td>
@@ -32,7 +33,7 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
            <td title="<%= expireOffset.description %>"><%= expireOffset.label %></td><td><input type="text" name="expireOffset" value="<%= expireOffset.value %>" />
                                                  <select name="expireOffsetUnitOfTime">
                                                  <% can.each(unitsOfTime,function(data, index){ %>
-                                                    <option value="<%= index %>"><%= data %></option>
+                                                    <option value="<%= index %>" <% if ( expireNotify.description === data ){ %>selected<% } %>><%= data %></option>
                                                  <% }) %>
                                                  </select></td>
         </tr> 
@@ -80,7 +81,7 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
            <td title="<%= ldapLinkId.description %>"><%= ldapLinkId.label %></td><td>
                 <select name="ldapLinkId">
                 <% can.each(ldapLinkId.options,function(data, index){ %>
-                   <option value="<%= index %>"><%= data %></option>
+                   <option value="<%= index %>" <% if ( ldapLinkId.value == index ){ %>selected<% } %>><%= data %></option>
                 <% }) %>
                 </select>
            </td>
@@ -123,13 +124,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 12244
-  lastModified: 1363028058
+  assetSize: 12612
+  lastModified: 1363032945
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: 94hvgdU9TgiEl0yfUInx6Q
+  tagId: X4KLO8YLTrq4KR2Mbq_ZsA
   templateParser: ''
   usePacked: 0
 security:

@@ -10,7 +10,7 @@ URL         : newadmin/people_menu
 <!-- Overlay wrapper content -->
 <ul> 
    <li><a class="adminOverlayTabs-click default ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-1" target="op=viewActiveSessions">Sessions</a></li>
-   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-2" target="op=listGroups">Groups</a></li>
+   <li><a id="groupTab" class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-2" target="op=listGroups">Groups</a></li>
    <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-3" target="op=viewLoginHistory">Login History</a></li>
    <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-4" target="op=editProfileSettings">User Profiling</a></li>
    <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-5" target="op=listUsers">Users</a></li>
@@ -106,13 +106,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 8670
-  lastModified: 1363019836
+  assetSize: 8698
+  lastModified: 1363034321
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: WtyP_cqFSWKJ2RF5SwoOdA
+  tagId: YTL4iAiHTk_SS9790XVMPQ
   templateParser: ''
   usePacked: 0
 security:

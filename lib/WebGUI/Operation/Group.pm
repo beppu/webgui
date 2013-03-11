@@ -475,11 +475,14 @@ sub www_editGroup {
 		$group = WebGUI::Group->new($session);
 	}
 	
+   use WebGUI::Form::CsrfToken;
+   my $hiddenToken = WebGUI::Form::CsrfToken->new($session)->toHtml;
    my $dbLinks = WebGUI::DatabaseLink->getList( $session );
 
 	my $output = {
 		op => "editGroupSave",
 		id => $groupId,
+		token => $hiddenToken,
 		groupName => {
 			label => $i18n->get(84),
 			value => $group->name,
@@ -503,7 +506,7 @@ sub www_editGroup {
 		expireOffset => {
 			label => $i18n->get(367),
 			value => $session->datetime->secondsToExactInterval( $group->expireOffset ),
-			description => $i18n->get('367 description')				
+			description => '"' . $i18n->get('367 description') . '"' 		
 		},
 		unitsOfTime => {
 			seconds => $i18n->get(704),
