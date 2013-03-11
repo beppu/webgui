@@ -24,7 +24,7 @@ Package WebGUI::Macro::AssetProxy
 
 Macro for displaying the output of an Asset in another location.
 
-=head2 process ( url | assetId, [ type ] )
+=head2 process ( url | assetId, [ type ], [ include_toolbar ] )
 
 =head3 url | assetId
 
@@ -38,11 +38,16 @@ The Not Found Page may not be Asset Proxied.
 
 Defaults to 'url'. But if you want to use an assetId as the first parameter, then this parameter must be 'assetId'.
 
+=head3 include_toolbar
+
+Undef by default.  Pass any value if you want to explicitly suppress the toolbar.  This is useful for including assets that are contained within javascript
+and which would cause an exception if the toolbar was included.
+
 =cut
 
 #-------------------------------------------------------------------
 sub process {
-    my ($session, $identifier, $type) = @_;
+    my ($session, $identifier, $type, $include_toolbar) = @_;
     if (!$identifier) {
         $session->errorHandler->warn('AssetProxy macro called without an asset to proxy. ' 
         . 'The macro was called through this url: '.$session->url->page);
@@ -86,10 +91,17 @@ sub process {
         }
     }
     elsif ($asset->canView) {
+        my $isAdminOn = $session->isAdminOn;
         $asset->prepareView;
+        if ( $include_toolbar ){
+           $session->{_var}{adminOn} = undef; # suppress the div tag
+        }
         my $output = $asset->view;
         $perfLog->({ asset => $asset, time => Time::HiRes::tv_interval($t), type => 'Proxy'})
             if $perfLog;
+        if ( $include_toolbar ){ # Make sure we set this back to its previous value
+           $session->{_var}{adminOn} = $isAdminOn;     
+        }            
         return $output;
     }
     return '';

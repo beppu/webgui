@@ -1,0 +1,70 @@
+==== Snippet =================================================================
+Asset ID    : DBASH-0000000000000009
+Menu Title  : Groups Option
+Parent      : newadmin/people_menu
+Title       : Groups Option
+URL         : newadmin/people_menu/groups_option
+==== extraHeadTags ===========================================================
+
+==== snippet =================================================================
+         $( document ).tooltip();
+
+            $('#messageWrapper').hide(); 
+            $('#groupContainer').html('<table id="groupDatatable" class="webguiAdminTable"></table>'); // hate to do this but needs to be done for now
+            ^WF(datatable, 
+               "{column:'groupId';title:'Id';linkUri:'/?op=editGroup&gid=';cssClass:'groupEdit'}",
+               "{column:'groupName';title:'Name'}",
+               "{column:'description';title:'Description'}",
+               "noScript:1", "restDataUrl:'/?op=listGroups'", 
+               "id:'groupDatatable'", "errorTagId:'message'");
+
+            var groupCrumbTrailMenu = new CrumbTrailMenu('#groupCrumbTrailMenu',{ divId:"#groupContainer", view: WebGUI.Prime.template.path + "crumbTrail.ejs" });
+
+            $('#groupDatatable').on('click', "tr", function(event){ 
+               event.preventDefault();
+               var jsonSource = event['target']['href'];
+               var uri = new URI( jsonSource );
+               var query = URI.parseQuery( uri.search() );
+               if ( query.op && query.gid ){
+                  var jsonFunction = function(){
+                     $.ajax({ url:jsonSource, dataType:"json" })
+                      .done(function(data, textStatus, jqXHR){
+                         $('#groupContainer').html( can.view("/newadmin/people_menu/tempates/group-edit.ejs", data) );
+                      })
+                      .fail(function(jqXHR, textStatus, errorThrown){
+                         logAjaxError("Error requesting page"); 
+                      });
+                  };
+                  // Add the menu to click...
+                  groupCrumbTrailMenu.add(new MenuDynamic(jsonFunction, "Edit Group","Editing group: " + query.gid));
+               }
+            });
+==== synopsis ================================================================
+
+==== Properties ==============================================================
+display:
+  cacheTimeout: 3600
+  isHidden: 1
+  newWindow: 0
+meta:
+  inheritUrlFromParent: 0
+  isExportable: 1
+  isPackage: 0
+  isPrototype: 0
+  usePackedHeadTags: 0
+properties:
+  assetSize: 3103
+  lastModified: 1363024975
+  mimeType: text/javascript
+  revisedBy: 3
+  skipNotification: 0
+  status: approved
+  tagId: GmzUVqvPTHOuN1XIqonFBw
+  templateParser: ''
+  usePacked: 0
+security:
+  encryptPage: 0
+  groupIdEdit: 3
+  groupIdView: 7
+  ownerUserId: 3
+

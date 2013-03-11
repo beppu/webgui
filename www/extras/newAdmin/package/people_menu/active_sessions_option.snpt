@@ -1,0 +1,105 @@
+==== Snippet =================================================================
+Asset ID    : DBASH-0000000000000008
+Menu Title  : Sessions Option
+Parent      : newadmin/people_menu
+Title       : Sessions Option
+URL         : newadmin/people_menu/active_sessions_option
+==== extraHeadTags ===========================================================
+
+==== snippet =================================================================
+            $('#messageWrapper').hide(); 
+            if ( sessionsDatatable ){
+               sessionsDatatable.fnDraw();
+
+            }else{
+               ^WF(datatable, "{column:'userId';title:'UserId'}",
+                           "{column:'lastIP';title:'Last Ip'}",
+                           "{column:'lastPageView';title:'Last View'}",
+                           "{column:'username';title:'Username'}",
+                           "{column:'expires';title:'Expires'}",
+                           "{column:'sessionId';title:'Kill Session';checkbox:'1';cssClass:'killSession';name:'killSession'}",
+                           "noScript:1", "restDataUrl:'/?op=viewActiveSessions'",
+                           "id:'sessionsDatatable'", "errorTagId:'message'");
+             
+            }
+     
+            //  toggle all session checkboxes
+            $('#kill-all-toggle').click(function(){
+               var master = $(this).is(':checked');
+               $('.killSession').each(function(){ 
+                  if ( $.cookie("wgSession") !== $(this).attr('value') ){
+                     $(this).prop('checked',master);
+                  }
+               });
+            });
+
+            // When we want to kill a session 
+            $('#kill-sessions-button').click(function(){
+               var sid = "";
+               $(".killSession").each(function(){
+                  // Do not kill my session
+                  if ( $.cookie("wgSession") !== $(this).attr('value') && $(this).is(':checked') ){
+                     sid += $(this).attr('value') + ',';
+                  }
+               });
+
+               if ( sid.length > 10 ){
+                  $( "#dialog-confirm" ).dialog({
+                     modal: true,
+                     buttons: {
+                        "Delete all items": function(){
+                           $.ajax({
+                              type: "GET",
+                              url: '/?op=killSession',
+                              data:{"sid":sid},
+                              dataType: "json"}
+                           )
+                           .done(function(data, textStatus, jqXHR){
+                              $('#message').html("Records deleted!");
+                              sessionsDatatable.fnDraw();
+                              $('#messageWrapper').show();
+                           })
+                           .fail(function(jqXHR, textStatus, errorThrown){ 
+                              var response = jqXHR.responseText;
+                              $('#message').html( textStatus + ' ' + errorThrown);
+                              $('#messageWrapper').show();
+                              sessionsDatatable.fnDraw();
+                           })
+                           $( this ).dialog( "close" );
+                        },
+                        Cancel: function() {
+                           $( this ).dialog( "close" );
+                        }
+                     }
+                  });
+               }
+            });
+==== synopsis ================================================================
+
+==== Properties ==============================================================
+display:
+  cacheTimeout: 3600
+  isHidden: 1
+  newWindow: 0
+meta:
+  inheritUrlFromParent: 0
+  isExportable: 1
+  isPackage: 0
+  isPrototype: 0
+  usePackedHeadTags: 0
+properties:
+  assetSize: 4741
+  lastModified: 1363019312
+  mimeType: text/javascript
+  revisedBy: 3
+  skipNotification: 0
+  status: approved
+  tagId: lOUgjs9YRXO0XifBnUeRUA
+  templateParser: ''
+  usePacked: 0
+security:
+  encryptPage: 0
+  groupIdEdit: 3
+  groupIdView: 7
+  ownerUserId: 3
+

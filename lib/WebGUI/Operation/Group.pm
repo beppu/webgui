@@ -470,10 +470,12 @@ sub www_editGroup {
 
 	my $group = undef;
 	if ( $groupId ){
-		$group = WebGUI::Group->new( $session ,$groupId );
+		$group = WebGUI::Group->new($session, $groupId );
 	} else {
-		$group = WebGUI::Group->new($session,"");
+		$group = WebGUI::Group->new($session);
 	}
+	
+   my $dbLinks = WebGUI::DatabaseLink->getList( $session );
 
 	my $output = {
 		op => "editGroupSave",
@@ -545,7 +547,8 @@ sub www_editGroup {
 		databaseLink => {
 			label => '',
 			value => $group->databaseLinkId,
-			description => ''			
+			description => '',
+			options => $dbLinks
 		},
 		dbQuery => {
 			label => $i18n->get(1005),
@@ -577,9 +580,7 @@ sub www_editGroup {
 			label => $i18n->get(1004),
 			value => $group->groupCacheTimeout,
 			description => $i18n->get('1004 description')		
-		},
-		
-		
+		}
 	};
 
 	# Conditional input, autoadd during save process unless the group is not 3

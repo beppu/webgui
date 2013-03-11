@@ -28,7 +28,7 @@ URL         : newadmin/people_menu
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-2">
    <div class="adminTabContainerSubMenu .ui-widget-header">
       <div id="messageWrapper" class="error ui-state-error ui-state-highlight ui-corner-all" style="padding-left:.5em;display:none"><span class="ui-icon ui-icon-alert" style="float:left" /><div id="message" class="ui-state-error-text"></div></div>
-      <img src="^Extras(/adminConsole/groups.gif);">
+      <img src="^Extras(/adminConsole/groups.gif);"> 
       <div id="groupCrumbTrailMenu"></div>
    </div>
    <div id="groupContainer" class="ui-widget-content ui-corner-all"></div>
@@ -61,128 +61,13 @@ $(function(){
          var target = $(event.target).attr('href');
          var operation = $(event.target).attr('target');
          if ( operation === 'op=viewActiveSessions' ){ 
-            $('#messageWrapper').hide(); 
-            if ( sessionsDatatable ){
-               sessionsDatatable.fnDraw();
-
-            }else{
-               ^WF(datatable, "{column:'userId';title:'UserId'}",
-                           "{column:'lastIP';title:'Last Ip'}",
-                           "{column:'lastPageView';title:'Last View'}",
-                           "{column:'username';title:'Username'}",
-                           "{column:'expires';title:'Expires'}",
-                           "{column:'sessionId';title:'Kill Session';checkbox:'1';cssClass:'killSession';name:'killSession'}",
-                           "noScript:1", "restDataUrl:'/?op=viewActiveSessions'",
-                           "id:'sessionsDatatable'", "errorTagId:'message'");
-             
-            }
-     
-            //  toggle all session checkboxes
-            $('#kill-all-toggle').click(function(){
-               var master = $(this).is(':checked');
-               $('.killSession').each(function(){ 
-                  if ( $.cookie("wgSession") !== $(this).attr('value') ){
-                     $(this).prop('checked',master);
-                  }
-               });
-            });
-
-            // When we want to kill a session 
-            $('#kill-sessions-button').click(function(){
-               var sid = "";
-               $(".killSession").each(function(){
-                  // Do not kill my session
-                  if ( $.cookie("wgSession") !== $(this).attr('value') && $(this).is(':checked') ){
-                     sid += $(this).attr('value') + ',';
-                  }
-               });
-
-               if ( sid.length > 10 ){
-                  $( "#dialog-confirm" ).dialog({
-                     modal: true,
-                     buttons: {
-                        "Delete all items": function(){
-                           $.ajax({
-                              type: "GET",
-                              url: '/?op=killSession',
-                              data:{"sid":sid},
-                              dataType: "json"}
-                           )
-                           .done(function(data, textStatus, jqXHR){
-                              $('#message').html("Records deleted!");
-                              sessionsDatatable.fnDraw();
-                              $('#messageWrapper').show();
-                           })
-                           .fail(function(jqXHR, textStatus, errorThrown){ 
-                              var response = jqXHR.responseText;
-                              $('#message').html( textStatus + ' ' + errorThrown);
-                              $('#messageWrapper').show();
-                              sessionsDatatable.fnDraw();
-                           })
-                           $( this ).dialog( "close" );
-                        },
-                        Cancel: function() {
-                           $( this ).dialog( "close" );
-                        }
-                     }
-                  });
-               }
-            });
+            ^AssetProxy(newadmin/people_menu/active_sessions_option,"",true);
            
 	 }else if ( operation === 'op=listGroups' ){ 
-            $('#messageWrapper').hide(); 
-            $('#groupContainer').html('<table id="groupDatatable" class="webguiAdminTable"></table>'); // hate to do this but needs to be done for now
-            ^WF(datatable, 
-               "{column:'groupId';title:'Id';linkUri:'/?op=editGroup&gid=';cssClass:'groupEdit'}",
-               "{column:'groupName';title:'Name'}",
-               "{column:'description';title:'Description'}",
-               "noScript:1", "restDataUrl:'/?op=listGroups'", 
-               "id:'groupDatatable'", "errorTagId:'message'");
+            ^AssetProxy(newadmin/people_menu/groups_option,"",true);
 
-            var groupCrumbTrailMenu = new CrumbTrailMenu('#groupCrumbTrailMenu',{ divId:"#groupContainer", view: WebGUI.Prime.template.path + "crumbTrail.ejs" });
-
-            $('#groupDatatable').on('click', "tr", function(event){ 
-               event.preventDefault();
-               try{
-                  var jsonSource = event['target']['href'];
-                  var uri = new URI( jsonSource );
-                  var query = URI.parseQuery( uri.search() );
-                  if ( query.op && query.gid ){
-                     var jsonFunction = function(){
-                        $.ajax({ url:jsonSource, dataType:"json" })
-                         .done(function(data, textStatus, jqXHR){
-                            $('#groupContainer').html( can.view(WebGUI.Prime.template.path + "groups.ejs", data) );
-                         })
-                         .fail(function(jqXHR, textStatus, errorThrown){
-                            logAjaxError("Error requesting page"); 
-                         });
-                     };
-                     // Add the menu to click...
-                     groupCrumbTrailMenu.add(new MenuDynamic(jsonFunction, "Edit Group","Editing group: " + query.gid));
-                  }
-               }catch(error){ // just ignore for now. ::TODO::
-               }
-            }); 
-
-	 }else if ( operation === 'op=viewLoginHistory' ){ 
-            $('#messageWrapper').hide(); 
-            if ( loginHistoryDatatable ){
-               loginHistoryDatatable.fnDraw();
-
-            }else{
-               ^WF(datatable, 
-                  "{column:'username';title:'User Id'}",
-                  "{column:'status';title:'Status'}",
-                  "{column:'timeStamp';title:'Login Time'}",
-                  "{column:'ipAddress';title:'IP Address'}",
-                  "{column:'userAgent';title:'User Agent'}",
-                  "{column:'sessionId';title:'Session Signature'}",                     
-                  "{column:'lastPageViewed';title:'Last Page View'}",
-                  "{column:'sessionLength';title:'Session Length'}",
-                  "noScript:1", "restDataUrl:'/?op=viewLoginHistory'",
-                  "id:'loginHistoryDatatable'", "errorTagId:'message'");
-             
-            }
+	 }else if ( operation === 'op=viewLoginHistory' ){
+            ^AssetProxy(newadmin/people_menu/login_history_option,"",true);
 
          }else{
             $( target ).load( '/?' + operation , function(response, status, xhr) {
@@ -221,13 +106,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 16996
-  lastModified: 1362978515
+  assetSize: 8670
+  lastModified: 1363019836
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: 5schjpl0SEShXQVk0-HYYA
+  tagId: WtyP_cqFSWKJ2RF5SwoOdA
   templateParser: ''
   usePacked: 0
 security:

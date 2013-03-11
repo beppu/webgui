@@ -28,6 +28,9 @@ URL         : newadmin/drupalized-admin-template
   <link rel="stylesheet" href="^Extras(/newAdmin/css/toolbar.css);">
   <link rel="stylesheet" href="^Extras(/newAdmin/css/menus.css);">
   <link rel="stylesheet" href="^Extras(/newAdmin/css/admin-datatable.css);">
+
+<link rel="stylesheet" href="^Extras(/hoverhelp.css);">
+
  
   <script src="^Extras(/newAdmin/js/jquery-1.9.1.js);"></script>
   <script src="^Extras(/newAdmin/js/jquerypp.custom.js);"></script>
@@ -76,9 +79,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 5869
+  assetSize: 5988
   attachmentsJson: '[]'
-  lastModified: 1362977867
+  lastModified: 1363011349
   namespace: style
   parser: WebGUI::Asset::Template::HTMLTemplate
   revisedBy: 3
@@ -86,7 +89,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: 8EUqHp9FTSSfNcAvkqUIXQ
+  tagId: 1F6YF7gnQQubfPYJAeRWOA
   usePacked: 0
 security:
   encryptPage: 0
