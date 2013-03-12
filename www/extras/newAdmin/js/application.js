@@ -170,3 +170,24 @@ function logAjaxError(error){
       }
    });
 }
+
+/*
+ * Display and destroy messages
+ */
+var MessageQueue = can.Control({
+      defaults:{
+         type:"info",
+         view:WebGUI.Prime.template.path + "messageQueue.ejs"
+      }
+   },{
+   init:function(element, options){
+      this.messages = new can.Observe.List([]);
+      $( element ).html( can.view(options.view, { type:options.type, messages:this.messages }) );
+   },
+   add:function(message){
+      this.messages.push(message);
+   },
+   remove:function(){
+      this.element.remove();
+   }
+});
