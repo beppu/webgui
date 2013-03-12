@@ -182,10 +182,11 @@ var MessageQueue = can.Control({
    },{
    init:function(element, options){
       this.messages = new can.Observe.List([]);
-      $( element ).html( can.view(options.view, { type:options.type, messages:this.messages }) );
+      $( element ).html( can.view(options.view, { type:options.type, messages:this.messages }) ).hide();
    },
    add:function(message){
       this.messages.push(message);
+      this.element.show();
    },
    remove:function(){
       this.element.remove();

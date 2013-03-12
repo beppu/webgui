@@ -657,9 +657,9 @@ sub www_editGroupSave {
    my $groupName = $session->form->process("groupName");
 	my $foundDuplicateName = undef;
    while ( my $existingGroupId = WebGUI::Group->find($session, $groupName)->getId ) {
-		$foundDuplicateName = 1;
       last
          if $existingGroupId eq $groupId;
+		$foundDuplicateName = 1;
       $groupName =~ s/\A(.*?)(\d*)\z/
          my $newNum = ($2 || 0) + 1;
          substr($1, 0, 100 - length($newNum)) . $newNum;  #prevent name from growing over 100 chars
