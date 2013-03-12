@@ -16,7 +16,9 @@ $.fn.exists = function(){return this.length>0;};
          template: {
             "path":"/extras/newAdmin/js/templates/"
          },
-         tooltips: true
+         tooltips: true,
+         messageTag: "#messages",
+         messageTemplate: "webgui-ajax-message-template.ejs"
       }
    };
 
@@ -145,6 +147,17 @@ function loadPage(targetDiv, operation){
    }
 }
 
+// Generic logger function for ajax calls
+function logAjaxStatus( message, settings ){
+   if ( message ){
+      $( WebGUI.Prime.messageTag ).append( 
+         can.view( WebGUI.Prime.template.path + WebGUI.Prime.messageTemplate, 
+            { message: message, settings: settings } 
+         ) 
+      ).show();      
+   }
+}
+
 // Generic logger function for failed ajax calls
 function logAjaxError(error){
    $(document).ajaxError(function(event, request, settings){
@@ -153,7 +166,7 @@ function logAjaxError(error){
             can.view( WebGUI.Prime.template.path + WebGUI.Prime.errorTemplate, 
                { message: error, settings: settings } 
             ) 
-         );
+         ).show();
       }
    });
 }

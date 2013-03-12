@@ -141,12 +141,12 @@ sub www_viewActiveSessions {
               sessionId    => $data->{sessionId}
          });
       }
-      my $rowCount = @{ $output };
+      my $rowCount = $sth->rows;
       
       $sqlCommand = qq|select count(*) from users,userSession where users.userId=userSession.userId and users.userId<>1|;      
       
       $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
-      $webParams->{iTotalDisplayRecords} = $rowCount; #Total records, after filtering
+      $webParams->{iTotalDisplayRecords} = $search ? $rowCount : $webParams->{iTotalRecords}; #Total records, after filtering or same as total records if not filtering
       $webParams->{data} = $output;
       $rest->data( $webParams );
       return $rest->response;

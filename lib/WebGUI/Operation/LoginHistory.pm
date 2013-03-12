@@ -122,7 +122,7 @@ sub www_viewLoginHistory {
       $sqlCommand = qq|select count(*) from users,userLoginLog where users.userId=userLoginLog.userId|;      
       
       $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
-      $webParams->{iTotalDisplayRecords} = $rowCount; #Total records, after filtering
+      $webParams->{iTotalDisplayRecords} = $webParams->{iTotalRecords}; #Total records, after filtering
       $webParams->{data} = $output;
       $rest->data( $webParams );
       return $rest->response;

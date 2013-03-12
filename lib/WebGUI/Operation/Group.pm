@@ -655,7 +655,9 @@ sub www_editGroupSave {
    my $group = WebGUI::Group->new($session, $groupId);
    # We don't want them to use an existing name.  If needed, we'll add a number to the name to keep it unique.
    my $groupName = $session->form->process("groupName");
+	my $foundDuplicateName = undef;
    while ( my $existingGroupId = WebGUI::Group->find($session, $groupName)->getId ) {
+		$foundDuplicateName = 1;
       last
          if $existingGroupId eq $groupId;
       $groupName =~ s/\A(.*?)(\d*)\z/
@@ -685,7 +687,10 @@ sub www_editGroupSave {
 	$group->ldapGroupProperty($session->form->text("ldapGroupProperty"));
 	$group->ldapRecursiveProperty($session->form->text("ldapRecursiveProperty"));
 	$group->ldapRecursiveFilter($session->form->process("ldapRecursiveFilter"));
-	$rest->data( { id => $group->getId } );
+	my $output = { id => $group->getId };
+	$output->{ message } = " Found Duplicate " . $i18n->get('duplicate')
+	   if $foundDuplicateName;
+	$rest->data( $output );
    return $rest->response;
 }
 
@@ -937,12 +942,12 @@ sub www_listGroups {
               description => $data->{description}
          });
       }
-      my $rowCount = @{ $output };
+      my $rowCount = $sth->rows;
       
       $sqlCommand = qq|select count(*) from groups where isEditable=1|;      
       
       $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
-      $webParams->{iTotalDisplayRecords} = $rowCount; #Total records, after filtering
+      $webParams->{iTotalDisplayRecords} = $search ? $rowCount : $webParams->{iTotalRecords}; #Total records, after filtering or same as total records if not filtering
       $webParams->{data} = $output;
       $rest->data( $webParams );
       return $rest->response;		

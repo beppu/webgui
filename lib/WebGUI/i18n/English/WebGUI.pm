@@ -4799,6 +4799,10 @@ Users may override this setting in their profile.
         lastUpdated => 1311618419,
 
     },
+        
+    'duplicate' => {
+        message => "You have selected a duplicate identity, we have modified your request."
+    }
 
 };
 
