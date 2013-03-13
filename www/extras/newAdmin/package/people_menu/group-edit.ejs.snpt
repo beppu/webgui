@@ -8,14 +8,16 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
 
 ==== snippet =================================================================
 <button class="save-group-button" type="button">Save</button>
-<button class="delete-group-button" type="button">Delete</button>
+<% if ( id !== null ){ %><button class="delete-group-button" type="button">Delete</button><% } %>
 <form id="groupEditForm" name="groupEditForm">
   <input type="hidden" name="op" value="<%= op %>" />
   <%== token %>
    <table>
+<% if (  id !== null ){ %>
         <tr>
            <td>Group ID</td><td><input type="hidden" name="gid" value="<%= id %>" /><%= id %></td>
         </tr>
+<% } %>          
         <tr>
            <td title="<%= groupName.description %>"><%= groupName.label %></td><td><input type="text" name="groupName" value="<%= groupName.value %>" /></td>
         </tr>
@@ -31,8 +33,8 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
                                                 No<input type="radio" name="showInForms" value="0" <% if ( showInForms.value == 0 ){ %>checked<% } %>></td>
         </tr>
         <tr>
-           <td title="<%= expireOffset.description %>"><%= expireOffset.label %></td><td><input type="text" name="expireOffset" value="<%= expireOffset.value %>" />
-                                                 <select name="expireOffsetUnitOfTime">
+           <td title="<%= expireOffset.description %>"><%= expireOffset.label %></td><td><input type="text" name="expireOffset_formId_interval" value="<%= expireOffset.value %>" />
+                                                 <select name="expireOffset_units">
                                                  <% can.each(unitsOfTime,function(data, index){ %>
                                                     <option value="<%= index %>" <% if ( expireNotify.description === data ){ %>selected<% } %>><%= data %></option>
                                                  <% }) %>
@@ -57,10 +59,10 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
         <tr>
            <td title="<%= scratchFilter.description %>"><%= scratchFilter.label %></td><td><textarea name="scratchFilter"><%= scratchFilter.value %></textarea></td>
         </tr>    
-<% if ( typeof id !== 3 ){ %><%# Horrible but necessary at this point! %>
+<% if ( id !== 3 ){ %><%# Horrible but necessary at this point! %>
         <tr>
            <td title="<%= autoAdd.description %>"><%= autoAdd.label %></td><td>Yes<input type="radio" name="autoAdd" value="1" <% if ( autoAdd.value == 1 ){ %>checked<% } %>>
-                                                No<input type="radio" name="autoAdd" value="0" <% if ( autoAdd.value == 0 ){ %>checked<% } %>></td>
+                                                No<input type="radio" name="autoAdd" value="0" <% if ( autoAdd.value === 0 ){ %>checked<% } %>></td>
         </tr>
 <% } %>
         <tr>
@@ -111,7 +113,7 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
    </table>
 </form>
 <button class="save-group-button" type="button">Save</button>
-<button class="delete-group-button" type="button">Delete</button>
+<% if ( typeof gid !== 'undefined' ){ %><button class="delete-group-button" type="button">Delete</button><% } %>
 ==== synopsis ================================================================
 
 ==== Properties ==============================================================
@@ -126,13 +128,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 12890
-  lastModified: 1363182868
+  assetSize: 13142
+  lastModified: 1363189416
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: DLDSz_UOR7aeoyLsRFt4fw
+  tagId: t4A_WTSWRFydCtuH5svNvQ
   templateParser: ''
   usePacked: 0
 security:

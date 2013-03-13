@@ -486,7 +486,7 @@ sub www_editGroup {
 
 	my $output = {
 		op => "editGroupSave",
-		id => $groupId,
+		id => $group->getId,
 		token => $hiddenToken,
 		groupName => {
 			label => $i18n->get(84),
@@ -657,7 +657,6 @@ sub www_editGroupSave {
 	return $rest->forbidden( $i18n->get(36) )
 	   unless ( canEditGroup( $session, $groupId ) && $session->form->validToken );
 	
-   my $group = WebGUI::Group->new($session, $groupId);
    # We don't want them to use an existing name.  If needed, we'll add a number to the name to keep it unique.
    my $groupName = $session->form->process("groupName");
 	my $foundDuplicateName = undef;
@@ -670,6 +669,7 @@ sub www_editGroupSave {
          substr($1, 0, 100 - length($newNum)) . $newNum;  #prevent name from growing over 100 chars
       /emsx;
    }
+	my $group = WebGUI::Group->new($session, $groupId);
    $group->name($groupName);
    $group->description($session->form->process("description"));
    $group->expireOffset($session->form->interval("expireOffset"));

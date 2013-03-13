@@ -33,7 +33,7 @@ URL         : newadmin/people_menu
          <div class="info"></div>
          <div class="error"></div>
       </div>
-      <img src="^Extras(/adminConsole/groups.gif);"> 
+      <img src="^Extras(/adminConsole/groups.gif);"><button id="addGroup" type="button">Add</button>
       <div id="groupCrumbTrailMenu"></div>
    </div>
    <div id="groupContainer" class="ui-widget-content ui-corner-all"></div>
@@ -114,13 +114,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 8657
-  lastModified: 1363181611
+  assetSize: 8752
+  lastModified: 1363185862
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: n8AOzdC_RDqhExmldQxK-Q
+  tagId: qkpeJsgbTrSXiJMmALwE5g
   templateParser: ''
   usePacked: 0
 security:

@@ -16,6 +16,36 @@ URL         : newadmin/people_menu/groups_option
                "id:'groupDatatable'", "errorTagId:'message'");
             // Menu at top of container, items get added and deleted from this menu dynamically   
             var groupCrumbTrailMenu = new CrumbTrailMenu('#groupCrumbTrailMenu',{ divId:"#groupContainer", view: WebGUI.Prime.template.path + "crumbTrail.ejs" });
+
+            // Add new group
+            $('button#addGroup').click(function(event){
+               event.preventDefault();
+               var jsonSource = '?op=editGroup';
+               $.ajax({ url:jsonSource })
+                .done(function(data, textStatus, jqXHR){
+                   $('#groupContainer').html( can.view("/newadmin/people_menu/tempates/group-edit.ejs", data) );
+                   // What happens when we click the save button
+                   $('button.save-group-button').click(function(event){
+                      var jsonSubmit = '/?op=editGroupSave&' + $('form#groupEditForm').serialize();
+                      $.ajax({ url:jsonSubmit, type:"POST" }) // could be lots of data
+                       .done(function(data, textStatus, jqXHR){
+                          if ( typeof data.message !== 'undefined' && data.message.length > 0 ){
+                             alert( data.message );
+                          }else{
+                             alert( "Saved!" );//i18n ::TODO::
+                          }
+                          $('#groupTab').click();
+
+                       })
+                       .fail(function(jqXHR, textStatus, errorThrown){
+                          logAjaxError("Error saving record. " + textStatus + " " + errorThrown);  //i18n ::TODO::
+                       })
+                   });
+
+                });
+
+            });
+
             // What happens when we click on a datatable row above.
             $('#groupDatatable').on('click', "tr", function(event){ 
                event.preventDefault();
@@ -25,7 +55,7 @@ URL         : newadmin/people_menu/groups_option
                // Clicked record, go into edit group mode
                if ( query.op && query.gid ){
                   var jsonFunction = function(){
-                     $.ajax({ url:jsonSource, dataType:"json" })
+                     $.ajax({ url:jsonSource })
                       .done(function(data, textStatus, jqXHR){
                          $('#groupContainer').html( can.view("/newadmin/people_menu/tempates/group-edit.ejs", data) );
                          // What happens when we click the save button
@@ -86,13 +116,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 6018
-  lastModified: 1363182998
+  assetSize: 7978
+  lastModified: 1363187186
   mimeType: text/javascript
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: UtcXfU5KRVe2tOtJgtJicg
+  tagId: b1BOyxsETMu4KkRF6K0bdA
   templateParser: ''
   usePacked: 0
 security:
