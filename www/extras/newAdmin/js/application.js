@@ -160,15 +160,13 @@ function logAjaxStatus( message, settings ){
 
 // Generic logger function for failed ajax calls
 function logAjaxError(error){
-   $(document).ajaxError(function(event, request, settings){
-      if ( error ){
+   if ( error ){
+      $(document).ajaxError(function(event, request, settings){
          $( WebGUI.Prime.errorTag ).append( 
-            can.view( WebGUI.Prime.template.path + WebGUI.Prime.errorTemplate, 
-               { message: error, settings: settings } 
-            ) 
+            can.view( WebGUI.Prime.template.path + WebGUI.Prime.errorTemplate, { message: error, settings: settings } ) 
          ).show();
-      }
-   });
+      });
+   }
 }
 
 /*
