@@ -8,7 +8,10 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
 
 ==== snippet =================================================================
 <button class="save-group-button" type="button">Save</button>
-<% if ( id !== null ){ %><button class="delete-group-button" type="button">Delete</button><% } %>
+<% if ( id !== null ){ %>
+   <button class="delete-group-button" type="button">Delete</button>
+   <button id="manage-groups-group">Manage Groups in group</button>
+<% } %>
 <form id="groupEditForm" name="groupEditForm">
   <input type="hidden" name="op" value="<%= op %>" />
   <%== token %>
@@ -128,13 +131,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 13142
-  lastModified: 1363189416
+  assetSize: 13285
+  lastModified: 1363195152
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: t4A_WTSWRFydCtuH5svNvQ
+  tagId: gf4RsztDRZKGoIvHxFOYfA
   templateParser: ''
   usePacked: 0
 security:

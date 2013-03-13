@@ -258,18 +258,14 @@ A snippet of HTML to indent a group, to show hierarchy.
 
 sub walkGroups {
 	my $session = shift;
-        my $parentId = shift;
-        my $indent = shift;
+   my $parentId = shift;
 	my $output;
-        my $sth = $session->db->read("select groups.groupId, groups.groupName from groupGroupings left join groups on groups.groupId=groupGroupings.groupId where groupGroupings.inGroup=".$session->db->quote($parentId));
-        while (my ($id, $name) = $sth->array) {
-		$output .= $indent
-			.$session->icon->delete('op=deleteGroupGrouping;gid='.$parentId.';delete='.$id)
-			.$session->icon->edit('op=editGroup;gid='.$id)
-			.' '.$name.'<br />';
-                $output .= walkGroups($session, $id,$indent."&nbsp; &nbsp; ");
-        }
-        $sth->finish;
+   my $sth = $session->db->read("select groups.groupId, groups.groupName from groupGroupings left join groups on groups.groupId=groupGroupings.groupId where groupGroupings.inGroup=".$session->db->quote($parentId));
+   while (my ($id, $name) = $sth->array) {
+		$output->{id => $id, name => $name};
+      $output->{ sub } = [ walkGroups($session, $id) ];
+   }
+   $sth->finish;
 	return $output;
 }
 
@@ -1034,48 +1030,51 @@ A WebGUI::Session object
 
 =cut
 
-sub www_manageGroupsInGroup {
+sub www_manageGroupsInGroup { # work on this later...
 	my $session = shift;
-    my $i18n = WebGUI::International->new($session);
-    my $group = WebGUI::Group->new($session,$session->form->process("gid"));
-    return $session->privilege->adminOnly() unless (canEditGroup($session,$session->form->process("gid")));
+   my $rest = WebGUI::Session::Rest->new( session => $session );	
+	my $i18n = WebGUI::International->new($session);
+	my $groupId = $session->form->process("gid");
+	
+	return $rest->forbidden( $i18n->get(36) )
+	   unless ( canEditGroup($session, $groupId ) );
 
-    my $f = WebGUI::HTMLForm->new($session);
-	$f->submit;
-        $f->hidden(
-		-name => "op",
-		-value => "addGroupsToGroupSave"
-	);
-    $f->hidden(
-		-name => "gid",
-		-value => $session->form->process("gid")
-	);
-    $f->readOnly(
-        -label => $i18n->get(379),
-        -value => $group->getId,
-    );
-    $f->readOnly(
-        -label => $i18n->get(84),
-        -value => $group->name,
-    );
+	my $group = WebGUI::Group->new($session, $groupId );
+	
+
+
+
 
 	my @groups;
 	my $groupsIn = $group->getGroupsIn(1);
 	my $groupsFor = $group->getGroupsFor;
-	push(@groups, @$groupsIn,@$groupsFor,$session->form->process("gid"));
-    $f->group(
-		-name=>"groups",
-		-excludeGroups=>\@groups,
-		-label=>$i18n->get(605),
-		-size=>5,
-		-multiple=>1,
-        -defaultValue=>[],
-		);
-    $f->submit;
-    my $output = $f->print;
-	$output .= '<p />';
-	$output .= walkGroups($session, $session->form->process("gid"));
-	return _submenu($session,$output,'813');
+#	push(@groups, @$groupsIn,@$groupsFor, $groupId);
+#    $f->group(
+#		-name=>"groups",
+#		-excludeGroups=>\@groups,
+#		-label=>$i18n->get(605),
+#		-size=>5,
+#		-multiple=>1,
+#        -defaultValue=>[],
+#		);
+
+	my $groupsOutput = walkGroups($session, $groupId);
+	
+	push(@groups, @$groupsIn,@$groupsFor, $groupId);
+	
+	my $output = {
+		op => "addGroupsToGroupSave",
+		id => $group->getId,
+		groupName => {
+			label => $i18n->get(84),
+			value => $group->name,
+			description => $i18n->get('84 description')			  
+		},
+		groupList => [ @groups ]
+	};
+	
+	$rest->data( $output );
+   return $rest->response;
 }
 
 #-------------------------------------------------------------------

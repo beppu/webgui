@@ -13,12 +13,62 @@ URL         : newadmin/people_menu/groups_option
                "{column:'groupName';title:'Name'}",
                "{column:'description';title:'Description'}",
                "noScript:1", "restDataUrl:'/?op=listGroups'", 
-               "id:'groupDatatable'", "errorTagId:'message'");
+               "id:'groupDatatable'");
             // Menu at top of container, items get added and deleted from this menu dynamically   
             var groupCrumbTrailMenu = new CrumbTrailMenu('#groupCrumbTrailMenu',{ divId:"#groupContainer", view: WebGUI.Prime.template.path + "crumbTrail.ejs" });
 
+            // What happens when we click on a datatable row above.
+            $('#groupDatatable').on('click', "tr", function(event){
+               var groupInfoLogger = new MessageQueue('div#groupMessageWrapper div.info'); // Create a message queue on the info div
+               var groupErrorLogger = new MessageQueue('div#groupMessageWrapper div.error', {type:'error'}); // Create a message queue on the error div
+               event.preventDefault();
+               var jsonSource = event['target']['href'];
+               var uri = new URI( jsonSource );
+               var query = URI.parseQuery( uri.search() );
+               // Clicked record, go into edit group mode
+               if ( query.op && query.gid ){
+                  var jsonFunction = function(){
+                     $.ajax({ url:jsonSource }) // Make sure all messages are i18n... ::TODO::
+                      .done(function(data, textStatus, jqXHR){
+                         $('#groupContainer').html( can.view("/newadmin/people_menu/tempates/group-edit.ejs", data) );
+                         
+                         // What happens when we click the save button
+                         $('button.save-group-button').click(function(event){
+                            var jsonSubmit = '/?op=editGroupSave&' + $('form#groupEditForm').serialize();
+                            WebGUI.Prime.AjaxHelper({ jsonPath:jsonSubmit, method:"POST", clickAfter:"#groupTab",
+                               infoLogger:groupInfoLogger, errorLogger:groupErrorLogger });                               
+                         });
+                         
+                         //What happens when we click the delete button
+                         $('button.delete-group-button').click(function(event){
+                            var jsonSubmit = '/?op=deleteGroup&gid=' + query.gid;
+                            WebGUI.Prime.AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", logMessage:"Deleted",                           infoLogger:groupInfoLogger, errorLogger:groupErrorLogger });                        
+                         });
+
+                         // Manage Groups in group
+                         $('button#manage-groups-group').click(function(event){
+                            event.preventDefault();
+                            alert("?op=manageGroupsInGroup;gid=" + query.gid);
+
+                         });
+
+                      })
+                      .fail(function(jqXHR, textStatus, errorThrown){
+                         groupErrorLogger.add({message:textStatus + " " + errorThrown});
+                         groupInfoLogger.remove();
+                         logAjaxError("Error requesting page"); //i18n ::TODO::
+                      });
+
+                  };
+                  // Add the menu to click...
+                  groupCrumbTrailMenu.add(new MenuDynamic(jsonFunction, "Edit Group","Editing group: " + query.gid));//i18n ::TODO::
+               }
+            });
+
             // Add new group
             $('button#addGroup').click(function(event){
+               var groupInfoLogger = new MessageQueue('div#groupMessageWrapper div.info');
+               var groupErrorLogger = new MessageQueue('div#groupMessageWrapper div.error', {type:'error'});            
                event.preventDefault();
                var jsonSource = '?op=editGroup';
                $.ajax({ url:jsonSource })
@@ -27,86 +77,18 @@ URL         : newadmin/people_menu/groups_option
                    // What happens when we click the save button
                    $('button.save-group-button').click(function(event){
                       var jsonSubmit = '/?op=editGroupSave&' + $('form#groupEditForm').serialize();
-                      $.ajax({ url:jsonSubmit, type:"POST" }) // could be lots of data
-                       .done(function(data, textStatus, jqXHR){
-                          if ( typeof data.message !== 'undefined' && data.message.length > 0 ){
-                             alert( data.message );
-                          }else{
-                             alert( "Saved!" );//i18n ::TODO::
-                          }
-                          $('#groupTab').click();
-
-                       })
-                       .fail(function(jqXHR, textStatus, errorThrown){
-                          logAjaxError("Error saving record. " + textStatus + " " + errorThrown);  //i18n ::TODO::
-                       })
+                      WebGUI.Prime.AjaxHelper({ method:"POST", jsonPath:jsonSubmit, clickAfter:"#groupTab",
+                         infoLogger:groupInfoLogger, errorLogger:groupErrorLogger }); // by default message = saved
                    });
 
                 });
 
             });
-
-            // What happens when we click on a datatable row above.
-            $('#groupDatatable').on('click', "tr", function(event){ 
-               event.preventDefault();
-               var jsonSource = event['target']['href'];
-               var uri = new URI( jsonSource );
-               var query = URI.parseQuery( uri.search() );
-               // Clicked record, go into edit group mode
-               if ( query.op && query.gid ){
-                  var jsonFunction = function(){
-                     $.ajax({ url:jsonSource })
-                      .done(function(data, textStatus, jqXHR){
-                         $('#groupContainer').html( can.view("/newadmin/people_menu/tempates/group-edit.ejs", data) );
-                         // What happens when we click the save button
-                         $('button.save-group-button').click(function(event){
-                            var jsonSubmit = '/?op=editGroupSave&' + $('form#groupEditForm').serialize();
-                            $.ajax({ url:jsonSubmit, type:"POST" }) // could be lots of data
-                             .done(function(data, textStatus, jqXHR){
-                                if ( typeof data.message !== 'undefined' && data.message.length > 0 ){
-                                   alert( data.message );
-                                }else{
-                                   alert( "Saved!" );//i18n ::TODO::
-                                }
-                                $('#groupTab').click();
-
-                             })
-                             .fail(function(jqXHR, textStatus, errorThrown){
-                                logAjaxError("Error saving record. " + textStatus + " " + errorThrown);  //i18n ::TODO::
-                             });
-
-                         });
-                         //What happens when we click the delete button
-                         $('button.delete-group-button').click(function(event){
-                            var jsonSubmit = '/?op=deleteGroup&gid=' + query.gid;
-                            $.ajax({ url:jsonSubmit })
-                             .done(function(data, textStatus, jqXHR){
-                                if ( typeof data.message !== 'undefined' && data.message.length > 0 ){
-                                   alert( data.message );
-                                }else{
-                                   alert( "Deleted!" );//i18n ::TODO::
-                                }
-                                $('#groupTab').click();
-
-                             })
-                             .fail(function(jqXHR, textStatus, errorThrown){
-                                logAjaxError("Error deleting record. " + textStatus + " " + errorThrown);  //i18n ::TODO::
-                            });
-                         });
-                      })
-                      .fail(function(jqXHR, textStatus, errorThrown){
-                         logAjaxError("Error requesting page"); //i18n ::TODO::
-                      });
-                  };
-                  // Add the menu to click...
-                  groupCrumbTrailMenu.add(new MenuDynamic(jsonFunction, "Edit Group","Editing group: " + query.gid));//i18n ::TODO::
-               }
-            });
 ==== synopsis ================================================================
 
 ==== Properties ==============================================================
 display:
-  cacheTimeout: 3600
+  cacheTimeout: 1
   isHidden: 1
   newWindow: 0
 meta:
@@ -116,13 +98,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 7978
-  lastModified: 1363187186
+  assetSize: 7409
+  lastModified: 1363209317
   mimeType: text/javascript
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: b1BOyxsETMu4KkRF6K0bdA
+  tagId: A2IQ5CxwRTqinD0fkLv_lw
   templateParser: ''
   usePacked: 0
 security:

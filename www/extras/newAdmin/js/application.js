@@ -147,17 +147,6 @@ function loadPage(targetDiv, operation){
    }
 }
 
-// Generic logger function for ajax calls
-function logAjaxStatus( message, settings ){
-   if ( message ){
-      $( WebGUI.Prime.messageTag ).append( 
-         can.view( WebGUI.Prime.template.path + WebGUI.Prime.messageTemplate, 
-            { message: message, settings: settings } 
-         ) 
-      ).show();      
-   }
-}
-
 // Generic logger function for failed ajax calls
 function logAjaxError(error){
    if ( error ){
@@ -179,14 +168,52 @@ var MessageQueue = can.Control({
       }
    },{
    init:function(element, options){
+      element.hide();
       this.messages = new can.Observe.List([]);
-      $( element ).html( can.view(options.view, { type:options.type, messages:this.messages }) ).hide();
+      $( element ).html( can.view(options.view, { type:options.type, messages:this.messages }) );
    },
    add:function(message){
-      this.messages.push(message);
       this.element.show();
+      this.messages.push(message);
+   },
+   hide:function(){
+      this.element.hide(); 
    },
    remove:function(){
-      this.element.remove();
+      if ( typeof this.element !== 'undefined' && this.element != null ){
+         this.element.remove();
+      }
    }
 });
+
+/*
+ * Generic JSON helper function
+ */
+WebGUI.Prime.AjaxHelper = function(params){
+   if ( params.method == 'undefined' || params.method == null ){
+      params.method = 'GET';
+   }
+   if ( params.logMessage == 'undefined' || params.logMessage == null ){
+      params.logMessage = 'Saved';//i18n ::TODO::
+   }
+   $.ajax({ url:params.jsonPath, type:params.method }) // could be lots of data
+    .done(function(data, textStatus, jqXHR){
+       if ( typeof data.message !== 'undefined' && data.message.length > 0 ){
+          if ( params.errorLogger != null ){ params.errorLogger.add({message:data.message}); };
+          if ( params.infoLogger != null ){ params.infoLogger.hide(); }
+       }else{
+          if ( params.infoLogger != null ){ params.infoLogger.add({message:params.logMessage}); };
+          if ( params.errorLogger != null ){ params.errorLogger.hide(); }         
+       }
+       if ( params.clickAfter != 'undefined' && params.clickAfter != null ){
+          $(params.clickAfter).click();
+       }         
+       
+   })
+   .fail(function(jqXHR, textStatus, errorThrown){
+      var message = textStatus + " " + errorThrown;        
+      if ( params.errorLogger != null ){ params.errorLogger.add({message:message}); };
+      if ( params.infoLogger != null ){ params.infoLogger.hide(); }      
+      logAjaxError( message );
+   });
+};

@@ -30,8 +30,8 @@ URL         : newadmin/people_menu
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-2">
    <div class="adminTabContainerSubMenu">
       <div id="groupMessageWrapper">
-         <div class="info"></div>
-         <div class="error"></div>
+         <div class="info" style="display:none">Info</div>
+         <div class="error" style="display:none">error</div>
       </div>
       <img src="^Extras(/adminConsole/groups.gif);"><button id="addGroup" type="button">Add</button>
       <div id="groupCrumbTrailMenu"></div>
@@ -114,13 +114,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 8752
-  lastModified: 1363185862
+  assetSize: 8854
+  lastModified: 1363202870
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: qkpeJsgbTrSXiJMmALwE5g
+  tagId: iZ5CbsvnR8a1hgoli9rHXA
   templateParser: ''
   usePacked: 0
 security:
