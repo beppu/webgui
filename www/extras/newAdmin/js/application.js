@@ -190,10 +190,10 @@ var MessageQueue = can.Control({
  * Generic JSON helper function
  */
 WebGUI.Prime.AjaxHelper = function(params){
-   if ( params.method == 'undefined' || params.method == null ){
+   if ( typeof params.method == 'undefined' || params.method == null ){
       params.method = 'GET';
    }
-   if ( params.logMessage == 'undefined' || params.logMessage == null ){
+   if ( typeof params.logMessage == 'undefined' || params.logMessage == null ){
       params.logMessage = 'Saved';//i18n ::TODO::
    }
    $.ajax({ url:params.jsonPath, type:params.method }) // could be lots of data
@@ -211,7 +211,13 @@ WebGUI.Prime.AjaxHelper = function(params){
        
    })
    .fail(function(jqXHR, textStatus, errorThrown){
-      var message = textStatus + " " + errorThrown;        
+      var responseMessage = JSON.parse(jqXHR.responseText);  
+      var message = "";
+      try{
+         message = responseMessage.message;  
+      }catch( exception ){
+         message = textStatus + " " + errorThrown;
+      }
       if ( params.errorLogger != null ){ params.errorLogger.add({message:message}); };
       if ( params.infoLogger != null ){ params.infoLogger.hide(); }      
       logAjaxError( message );
