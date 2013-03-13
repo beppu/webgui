@@ -1,5 +1,6 @@
 package WebGUI::Session::Rest;
 use WebGUI::BestPractices;
+use WebGUI::International;
 use JSON;
 use Moose;
 
@@ -89,6 +90,13 @@ sub unauthorized{
    $this->status(401);
    
    $this->response;
+}
+
+sub vitalComponent{
+   my $this = shift;
+   my $i18n = WebGUI::International->new($this->session);
+   my $message = $i18n->get(40). ' ' . $i18n->get(41);
+   return $this->forbidden($message);
 }
 
 

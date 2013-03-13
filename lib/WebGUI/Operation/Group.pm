@@ -384,13 +384,18 @@ A WebGUI::Session object
 =cut
 
 sub www_deleteGroup {
-    my $session = shift;
-    my $gid = $session->form->process("gid");
-    return $session->privilege->adminOnly() unless (canEditGroup($session, $gid));
-    return $session->privilege->vitalComponent() if WebGUI::Group->vitalGroup($gid);
-    my $g = WebGUI::Group->new($session,$gid);
-    $g->delete;
-    return www_listGroups($session);
+	my $session = shift;
+   my $rest = WebGUI::Session::Rest->new( session => $session );	
+	my $i18n = WebGUI::International->new( $session );
+	my $groupId = $session->form->process( "gid" );
+	
+	return $rest->unauthorized() unless ( canEditGroup($session, $groupId) );
+   return $rest->vitalComponent() if WebGUI::Group->vitalGroup( $groupId );
+   
+	my $group = WebGUI::Group->new( $session, $groupId );
+   $group->delete; 
+	return $rest->deleted;
+	
 }
 
 #-------------------------------------------------------------------

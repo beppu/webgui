@@ -7,7 +7,8 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
 ==== extraHeadTags ===========================================================
 
 ==== snippet =================================================================
-<button id="save-group-button" type="button">Save</button>
+<button class="save-group-button" type="button">Save</button>
+<button class="delete-group-button" type="button">Delete</button>
 <form id="groupEditForm" name="groupEditForm">
   <input type="hidden" name="op" value="<%= op %>" />
   <%== token %>
@@ -109,7 +110,8 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
         </tr>   
    </table>
 </form>
-<button id="save-group-button" type="button">Save</button>
+<button class="save-group-button" type="button">Save</button>
+<button class="delete-group-button" type="button">Delete</button>
 ==== synopsis ================================================================
 
 ==== Properties ==============================================================
@@ -124,13 +126,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 12612
-  lastModified: 1363032945
+  assetSize: 12890
+  lastModified: 1363182868
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: X4KLO8YLTrq4KR2Mbq_ZsA
+  tagId: DLDSz_UOR7aeoyLsRFt4fw
   templateParser: ''
   usePacked: 0
 security:
