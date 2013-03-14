@@ -8,7 +8,7 @@ $.fn.exists = function(){return this.length>0;};
 
 // Main webgui namespace object for scripts.  This can be put into a template and
 //   retrieved from the WebGUI config system
-   WebGUI = {
+var WebGUI = {
       Prime : {
          error: "",
          errorTag: "#errors",
@@ -23,9 +23,22 @@ $.fn.exists = function(){return this.length>0;};
    };
 
 /*
+ * Enable tooltips if requested
+ */
+WebGUI.Prime.EnableTooltips = function(selector){
+   if ( WebGUI.Prime.tooltips ){
+      if ( typeof selector !== 'undefined' && selection != null ){
+         $(selector).tooltip();
+      }else{
+         $(".tooltip").tooltip();         
+      }
+   }    
+}
+
+/*
  * Must create these types of menu items to be added to the dynamic menus.
  */
-var MenuDynamic = can.Construct({},{
+WebGUI.Prime.MenuDynamic = can.Construct({},{
    init:function(href,link,title){
       this.id    = Math.random();
       this.href  = href;
@@ -33,7 +46,7 @@ var MenuDynamic = can.Construct({},{
       this.title = title;
    },
    equals:function(menuItem){
-      if ( menuItem instanceof MenuDynamic ){
+      if ( menuItem instanceof WebGUI.Prime.MenuDynamic ){
          if ( this.id === menuItem.id ){
             return true;
          }else{
@@ -60,7 +73,7 @@ var MenuDynamic = can.Construct({},{
  *       ...
  *    </ul>
 */
-var MenuFromJson = can.Control({
+WebGUI.Prime.MenuFromJson = can.Control({
    defaults: {
       levels: 5,
       view: WebGUI.Prime.template.path + 'crumbTrail.ejs' 
@@ -87,7 +100,7 @@ var MenuFromJson = can.Control({
 /*
  *  Creates a dynamic crumbtrail menu in the passed div
  */
-var CrumbTrailMenu = can.Control({
+WebGUI.Prime.CrumbTrailMenu = can.Control({
    defaults: {
       levels: 5,
       view: WebGUI.Prime.template.path + 'crumbTrail.ejs' 
@@ -127,10 +140,10 @@ var CrumbTrailMenu = can.Control({
 
    },
    add:function(menuItem){
-      if ( menuItem instanceof MenuDynamic ){
+      if ( menuItem instanceof WebGUI.Prime.MenuDynamic ){
          this.menuItems.push(menuItem);
       }else{
-         throw "You must pass an instance of: MenuDynamic";//::i18n::
+         throw "You must pass an instance of: WebGUI.Prime.MenuDynamic";//::i18n::
       }
    },
    count:function(){
@@ -139,7 +152,7 @@ var CrumbTrailMenu = can.Control({
 });
 
 // given a page and a div id render the contents
-function loadPage(targetDiv, operation){
+WebGUI.Prime.loadPage = function(targetDiv, operation){
    if ( $(targetDiv).exists() ){
       $(targetDiv).load( operation );
    }else{
@@ -148,7 +161,7 @@ function loadPage(targetDiv, operation){
 }
 
 // Generic logger function for failed ajax calls
-function logAjaxError(error){
+WebGUI.Prime.logAjaxError = function(error){
    if ( error ){
       $(document).ajaxError(function(event, request, settings){
          $( WebGUI.Prime.errorTag ).append( 
@@ -161,7 +174,7 @@ function logAjaxError(error){
 /*
  * Display and destroy messages
  */
-var MessageQueue = can.Control({
+WebGUI.Prime.MessageQueue = can.Control({
       defaults:{
          type:"info",
          view:WebGUI.Prime.template.path + "messageQueue.ejs"

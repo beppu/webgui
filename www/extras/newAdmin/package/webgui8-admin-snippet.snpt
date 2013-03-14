@@ -20,12 +20,12 @@ $(function(){
       if ( $('#adminDiv').size() <= 0 ){ // Only fill out body if the admin menu has not been loaded
          $('#adminDiv').remove();// start with a clean slate
          $('body').append('<div id="adminDiv"></div>'); // this has to be removed once we get out of admin mode
-         $('#adminDiv').load("/newadmin/webgui8-admin-menu");
-         $('#toolbar').show();
-         // Enable/disable tooltips on the website
-         if ( WebGUI.Prime.tooltips ){
-            $( document ).tooltip();
-         }
+         $('#adminDiv').load("/newadmin/webgui8-admin-menu", function(){
+            $('#toolbar').show();
+            // Finally activate the admin panel code
+            WebGUI.Prime.AcitaveAdminPanel();
+         });
+     
       }
    });
 });
@@ -43,13 +43,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 1947
-  lastModified: 1363029026
+  assetSize: 1932
+  lastModified: 1363283998
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: e33TL-BHRRGuESSpXjJp7Q
+  tagId: Gha4i7puRvm4Bhr-7xCCmw
   templateParser: ''
   usePacked: 0
 security:

@@ -39,6 +39,7 @@ URL         : newadmin/drupalized-admin-template
   <script src="^Extras(/newAdmin/js/URI.js);"></script>
   <script src="^Extras(/newAdmin/js/plugins.js);"></script>
   <script src="^Extras(/newAdmin/js/application.js);"></script>
+  <script src="^Extras(/newAdmin/js/adminPanel.js);"></script>
 
 <!-- theming -->  
   <link rel="stylesheet" href="^Extras(/newAdmin/css/jquery-ui-1.10.1.smoothness.css);" />
@@ -79,9 +80,9 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 5988
+  assetSize: 6111
   attachmentsJson: '[]'
-  lastModified: 1363011349
+  lastModified: 1363276931
   namespace: style
   parser: WebGUI::Asset::Template::HTMLTemplate
   revisedBy: 3
@@ -89,7 +90,7 @@ properties:
   skipNotification: 0
   status: approved
   storageIdExample: ~
-  tagId: 1F6YF7gnQQubfPYJAeRWOA
+  tagId: UpDIC1LMT0O6ES-MokUMpQ
   usePacked: 0
 security:
   encryptPage: 0
