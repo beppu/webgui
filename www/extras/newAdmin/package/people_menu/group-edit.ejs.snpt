@@ -36,10 +36,10 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
                                                 No<input type="radio" name="showInForms" value="0" <% if ( showInForms.value == 0 ){ %>checked<% } %>></td>
         </tr>
         <tr>
-           <td class="tooltip" title="<%= expireOffset.description %>"><%= expireOffset.label %></td><td><input type="text" name="expireOffset_formId_interval" value="<%= expireOffset.value %>" />
+           <td class="tooltip" title="<%= expireOffset.description %>"><%= expireOffset.label %></td><td><input type="text" name="expireOffset_interval" value="<%= expireOffset.value.interval %>" />
                                                  <select name="expireOffset_units">
                                                  <% can.each(unitsOfTime,function(data, index){ %>
-                                                    <option value="<%= index %>" <% if ( expireNotify.description === data ){ %>selected<% } %>><%= data %></option>
+                                                    <option value="<%= index %>" <% if ( expireOffset.value.unit === data ){ %>selected<% } %>><%= data %></option>
                                                  <% }) %>
                                                  </select></td>
         </tr> 
@@ -105,10 +105,10 @@ URL         : newadmin/people_menu/tempates/group-edit.ejs
            <td class="tooltip" title="<%= ldapRecursiveFilter.description %>"><%= ldapRecursiveFilter.label %></td><td><textarea name="ldapRecursiveFilter"><%= ldapRecursiveFilter.value %></textarea></td>
         </tr>
         <tr>
-           <td class="tooltip" title="<%= groupCacheTimeout.description %>"><%= groupCacheTimeout.label %></td><td><input type="text" name="groupCacheTimeout" value="<%= groupCacheTimeout.value %>" />
-                                                 <select name="groupCacheTimeoutInterval">
+           <td class="tooltip" title="<%= groupCacheTimeout.description %>"><%= groupCacheTimeout.label %></td><td><input type="text" name="groupCacheTimeout_interval" value="<%= groupCacheTimeout.value.interval %>" />
+                                                 <select name="groupCacheTimeout_units">
                                                  <% can.each(unitsOfTime,function(data, index){ %>
-                                                    <option value="<%= index %>"><%= data %></option>
+                                                    <option value="<%= index %>" <% if ( groupCacheTimeout.value.unit === data ){ %>selected<% } %>><%= data %></option>
                                                  <% }) %>
                                                  </select>
            </td>
@@ -131,13 +131,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 13957
-  lastModified: 1363282741
+  assetSize: 14125
+  lastModified: 1363293220
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: _6elcd6PSA2pZER1l1zCNw
+  tagId: PRpVJJA3TvWH2pjvAcs-5w
   templateParser: ''
   usePacked: 0
 security:

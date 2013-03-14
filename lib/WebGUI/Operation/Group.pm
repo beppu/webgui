@@ -23,31 +23,31 @@ use WebGUI::Session::Rest;
 use WebGUI::SQL;
 use Tie::IxHash;
 
-#----------------------------------------------------------------------------
-sub _submenu {
-	my $session = shift;
-        my $workarea = shift;
-        my $title = shift;
-	my $i18n = WebGUI::International->new($session);
-        $title = $i18n->get($title) if ($title);
-        my $ac = WebGUI::AdminConsole->new($session,"groups");
-	if (canEditAll($session)) {
-	        $ac->addSubmenuItem($session->url->page('op=editGroup;gid=new'), $i18n->get(90));
-	}
-	if (canView($session)) {
-        	unless ($session->form->process("op") eq "listGroups" 
-			|| $session->form->process("gid") eq "new" 
-			|| $session->form->process("op") eq "deleteGroupConfirm") {
-        	        $ac->addSubmenuItem($session->url->page("op=editGroup;gid=".$session->form->process("gid")), $i18n->get(753));
-                	$ac->addSubmenuItem($session->url->page("op=manageUsersInGroup;gid=".$session->form->process("gid")), $i18n->get(754));
-	                $ac->addSubmenuItem($session->url->page("op=manageGroupsInGroup;gid=".$session->form->process("gid")), $i18n->get(807));
-        	        $ac->addSubmenuItem($session->url->page("op=emailGroup;gid=".$session->form->process("gid")), $i18n->get(808));
-                	$ac->addConfirmedSubmenuItem($session->url->page("op=deleteGroup;gid=".$session->form->process("gid")), $i18n->get(806), $i18n->get(86));
-	        }
-        	$ac->addSubmenuItem($session->url->page("op=listGroups"), $i18n->get(756));
-	}
-    return $ac->render($workarea, $title);
-}
+##----------------------------------------------------------------------------
+#sub _submenu {
+#	my $session = shift;
+#        my $workarea = shift;
+#        my $title = shift;
+#	my $i18n = WebGUI::International->new($session);
+#        $title = $i18n->get($title) if ($title);
+#        my $ac = WebGUI::AdminConsole->new($session,"groups");
+#	if (canEditAll($session)) {
+#	        $ac->addSubmenuItem($session->url->page('op=editGroup;gid=new'), $i18n->get(90));
+#	}
+#	if (canView($session)) {
+#        	unless ($session->form->process("op") eq "listGroups" 
+#			|| $session->form->process("gid") eq "new" 
+#			|| $session->form->process("op") eq "deleteGroupConfirm") {
+#        	        $ac->addSubmenuItem($session->url->page("op=editGroup;gid=".$session->form->process("gid")), $i18n->get(753));
+#                	$ac->addSubmenuItem($session->url->page("op=manageUsersInGroup;gid=".$session->form->process("gid")), $i18n->get(754));
+#	                $ac->addSubmenuItem($session->url->page("op=manageGroupsInGroup;gid=".$session->form->process("gid")), $i18n->get(807));
+#        	        $ac->addSubmenuItem($session->url->page("op=emailGroup;gid=".$session->form->process("gid")), $i18n->get(808));
+#                	$ac->addConfirmedSubmenuItem($session->url->page("op=deleteGroup;gid=".$session->form->process("gid")), $i18n->get(806), $i18n->get(86));
+#	        }
+#        	$ac->addSubmenuItem($session->url->page("op=listGroups"), $i18n->get(756));
+#	}
+#    return $ac->render($workarea, $title);
+#}
 
 
 #----------------------------------------------------------------------------
@@ -479,6 +479,13 @@ sub www_editGroup {
    use WebGUI::Form::CsrfToken;
    my $hiddenToken = WebGUI::Form::CsrfToken->new($session)->toHtml;
    my $dbLinks = WebGUI::DatabaseLink->getList( $session );
+		
+	# Get the previously saved values for expire offset if any		
+   my ($interval, $unit) = $session->datetime->secondsToExactInterval( $group->expireOffset );
+	my $expireOffset = { interval => $interval, unit => $unit };
+	# Get the previously saved values for group cache timeout if any
+	($interval, $unit) = $session->datetime->secondsToExactInterval( $group->groupCacheTimeout );
+	my $groupCacheTimeout = { interval => $interval, unit => $unit };
 
 	my $output = {
 		op => "editGroupSave",
@@ -506,7 +513,7 @@ sub www_editGroup {
 		},
 		expireOffset => {
 			label => $i18n->get(367),
-			value => $session->datetime->secondsToExactInterval( $group->expireOffset ),
+			value => $expireOffset,
 			description => '"' . $i18n->get('367 description') . '"' 		
 		},
 		unitsOfTime => {
@@ -582,7 +589,7 @@ sub www_editGroup {
 		},
 		groupCacheTimeout => {
 			label => $i18n->get(1004),
-			value => $group->groupCacheTimeout,
+			value => $groupCacheTimeout,
 			description => $i18n->get('1004 description')		
 		}
 	};
@@ -615,12 +622,12 @@ sub www_editGroup {
 	
 	# The LDAP portion
    tie my %links, "Tie::IxHash";
-	%links = %{WebGUI::LDAPLink->getList($session)};
-	%links = (""=>$i18n->get("noldaplink"),%links);   
+	%links = %{ WebGUI::LDAPLink->getList($session) };
+	%links = ( ""=>$i18n->get("noldaplink"), %links );   
 	$output->{ldapLinkId} = {
-		label => $i18n->get("ldapConnection","AuthLDAP"),
+		label => $i18n->get("ldapConnection", "AuthLDAP"),
 		value => $group->ldapLinkId,
-		description => $i18n->get("ldapConnection description","AuthLDAP"),
+		description => $i18n->get("ldapConnection description", "AuthLDAP"),
 		options => \%links
 	};		
 
@@ -665,6 +672,7 @@ sub www_editGroupSave {
          substr($1, 0, 100 - length($newNum)) . $newNum;  #prevent name from growing over 100 chars
       /emsx;
    }
+	
 	my $group = WebGUI::Group->new($session, $groupId);
    $group->name($groupName);
    $group->description($session->form->process("description"));

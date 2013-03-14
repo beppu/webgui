@@ -9,7 +9,7 @@ URL         : newadmin/people_menu
 ==== snippet =================================================================
 <!-- Overlay wrapper content -->
 <ul> 
-   <li><a class="adminOverlayTabs-click default ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-1" target="op=viewActiveSessions">Sessions</a></li>
+   <li><a id="sessionsTab" class="adminOverlayTabs-click default ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-1" target="op=viewActiveSessions">Sessions</a></li>
    <li><a id="groupTab" class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-2" target="op=listGroups">Groups</a></li>
    <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-3" target="op=viewLoginHistory">Login History</a></li>
    <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-4" target="op=editProfileSettings">User Profiling</a></li>
@@ -97,13 +97,6 @@ WebGUI.Prime.PeopleMenu = function(){
 WebGUI.Prime.PeopleMenu();
     
 </script>
-
-<div id="dialog-confirm" title="Are you sure you wan't to delete these records?" style="display:none">
-   <p>
-      <span class="ui-icon ui-icon-alert" style="float:left;margin:0 7px 20px 0;"></span>
-      These items will be permanently deleted and cannot be recovered. Are you sure?
-   </p>
-</div>
 ==== synopsis ================================================================
 
 ==== Properties ==============================================================
@@ -118,13 +111,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 8957
-  lastModified: 1363284371
+  assetSize: 8401
+  lastModified: 1363287506
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: ioYFGWaQTTyxrfK3V28jnA
+  tagId: woCAUknnQg_q4dIC7DNpmQ
   templateParser: ''
   usePacked: 0
 security:

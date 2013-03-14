@@ -44,27 +44,12 @@ URL         : newadmin/people_menu/active_sessions_option
                });
 
                if ( sid.length > 10 ){
-                  $( "#dialog-confirm" ).dialog({
+                  $( "#dialog-delete-confirm" ).dialog({
                      modal: true,
                      buttons: {
-                        "Delete all items": function(){
-                           $.ajax({
-                              type: "GET",
-                              url: '/?op=killSession',
-                              data:{"sid":sid},
-                              dataType: "json"}
-                           )
-                           .done(function(data, textStatus, jqXHR){
-                              $('#message').html("Records deleted!");
-                              sessionsDatatable.fnDraw();
-                              $('#messageWrapper').show();
-                           })
-                           .fail(function(jqXHR, textStatus, errorThrown){ 
-                              var response = jqXHR.responseText;
-                              $('#message').html( textStatus + ' ' + errorThrown);
-                              $('#messageWrapper').show();
-                              sessionsDatatable.fnDraw();
-                           })
+                        "Delete all items":function(){
+                           var jsonSubmit = '/?op=killSession&sid=' + sid;
+                           WebGUI.Prime.AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#sessionsTab" });
                            $( this ).dialog( "close" );
                         },
                         Cancel: function() {
@@ -88,13 +73,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 4675
-  lastModified: 1363028031
+  assetSize: 3776
+  lastModified: 1363287594
   mimeType: text/javascript
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: 7bqFT4ftQEiDf4OSupFC8A
+  tagId: DpxYGf4mTY6RQx69KLRpDQ
   templateParser: ''
   usePacked: 0
 security:

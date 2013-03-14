@@ -47,6 +47,14 @@ URL         : newadmin/webgui8-admin-menu
       <img id="adminOverlayClose" src="^Extras(/newAdmin/images/delete.png);" />
    </div>
 </div>
+
+<!-- Dialog Boxes -->
+<div id="dialog-delete-confirm" title="Are you sure you wan't to delete these records?" style="display:none">
+   <p>
+      <span class="ui-icon ui-icon-alert" style="float:left;margin:0 7px 20px 0;"></span>
+      These items will be permanently deleted and cannot be recovered. Are you sure?
+   </p>
+</div>
 ==== synopsis ================================================================
 
 ==== Properties ==============================================================
@@ -61,13 +69,13 @@ meta:
   isPrototype: 0
   usePackedHeadTags: 0
 properties:
-  assetSize: 4643
-  lastModified: 1363276897
+  assetSize: 5292
+  lastModified: 1363285599
   mimeType: text/html
   revisedBy: 3
   skipNotification: 0
   status: approved
-  tagId: dXUEMhc7TAS5PLygXep5Yg
+  tagId: iWVjqTCJQg6IkaKp-brUWg
   templateParser: ''
   usePacked: 0
 security:

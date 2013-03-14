@@ -136,7 +136,7 @@ WebGUI.Prime.CrumbTrailMenu = can.Control({
       }
 
       var divId = this.options.divId; // Where we display the contents of the requested path
-      loadPage( divId, link.href );
+      WebGUI.Prime.loadPage( divId, link.href );
 
    },
    add:function(menuItem){
