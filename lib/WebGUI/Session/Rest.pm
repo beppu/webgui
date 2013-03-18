@@ -4,10 +4,7 @@ use WebGUI::International;
 use JSON;
 use Moose;
 
-has 'error'     => ( is => 'rw', isa => 'Str' );
-has 'message'   => ( is => 'rw', isa => 'Str' );
 has 'status'    => ( is => 'rw', isa => 'Int', default => 200 );
-has 'data'      => ( is => 'rw', isa => 'HashRef', default => sub { {} } );
 
 =head2 session
 
@@ -23,30 +20,35 @@ has 'session' => (
 
 sub response{
    my $this = shift;
-   $this->data->{error}   = $this->error   if $this->error;
-   $this->data->{message} = $this->message if $this->message;
-   
-   $this->session->response->content_type("application/json");
+   my $data = shift || {};
    $this->session->response->status( $this->status );
-   
-   return to_json $this->data;
-   
+   my $callback = $this->session->request->param('callback') || $this->session->request->param('jsoncallback');
+   if ( $callback ){
+      $this->session->response->headers({ 'Access-Control-Allow-Origin' => '*',
+                                          'Access-Control-Allow-Methods' => 'GET',
+                                          'Content-Type' => 'application/javascript' });
+      return qq|$callback(| . to_json( $data ) . ');';
+      
+   }else{
+      $this->session->response->content_type("application/json");
+      return to_json( $data );
+      
+   }
+ 
 }
 # Cleanup ---
 after 'response'  => sub { 
    my $this = shift;
-   $this->error("");
-   $this->message("");
-   $this->status( 200 );   
-   $this->data({});   
+   $this->status( 200 ); 
    $this->session(undef);
 };
 
 sub created{
    my $this = shift;
+   my $data = shift;
    $this->status(201);
    
-   $this->response;     
+   $this->response( $data );     
 }
 
 sub deleted{
@@ -58,45 +60,41 @@ sub deleted{
 
 sub forbidden{
    my $this = shift;
-   my $message = shift;
-   $this->message( $message ) if $message;
+   my $data = shift;
    $this->status(403);
    
-   $this->response;  
+   $this->response( $data );  
 }
 
 sub notFound{
    my $this = shift;
-   my $message = shift;
-   $this->message( $message ) if $message;
+   my $data = shift;
    $this->status(404);
    
-   $this->response;  
+   $this->response( $data );  
 }
 
 sub notModified{
    my $this = shift;
-   my $message = shift;
-   $this->message( $message ) if $message;
+   my $data = shift;
    $this->status(304);
    
-   $this->response;  
+   $this->response( $data );  
 }
 
 sub unauthorized{
    my $this = shift;
-   my $message = shift;
-   $this->message( $message ) if $message;
+   my $data = shift;
    $this->status(401);
    
-   $this->response;
+   $this->response( $data );
 }
 
 sub vitalComponent{
    my $this = shift;
    my $i18n = WebGUI::International->new($this->session);
    my $message = $i18n->get(40). ' ' . $i18n->get(41);
-   return $this->forbidden($message);
+   return $this->forbidden({ message => $message });
 }
 
 
