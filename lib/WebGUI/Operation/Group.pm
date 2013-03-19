@@ -388,9 +388,14 @@ sub www_deleteGroup {
 	return $rest->unauthorized() unless ( canEditGroup($session, $groupId) );
    return $rest->vitalComponent() if WebGUI::Group->vitalGroup( $groupId );
    
-	my $group = WebGUI::Group->new( $session, $groupId );
-   $group->delete; 
-	return $rest->deleted;
+	if ( my $group = WebGUI::Group->new( $session, $groupId ) ){
+      $group->delete;
+    	return $rest->deleted;
+
+   }else{
+      return $rest->notFound({ message => qq|Record [ $groupId ] not found| });
+     
+   }
 	
 }
 
@@ -466,7 +471,7 @@ sub www_editGroup {
 	my $i18n = WebGUI::International->new($session);
 	my $groupId = $session->form->process("gid");
 	
-	return $rest->forbidden( $i18n->get(36) )
+	return $rest->forbidden( { message => $i18n->get(36) } )
 	   unless ( canEditGroup($session, $groupId ) );
 
 	my $group = undef;
@@ -631,8 +636,7 @@ sub www_editGroup {
 		options => \%links
 	};		
 
-	$rest->data( $output );
-   return $rest->response;
+   return $rest->response( $output );
 }
 
 #-------------------------------------------------------------------
@@ -657,8 +661,8 @@ sub www_editGroupSave {
 	my $i18n = WebGUI::International->new($session);
 	my $groupId = $session->form->process("gid") || 'new';
 	
-	return $rest->forbidden( $i18n->get(36) )
-	   unless ( canEditGroup( $session, $groupId ) && $session->form->validToken );
+	return $rest->forbidden( { message => $i18n->get(36) } )
+	   unless ( canEditGroup( $session, $groupId ) );#&& $session->form->validToken );
 	
    # We don't want them to use an existing name.  If needed, we'll add a number to the name to keep it unique.
    my $groupName = $session->form->process("groupName");
@@ -699,8 +703,7 @@ sub www_editGroupSave {
 	my $output = { id => $group->getId };
 	$output->{ message } = " Found Duplicate " . $i18n->get('duplicate')
 	   if $foundDuplicateName;
-	$rest->data( $output );
-   return $rest->response;
+   return $rest->response( $output );
 }
 
 #-------------------------------------------------------------------
@@ -958,8 +961,7 @@ sub www_listGroups {
       $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
       $webParams->{iTotalDisplayRecords} = $search ? $rowCount : $webParams->{iTotalRecords}; #Total records, after filtering or same as total records if not filtering
       $webParams->{data} = $output;
-      $rest->data( $webParams );
-      return $rest->response;		
+      return $rest->response( $webParams );		
 			
 	} elsif ( canView($session) ) {
       my @sqlParams = ();
@@ -1014,12 +1016,10 @@ sub www_listGroups {
       $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
       $webParams->{iTotalDisplayRecords} = $rowCount; #Total records, after filtering
       $webParams->{data} = $output;
-      $rest->data( $webParams );
-      return $rest->response;		
+      return $rest->response( $webParams );		
 
 	}else {
-      $rest->message( $i18n->get(36) );
-      return $rest->forbidden;
+      return $rest->forbidden( { message => $i18n->get(36) } );
 		
    }
 }

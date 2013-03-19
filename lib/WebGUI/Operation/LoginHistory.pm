@@ -124,11 +124,10 @@ sub www_viewLoginHistory {
       $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
       $webParams->{iTotalDisplayRecords} = $webParams->{iTotalRecords}; #Total records, after filtering
       $webParams->{data} = $output;
-      $rest->data( $webParams );
-      return $rest->response;
+      return $rest->response( $webParams );
       
 	}else {
-      return $rest->forbidden( $i18n->get(36) );
+      return $rest->forbidden( { message => $i18n->get(36) } );
 		
    }
 }

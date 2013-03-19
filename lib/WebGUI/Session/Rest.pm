@@ -4,7 +4,7 @@ use WebGUI::International;
 use JSON;
 use Moose;
 
-has 'status'    => ( is => 'rw', isa => 'Int', default => 200 );
+has 'status' => ( is => 'rw', isa => 'Int', default => 200 );
 
 =head2 session
 
@@ -22,7 +22,7 @@ sub response{
    my $this = shift;
    my $data = shift || {};
    $this->session->response->status( $this->status );
-   my $callback = $this->session->request->param('callback') || $this->session->request->param('jsoncallback');
+   my $callback = $this->session->request->param('callback');
    if ( $callback ){
       $this->session->response->headers({ 'Access-Control-Allow-Origin' => '*',
                                           'Access-Control-Allow-Methods' => 'GET',
@@ -53,9 +53,7 @@ sub created{
 
 sub deleted{
    my $this = shift;
-   $this->data({});
-   
-   $this->response;     
+   $this->response({});     
 }
 
 sub forbidden{

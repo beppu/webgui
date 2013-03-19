@@ -95,7 +95,7 @@ sub www_viewActiveSessions {
       my @likableItemPositions = ();
       my $searchParam = "";      
       my $search = $session->form->param('sSearch');
-      if ( $search ){
+      if ( $search && $search =~ m/\S/ ){
          $searchParam = q|and users.username like ?|;
          push(@likableItemPositions, scalar( @sqlParams ) );
          push(@sqlParams, $search);
