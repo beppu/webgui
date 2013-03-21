@@ -48,3 +48,22 @@ I'm currently getting 370 requests/second, whereas I'm getting 430/second on the
   objects (one per request)
 
 
+= Using the NewAdmin Interface (Very BETA!!!) =
+* Add the following to the "Extra <head> elements (tags)" of your page:
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/normalize.css);">
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/main.css);">
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/toolbar.css);">
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/admin-datatable.css);">
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/menus.css);">
+  <link rel="stylesheet" href="^Extras(/newAdmin/css/ui-lightness/main.css);" />
+  <script data-main="^Extras(/newAdmin/js/AdminApp);" src="^Extras(/newAdmin/js/libs/require.js);"></script>
+
+  - Take a look at: WebGUI/www/extras/newAdmin/js/AdminApp.js and make any modifications you may have to this file.
+    Eventually this file as well as others may be loaded from a template within the WebGUI system.
+
+  - You may want to start out by creating a new "Page Layout" that has a "FailSafe" style for now as
+    I have focused primarily on functionality and still have to workout some css/style conflicts.
+
+  - By default the "Turn Admin On" option will be placed on the top right hand corner of the page.
+    However if you place an element in your page with an id of: "turn-admin-on-container" the "Turn Admin On"
+    option will be displayed in that location.
