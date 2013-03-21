@@ -56,7 +56,7 @@ sub www_viewLoginHistory {
       my @likableItemPositions = ();
       my $searchParam = "";      
       my $search = $session->form->param('sSearch');
-      if ( $search ){
+      if ( $search and $search =~ m/\S/ ){ # don't search unless we have something to search for, i.e. alpha characters
          $searchParam = q|and username like ?|;
          push(@likableItemPositions, scalar( @sqlParams ) );
          push(@sqlParams, $search);
