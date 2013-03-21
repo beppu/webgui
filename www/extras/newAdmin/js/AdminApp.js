@@ -21,9 +21,9 @@ requirejs.config({
          template: {
             path: "/extras/newAdmin/js/templates/"
          },
-         jsonSourceServer: "http://webgui.dbash.com:8900",
-         jsonp:true,
-         otherHelp:'/json/help.json',
+         jsonSourceServer: "/",
+         jsonp:false,
+         otherHelp:'/extras/newAdmin/json/help.json',
          tooltips: true,
          messageTag: "#messages",
          messageTemplate: "webgui-ajax-message-template.ejs"
