@@ -23,33 +23,6 @@ use WebGUI::Session::Rest;
 use WebGUI::SQL;
 use Tie::IxHash;
 
-##----------------------------------------------------------------------------
-#sub _submenu {
-#	my $session = shift;
-#        my $workarea = shift;
-#        my $title = shift;
-#	my $i18n = WebGUI::International->new($session);
-#        $title = $i18n->get($title) if ($title);
-#        my $ac = WebGUI::AdminConsole->new($session,"groups");
-#	if (canEditAll($session)) {
-#	        $ac->addSubmenuItem($session->url->page('op=editGroup;gid=new'), $i18n->get(90));
-#	}
-#	if (canView($session)) {
-#        	unless ($session->form->process("op") eq "listGroups" 
-#			|| $session->form->process("gid") eq "new" 
-#			|| $session->form->process("op") eq "deleteGroupConfirm") {
-#        	        $ac->addSubmenuItem($session->url->page("op=editGroup;gid=".$session->form->process("gid")), $i18n->get(753));
-#                	$ac->addSubmenuItem($session->url->page("op=manageUsersInGroup;gid=".$session->form->process("gid")), $i18n->get(754));
-#	                $ac->addSubmenuItem($session->url->page("op=manageGroupsInGroup;gid=".$session->form->process("gid")), $i18n->get(807));
-#        	        $ac->addSubmenuItem($session->url->page("op=emailGroup;gid=".$session->form->process("gid")), $i18n->get(808));
-#                	$ac->addConfirmedSubmenuItem($session->url->page("op=deleteGroup;gid=".$session->form->process("gid")), $i18n->get(806), $i18n->get(86));
-#	        }
-#        	$ac->addSubmenuItem($session->url->page("op=listGroups"), $i18n->get(756));
-#	}
-#    return $ac->render($workarea, $title);
-#}
-
-
 #----------------------------------------------------------------------------
 
 =head2 canEditAll ( session [, user] )
@@ -161,75 +134,75 @@ sub doGroupSearch {
 }
 
 
-#-------------------------------------------------------------------
-
-=head2 getGroupSearchForm ($session, $op, $params)
-
-Build and render a form for doing group searching.
-
-=head3 $session
-
-A WebGUI::Session object
-
-=head3 $op
-
-The operation that this form should call when submitted.
-
-=head3 $params
-
-A hashref of hidden form parameters and values to add to the form.
-
-
-=cut
-
-sub getGroupSearchForm {
-	my $session = shift;
-	my $op = shift;
-	my $params = shift;
-	my $keyword = $session->form->process("keyword");
-	if (defined $keyword) {
-		$session->scratch->set("groupSearchKeyword", $keyword);
-	}
-	my $modifier = $session->form->process("modifier");
-	if (defined $modifier) {
-		$session->scratch->set("groupSearchModifier", $modifier);
-	}
-	my $output = '<div align="center">';
-	my $i18n = WebGUI::International->new($session);
-	my $f = WebGUI::HTMLForm->new($session, method => 'GET', );
-	foreach my $key (keys %{$params}) {
-                $f->hidden(
-                        -name=>$key,
-                        -value=>$params->{$key}
-                        );
-        }  
-        $f->hidden(
-		-name => "op",
-		-value => $op
-	);
-        $f->hidden(
-                -name=>"doit",
-                -value=>1
-                );
-        $f->selectBox(
-                -name=>"modifier",
-                -value=>($session->scratch->get("groupSearchModifier") || "contains" ),
-                -options=>{
-                        startsWith=>$i18n->get("starts with"),
-                        contains=>$i18n->get("contains"),
-                        endsWith=>$i18n->get("ends with")
-                        }
-                );
-        $f->text(
-                -name=>"keyword",
-                -value=>$session->scratch->get("groupSearchKeyword"),
-                -size=>15
-                );
-        $f->submit(value=>$i18n->get(170));
-        $output .= $f->print;
-        $output .= '</div>';
-	return $output;
-}
+##-------------------------------------------------------------------
+#
+#=head2 getGroupSearchForm ($session, $op, $params)
+#
+#Build and render a form for doing group searching.
+#
+#=head3 $session
+#
+#A WebGUI::Session object
+#
+#=head3 $op
+#
+#The operation that this form should call when submitted.
+#
+#=head3 $params
+#
+#A hashref of hidden form parameters and values to add to the form.
+#
+#
+#=cut
+#
+#sub getGroupSearchForm {
+#	my $session = shift;
+#	my $op = shift;
+#	my $params = shift;
+#	my $keyword = $session->form->process("keyword");
+#	if (defined $keyword) {
+#		$session->scratch->set("groupSearchKeyword", $keyword);
+#	}
+#	my $modifier = $session->form->process("modifier");
+#	if (defined $modifier) {
+#		$session->scratch->set("groupSearchModifier", $modifier);
+#	}
+#	my $output = '<div align="center">';
+#	my $i18n = WebGUI::International->new($session);
+#	my $f = WebGUI::HTMLForm->new($session, method => 'GET', );
+#	foreach my $key (keys %{$params}) {
+#                $f->hidden(
+#                        -name=>$key,
+#                        -value=>$params->{$key}
+#                        );
+#        }  
+#        $f->hidden(
+#		-name => "op",
+#		-value => $op
+#	);
+#        $f->hidden(
+#                -name=>"doit",
+#                -value=>1
+#                );
+#        $f->selectBox(
+#                -name=>"modifier",
+#                -value=>($session->scratch->get("groupSearchModifier") || "contains" ),
+#                -options=>{
+#                        startsWith=>$i18n->get("starts with"),
+#                        contains=>$i18n->get("contains"),
+#                        endsWith=>$i18n->get("ends with")
+#                        }
+#                );
+#        $f->text(
+#                -name=>"keyword",
+#                -value=>$session->scratch->get("groupSearchKeyword"),
+#                -size=>15
+#                );
+#        $f->submit(value=>$i18n->get(170));
+#        $output .= $f->print;
+#        $output .= '</div>';
+#	return $output;
+#}
 
 
 #-------------------------------------------------------------------
@@ -369,7 +342,7 @@ sub www_autoDeleteFromGroup {
 
 =head2 www_deleteGroup
 
-Delete's the group specified by id, in the form variable gid.  Groups 1-17
+Delete`s the group specified by id, in the form variable gid.  Groups 1-17
 are reserved for WebGUI internal groups and are not allowed to be deleted.
 Returns you to www_listGroups when done.
 
@@ -1081,8 +1054,7 @@ sub www_manageGroupsInGroup { # work on this later...
 		groupList => [ @groups ]
 	};
 	
-	$rest->data( $output );
-   return $rest->response;
+   return $rest->response( $output );
 }
 
 #-------------------------------------------------------------------
@@ -1101,82 +1073,41 @@ A WebGUI::Session object
 
 sub www_manageUsersInGroup {
 	my $session = shift;
-    return $session->privilege->adminOnly() unless (canEditGroup($session,$session->form->process("gid")));
+   my $groupId = $session->form->process("gid");
 	my $i18n = WebGUI::International->new($session);
-	my $output = WebGUI::Form::formHeader($session)
-		.WebGUI::Form::hidden($session,{
-			name=>"gid",
-			value=>$session->form->process("gid")
-			})
-		.WebGUI::Form::hidden($session,{
-			name=>"op",
-			value=>"deleteGrouping"
-			});
-        $output .= '<table border="1" cellpadding="2" cellspacing="0"><tr><td class="tableHeader"><input type="image" src="'
-		.$session->icon->getBaseURL().'delete.gif" border="0"></td>
-                <td class="tableHeader">'.$i18n->get(50).'</td>
-                <td class="tableHeader">'.$i18n->get(369).'</td></tr>';
-	my $p = WebGUI::Paginator->new($session,$session->url->page("op=manageUsersInGroup;gid=".$session->form->process("gid")));
-        $p->setDataByQuery("select users.username,users.userId,groupings.expireDate
-                from groupings,users where groupings.groupId=".$session->db->quote($session->form->process("gid"))." and groupings.userId=users.userId
-                order by users.username");
-	foreach my $row (@{$p->getPageData}) {
-                $output .= '<tr><td>'
-			.WebGUI::Form::checkbox($session,{
-				name=>"uid",
-				value=>$row->{userId}
-				})
-                        .$session->icon->edit('op=editGrouping;uid='.$row->{userId}.';gid='.$session->form->process("gid"))
-                        .'</td>';
-                $output .= '<td class="tableData"><a href="'.$session->url->page('op=editUser;uid='.$row->{userId}).'">'.$row->{username}.'</a></td>';
-                $output .= '<td class="tableData">'.$session->datetime->epochToHuman($row->{expireDate},"%z").'</td></tr>';
-        }
-        $output .= '</table>'.WebGUI::Form::formFooter($session,);
-	$output .= $p->getBarTraditional;
-	$output .= '<p><h1>'.$i18n->get(976).'</h1>';
-	$output .= WebGUI::Operation::User::getUserSearchForm($session, "manageUsersInGroup",{gid=>$session->form->process("gid")});
-	my ($userCount) = $session->db->quickArray("select count(*) from users");
-	return _submenu($session,$output) unless ($session->form->process("doit") || $userCount < 250 || $session->form->process("pn") > 1);
-	my $f = WebGUI::HTMLForm->new($session);
-	$f->submit;
-	$f->hidden(
-		-name => "gid",
-		-value => $session->form->process("gid")
-	);
-	$f->hidden(
-		-name => "op",
-		-value => "addUsersToGroupSave"
-	);
-	my $group = WebGUI::Group->new($session,$session->form->process("gid"));
-    $f->readOnly(
-        -label => $i18n->get(379),
-        -value => $group->getId,
-    );
-    $f->readOnly(
-        -label => $i18n->get(84),
-        -value => $group->name,
-    );
+   my $rest = WebGUI::Session::Rest->new( session => $session );
+   return $rest->forbidden( { message => $i18n->get(36) } )
+      unless ( canEditGroup($session, $groupId) );
+   
+   my $group = WebGUI::Group->new( $session, $groupId );
 
-	my $existingUsers = $group->getUsers;
-	push(@{$existingUsers},"1");
-	my %users;
-	tie %users, "Tie::IxHash";
-	my $sth = WebGUI::Operation::User::doUserSearch($session, "op=manageUsersInGroup;gid=".$session->form->process("gid"),0,$existingUsers);
-	while (my $data = $sth->hashRef) {
-		$users{$data->{userId}} = $data->{username};
-		$users{$data->{userId}} .= " (".$data->{email}.")" if ($data->{email});
-	}
-	$sth->finish;
-	$f->selectList(
-		-name=>"users",
-		-label=>$i18n->get(976),
-		-options=>\%users,
-		-multiple=>1,
-		-size=>7
-		);
-	$f->submit;
-	$output .= $f->print;
-        return _submenu($session,$output,'88');
+	my $output = {
+		gid  => $groupId,
+       op  => "deleteGrouping",
+     users => $group->getUsers
+   };
+
+
+
+
+#        $p->setDataByQuery("select users.username,users.userId,groupings.expireDate
+#                from groupings,users where groupings.groupId=".$session->db->quote($session->form->process("gid"))." and groupings.userId=users.userId
+#                order by users.username");
+#	foreach my $row (@{$p->getPageData}) {
+#                $output .= '<tr><td>'
+#			.WebGUI::Form::checkbox($session,{
+#				name=>"uid",
+#				value=>$row->{userId}
+#				})
+#                        .$session->icon->edit('op=editGrouping;uid='.$row->{userId}.';gid='.$session->form->process("gid"))
+#                        .'</td>';
+#                $output .= '<td class="tableData"><a href="'.$session->url->page('op=editUser;uid='.$row->{userId}).'">'.$row->{username}.'</a></td>';
+#                $output .= '<td class="tableData">'.$session->datetime->epochToHuman($row->{expireDate},"%z").'</td></tr>';
+#        }
+
+    
+	return $rest->response( $output );
+	
 }
 
 1;
