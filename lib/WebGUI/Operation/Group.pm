@@ -886,7 +886,7 @@ sub www_listGroups {
       my @likableItemPositions = ();
       my $searchParam = "";      
       my $search = $session->form->param('sSearch');
-      if ( $search ){
+      if ( $search and $search =~ m/\S/ ){ # Do not search if there is just empty spaces!
          $searchParam = q|and groupName like ?|;
          push(@likableItemPositions, scalar( @sqlParams ) );
          push(@sqlParams, $search);
