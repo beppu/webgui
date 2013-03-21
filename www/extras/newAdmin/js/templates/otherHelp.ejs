@@ -1,0 +1,8 @@
+<% $.each(this, function( i, help ){ %>
+   <h3><%= help.topic %></h3>
+   <ul>
+      <% $.each(help.data, function( x, dHelp ){ %>
+      <li><a href="<%= dHelp.href %>" target="_blank"><%= dHelp.description %></a></li>
+      <% }) %>
+   </ul>
+<% }) %>

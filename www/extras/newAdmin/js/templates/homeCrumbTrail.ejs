@@ -1,7 +1,7 @@
 <ul <% if ( id ){ 'id=' + id } %> class="webgui_breadcrumb_container">
    <% for( var i = 0; i < items.length; i++ ){ %>
       <li <%= (el) -> el.data('link', items[i]) %> class="webgui_breadcrumb_item"><a id="<%= items[i].id %>" class="webgui-crumb-link" href="<%= items[i].href %>" title="<%= items[i].title %>">
-         <% if ( i == 0 ){ %><img src="/images/web-admin-interface/house_link.png" title="<%= items[i].link %>" /><% }else{ %><%= items[i].link %><% } %>
+         <% if ( i == 0 ){ %><img src="/images/house_link.png" title="<%= items[i].link %>" /><% }else{ %><%= items[i].link %><% } %>
       </a></li>
    <% } %>
 </ul>

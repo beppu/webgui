@@ -1,0 +1,48 @@
+<!-- Top admin toolbar -->
+<div id="toolbar" class="toolbar overlay-displace-top clearfix">
+   <div class="toolbar-menu clearfix">
+      <ul id="toolbar-home">
+         <li class="home first last active"><a href="/" title="Home" class="active"><span class="home-link">Home</span></a></li>
+      </ul>
+      <ul id="toolbar-user">
+         <li class="account first"><a class="showAdminPanel" href="" title="User account">Hello <strong>sa</strong></a></li>
+         <li class="logout last"><a href="/?op=auth&method=logout" title="Logout" >Log out</a></li>
+      </ul>
+      <ul id="toolbar-menu">
+         <li class="first"><a class="showAdminPanel" href="" title="Administer content and comments.">Content</a></li>
+         <li><a class="showAdminPanel" href="" title="Select and configure your themes.">Appearance</a></li>
+         <li><a class="showAdminPanel" href="/extras/newAdmin/admin/people.html#People" title="Manage user accounts, groups, and permissions.">People</a></li>
+         <li><a class="showAdminPanel" href="" title="Extend site functionality.">Modules</a></li>
+         <li><a class="showAdminPanel" href="" title="Administer settings.">Configuration</a></li>
+         <li><a class="showAdminPanel" href="" title="View reports, updates, and errors.">Reports</a></li>
+         <li><a class="showAdminPanel" href="/extras/newAdmin/admin/help.html#Help" title="Reference for usage, configuration, and modules.">Help</a></li>
+      </ul>
+      <a href="javascript://" title="Hide/Show shortcuts" class="toggle toggle-active">Hide shortcuts</a>
+   </div>
+   <div id="toolbar-drawer" class="toolbar-drawer clearfix">
+      <div class="toolbar-shortcuts">
+         <ul class="menu clearfix">
+           <li class="first leaf"><a href="javascript://">Add content</a></li>
+           <li class="last leaf"><a href="javascript://">Find content</a></li>
+         </ul>
+         <a href="javascript://" id="turn-admin-off">Turn Admin Off</a>
+      </div>
+   </div>
+</div>
+<!-- End admin toolbar -->
+
+<div id="adminGhost" class="ui-widget-overlay ui-widget-shadow"></div>
+<div id="adminOverlay">
+   <div id="adminOverlayTitle"></div>
+   <div id="adminOverlayCloseWrapper" class="ui-state-default ui-corner-right">
+      <img id="adminOverlayClose" src="/extras/newAdmin/images/delete.png" />
+   </div>
+</div>
+
+<!-- Dialog Boxes -->
+<div id="dialog-delete-confirm" title="Are you sure you wan't to delete these records?" style="display:none">
+   <p>
+      <span class="ui-icon ui-icon-alert" style="float:left;margin:0 7px 20px 0;"></span>
+      These items will be permanently deleted and cannot be recovered. Are you sure?
+   </p>
+</div>

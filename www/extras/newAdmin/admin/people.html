@@ -1,0 +1,53 @@
+<!-- Overlay wrapper content -->
+<ul> 
+   <li><a id="sessionsTab" class="adminOverlayTabs-click default ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-1" target="op=viewActiveSessions">Sessions</a></li>
+   <li><a id="groupTab" class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-2" target="op=listGroups">Groups</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-3" target="op=viewLoginHistory">Login History</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-4" target="op=editProfileSettings">User Profiling</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-5" target="op=listUsers">Users</a></li>
+</ul>
+<!-- session div -->
+<div class="adminOverlayContainer ui-corner-all" id="adminOverlayTabs-1">
+   <div class="adminTabContainerSubMenu">
+      <div id="messageWrapper" class="error ui-state-error ui-state-highlight ui-corner-all" style="padding-left:.5em;display:none">
+         <span class="ui-icon ui-icon-alert" style="float:left"></span>
+         <div id="message" class="ui-state-error-text"></div>
+      </div>
+      <img src="^Extras(/adminConsole/activeSessions.gif);">
+      <input type="checkbox" id="kill-all-toggle" /> All &nbsp;
+      <button type="button" id="kill-sessions-button">Kill Selected</button>
+   </div>
+   <table id="sessionsDatatable" class="webguiAdminTable"></table>
+   
+</div> 
+<!-- Group div -->
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-2">
+   <div class="adminTabContainerSubMenu">
+      <div id="groupMessageWrapper">
+         <div class="info" style="display:none">Info</div>
+         <div class="error" style="display:none">error</div>
+      </div>
+      <img src="^Extras(/adminConsole/groups.gif);"><button id="addGroup" type="button">Add</button>
+      <div id="groupCrumbTrailMenu"></div>
+   </div>
+   <div id="groupContainer" class="ui-widget-content ui-corner-all"></div>
+</div>
+<!-- login history div -->
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-3">
+   <div class="adminTabContainerSubMenu">
+      <div id="messageWrapper" class="error ui-state-error ui-state-highlight ui-corner-all" style="padding-left:.5em;display:none">
+         <span class="ui-icon ui-icon-alert" style="float:left"></span>
+         <div id="message" class="ui-state-error-text ui-state-highlight"></div>
+      </div>
+      <img src="^Extras(/adminConsole/loginHistory.gif);">
+   </div>
+   <table id="loginHistoryDatatable" class="webguiAdminTable"></table>
+
+</div>
+<!-- user profiling div -->
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-4"></div>
+<!-- users div -->
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-5">
+
+</div>
+<!-- end overlay wrapper content -->
