@@ -1,7 +1,7 @@
 define(['WebGUI/Prime','WebGUI/Prime/Datatable'],function(Prime,dt){
    return function(){
       var loginHistoryDatatable = dt('#loginHistoryDatatable', { 
-         jsonPath:Prime.config().jsonSourceServer + "/?op=viewLoginHistory",
+         jsonPath:Prime.config().jsonSourceServer + "?op=viewLoginHistory",
          datasource:"data",
          columns:[
             { field:"username", title:"User Id"},

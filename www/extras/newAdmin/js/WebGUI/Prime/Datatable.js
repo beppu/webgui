@@ -28,7 +28,7 @@ define(['jquery','WebGUI/Prime/AjaxHelper','datatables'],function($,AjaxHelper){
       
       return $(target).dataTable({
          "bJQueryUI"    : true, // enable jquery themeroller
-         "bAutoWidth"   : true,
+         "bAutoWidth"   : false,
          "bProcessing"  : true,
          "bRetrieve"    : true,
          "aoColumns"    : columns,

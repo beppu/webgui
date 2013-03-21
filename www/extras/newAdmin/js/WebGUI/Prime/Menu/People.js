@@ -20,11 +20,17 @@ define(['jquery','jqueryui','WebGUI/Prime'],function($, ui, Prime){
                loginHistory();
             });
 
+         }else if ( operation === 'op=listUsers' ){
+            require(['WebGUI/Prime/Menu/People/UserList'],function(users){
+               // display the users in the added table
+               users('#userList'); // show the userlist in the group Container table
+            });
+            
          }else{
             var target = $(event.target).attr('href');
             $( target ).load( Prime.config().jsonSourceServer + '?' + operation , function(response, status, xhr) {
                if (status === 'error') {
-                  $('#message').html( exception );
+                  $('#message').html( response.message );
                }
             });
          }     

@@ -1,5 +1,5 @@
 define(['WebGUI/Prime','WebGUI/Prime/Datatable','WebGUI/Prime/CrumbTrailMenu','WebGUI/Prime/MenuItem','WebGUI/Prime/AjaxHelper','WebGUI/Prime/MessageQueue','URIjs/URI'],
-   function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
+function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
    return function(){
       $('#groupContainer').html('<table id="groupDatatable" class="webguiAdminTable"></table>'); // hate to do this but needs to be done for now
       var jsonPath = Prime.config().jsonSourceServer;
@@ -36,7 +36,6 @@ define(['WebGUI/Prime','WebGUI/Prime/Datatable','WebGUI/Prime/CrumbTrailMenu','W
                           // Get this info from the clicked element
                           var groupActionTarget = new URI( event.target.src );
                           var operation = URI.parseQuery( groupActionTarget.search() );
-                          console.log( operation.op );
                           switch(operation.op){
                              case 'editGroupSave':// the operation is already included in the template/form
                                 var jsonSubmit = jsonPath + '?' + $('form#groupEditForm').serialize();
@@ -59,6 +58,15 @@ define(['WebGUI/Prime','WebGUI/Prime/Datatable','WebGUI/Prime/CrumbTrailMenu','W
                                     }
                                 });                                
                              break;
+                             
+                             case 'manageUsersInGroup':
+                                require(['WebGUI/Prime/Menu/People/UserList'],function(users){
+                                   // add a userlist table to the container
+                                   $('#groupContainer').html('<table id="userGroupList" class="webguiAdminTable"></table>');
+                                   // display the users in the added table
+                                   users('#userGroupList'); // show the userlist in the group Container table
+                                });
+                             break;                              
                                  
                              default:
                                 alert ("Still need to implement: " + operation.op);

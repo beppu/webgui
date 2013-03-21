@@ -4,7 +4,7 @@
 define(['jquery','WebGUI/Prime','WebGUI/Prime/AjaxHelper','WebGUI/Prime/Datatable','jquerypp'],function($, Prime, AjaxHelper, dt){
    return function(){
       var sessionsDatatable = dt('#sessionsDatatable', { 
-         jsonPath:Prime.config().jsonSourceServer + "/?op=viewActiveSessions",
+         jsonPath:Prime.config().jsonSourceServer + "?op=viewActiveSessions",
          datasource:"data",
          columns:[
             { field:"sessionId", title:"Session Id"},
