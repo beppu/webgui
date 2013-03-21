@@ -1,10 +1,13 @@
 requirejs.config({
    paths :{
       can       : '/extras/newAdmin/js/libs/can',
-      datatables: '/extras/newAdmin/js/libs/jquery.dataTables.min',
+      datatables: ['http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min',
+                   '/extras/newAdmin/js/libs/jquery.dataTables.min'],
       domReady  : '/extras/newAdmin/js/libs/domReady',
-      jquery    : '/extras/newAdmin/js/libs/jquery-1.9.1',
-      jqueryui  : '/extras/newAdmin/js/libs/jquery-ui-1.10.1.custom.min',
+      jquery    : ['http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min',
+                   '/extras/newAdmin/js/libs/jquery-1.9.1'],
+      jqueryui  : ['http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min',
+                   '/extras/newAdmin/js/libs/jquery-ui-1.10.1.custom.min'],
       jquerypp  : '/extras/newAdmin/js/libs/jquerypp.custom',
       URIjs     : '/extras/newAdmin/js/libs/URI'
    },
@@ -19,7 +22,8 @@ requirejs.config({
             path: "/extras/newAdmin/js/templates/"
          },
          jsonSourceServer: "http://webgui.dbash.com:8900",
-         jsonp:false,
+         jsonp:true,
+         otherHelp:'/json/help.json',
          tooltips: true,
          messageTag: "#messages",
          messageTemplate: "webgui-ajax-message-template.ejs"
@@ -67,7 +71,10 @@ require(['domReady','jquery','WebGUI/Prime/AdminMenu','can/view/ejs'],function(d
             $(document).ajaxError(function(event, jqxhr, settings, exception){
                function final_message(url, message){
                   alert("Error requesting page: " + ajax_url + " because: " + message); // ::TODO:: i18n
-                  $( "#ajaxErrors" ).append( "Error requesting page: " + ajax_url + " because: " + message); // ::TODO:: i18n
+                  // show this error on the ajaxErrors element that has a ajaxErrors id.
+                  if ( $("#ajaxErrors").exists() ){
+                     $( "#ajaxErrors" ).append( "Error requesting page: " + ajax_url + " because: " + message); // ::TODO:: i18n
+                  }
                }            
       //         var browser    = BrowserDetect.browser;
       //         var browserVer = BrowserDetect.version;
@@ -109,24 +116,3 @@ EnableTooltips = function(selector){//::TODO:: figure out how to enable this bas
       $(selector).tooltip();        
    }    
 };
-
-function getLink(config){
-   return function( data, type, full ) {
-      return can.view.render('/extras/newAdmin/js/templates/link.ejs',{
-         class:config.cssClass,
-         image:config.image,
-         title:config.title || data,
-           uri:config.uri + data
-      });
-   };          
-}
-
-function getCheckbox(config){
-   return function ( id, type, full ) {
-      return can.view.render('/extras/newAdmin/js/templates/checkbox.ejs', { 
-         class:config.cssClass, 
-          name:config.name, 
-         value:id
-      });
-   };      
-}

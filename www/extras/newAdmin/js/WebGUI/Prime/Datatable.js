@@ -1,4 +1,4 @@
-define(['jquery','WebGUI/Prime/AjaxHelper','datatables'],function($,AjaxHelper){   
+define(['jquery','WebGUI/Prime/AjaxHelper','WebGUI/Prime/Link','WebGUI/Prime/CheckBox','datatables'],function($,AjaxHelper,link,checkbox){   
    return function(target, config){
       var jsonPath = config.jsonPath;
       // Configure the columns
@@ -16,10 +16,10 @@ define(['jquery','WebGUI/Prime/AjaxHelper','datatables'],function($,AjaxHelper){
          // 
          switch( column.type ){
             case 'link':
-               configColumn.mRender = getLink(column);
+               configColumn.mRender = link(column);
                break;
             case 'checkbox':
-               configColumn.mRender = getCheckbox(column);
+               configColumn.mRender = checkbox(column);
                break;               
          }
 

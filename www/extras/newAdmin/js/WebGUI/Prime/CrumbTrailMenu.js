@@ -25,7 +25,7 @@ define(['WebGUI/Prime','WebGUI/Prime/LoadPage','WebGUI/Prime/MenuItem','can/cont
       },
       'li click':function(li, event){
          event.preventDefault();
-         var link  = li.data('link');
+         var link  = li.data('link'); 
          // remove everything after the clicked item
          var instancePosition = 0;
          for( var index = 0; index < this.menuItems.length; index++ ){// menu should not be empty
@@ -38,8 +38,14 @@ define(['WebGUI/Prime','WebGUI/Prime/LoadPage','WebGUI/Prime/MenuItem','can/cont
             this.menuItems.pop();
          }
 
-         var divId = this.options.divId; // Where we display the contents of the requested path
-         loadPage( divId, link.href );
+         if ( typeof link.callback !== 'undefined' ){
+            // Execute the callback function instead of loading the content from web path
+            link.callback();
+            
+         }else{
+            var containerId = this.options.containerId; // Where we display the contents of the requested path
+            loadPage( containerId, link.href );
+         }
 
       },
       add:function(menuItem){
@@ -48,6 +54,10 @@ define(['WebGUI/Prime','WebGUI/Prime/LoadPage','WebGUI/Prime/MenuItem','can/cont
          }else{
             throw "You must pass an instance of: MenuItem";//::i18n::
          }
+      },
+      // Good option if we want to make sure we 
+      callback:function(callback){
+          this.options.callback = callback;
       },
       count:function(){
          return this.menuItems.length;

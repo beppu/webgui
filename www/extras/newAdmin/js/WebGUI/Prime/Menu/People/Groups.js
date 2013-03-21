@@ -14,7 +14,7 @@ function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
       });
       
       // Menu at top of container, items get added and deleted from this menu dynamically   
-      var groupCrumbTrailMenu = new CrumbTrailMenu('#groupCrumbTrailMenu',{ divId:"#groupContainer", view: Prime.config().template.path + "crumbTrail.ejs" });
+      var groupCrumbTrailMenu = new CrumbTrailMenu('#groupCrumbTrailMenu',{ containerId:"#groupContainer", view: Prime.config().template.path + "crumbTrail.ejs" });
 
       // What happens when we click on a datatable row above.
       $('#groupDatatable').on('click', "tr", function(event){
@@ -27,60 +27,62 @@ function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
          // Clicked record, go into edit group mode
          if ( query.op && query.gid ){
             var jsonFunction = function(){
-                AjaxHelper({ jsonPath:jsonPathFromTag, 
-                   callback:function(data){ 
-                       $('#groupContainer').html( can.view(Prime.config().template.path + "people/group-edit.ejs", data) );
-                       // Manage Groups
-                       $('input.manage-group').button().click(function( event ) {
-                          event.preventDefault();
-                          // Get this info from the clicked element
-                          var groupActionTarget = new URI( event.target.src );
-                          var operation = URI.parseQuery( groupActionTarget.search() );
-                          switch(operation.op){
-                             case 'editGroupSave':// the operation is already included in the template/form
-                                var jsonSubmit = jsonPath + '?' + $('form#groupEditForm').serialize();
-                                AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", logMessage:"Saved", infoLogger:groupInfoLogger, errorLogger:groupErrorLogger });                                
-                             break;                       
+                AjaxHelper({jsonPath:jsonPathFromTag, callback:function(data){
+                    $('#groupContainer').html( can.view(Prime.config().template.path + "people/group-edit.ejs", data) );
+                    // Manage Groups onnce the html is displayed
+                    $('input.manage-group').button().click(function( event ) {
+                       event.preventDefault();
+                       // Get this info from the clicked element
+                       var groupActionTarget = new URI( event.target.src );
+                       var operation = URI.parseQuery( groupActionTarget.search() );
+                       switch(operation.op){
+                          case 'editGroupSave':// the operation is already included in the template/form
+                             var jsonSubmit = jsonPath + '?' + $('form#groupEditForm').serialize();
+                             AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", logMessage:"Saved", infoLogger:groupInfoLogger, errorLogger:groupErrorLogger });                                
+                          break;                       
 
-                             case 'deleteGroup':
-                                // alert the user to make sure he definitely wants to delete this group
-                                $( "#dialog-delete-confirm" ).dialog({
-                                    modal: true,
-                                    buttons: {
-                                       "Delete all items":function(){
-                                           var jsonSubmit = jsonPath + '?op=deleteGroup;gid=' + query.gid;
-                                           AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", logMessage:"Deleted", infoLogger:groupInfoLogger, errorLogger:groupErrorLogger });
-                                           $( this ).dialog( "close" );
-                                        },
-                                        Cancel: function() {
-                                           $( this ).dialog( "close" );
-                                        }
-                                    }
-                                });                                
-                             break;
-                             
-                             case 'manageUsersInGroup':
-                                require(['WebGUI/Prime/Menu/People/UserList'],function(users){
-                                   // add a userlist table to the container
-                                   $('#groupContainer').html('<table id="userGroupList" class="webguiAdminTable"></table>');
-                                   // display the users in the added table
-                                   users('#userGroupList'); // show the userlist in the group Container table
-                                });
-                             break;                              
-                                 
-                             default:
-                                alert ("Still need to implement: " + operation.op);
-                                    
-                          }
-                          
-                       });                          
-                       // Enable/disable tooltips on the website
-                       EnableTooltips();  
+                          case 'deleteGroup':
+                             // alert the user to make sure he definitely wants to delete this group
+                             $( "#dialog-delete-confirm" ).dialog({
+                                 modal: true,
+                                 buttons: {
+                                    "Delete all items":function(){
+                                        var jsonSubmit = jsonPath + '?op=deleteGroup;gid=' + query.gid;
+                                        AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", logMessage:"Deleted", infoLogger:groupInfoLogger, errorLogger:groupErrorLogger });
+                                        $( this ).dialog( "close" );
+                                     },
+                                     Cancel: function() {
+                                        $( this ).dialog( "close" );
+                                     }
+                                 }
+                             });                                
+                          break;
+
+                          case 'manageUsersInGroup':
+                             require(['WebGUI/Prime/Menu/People/UserList'],function(users){
+                                // add a userlist table to the container
+                                $('#groupContainer').html('<table id="userGroupList" class="webguiAdminTable"></table>');
+                                // display the users in the added table
+                                users('#userGroupList'); // show the userlist in the group Container table
+                             });
+                          break;                              
+
+                          default:
+                             alert ("Still need to implement: " + operation.op);
+
+                       }
+
+                    });                          
+                    // Enable/disable tooltips on the website
+                    EnableTooltips();  
                    } 
-                });
+               });
             };
+            jsonFunction(); // Display the contents            
+            
             // Add the menu to click...
-            groupCrumbTrailMenu.add(new MenuItem(jsonFunction, "Edit Group","Editing group: " + query.gid));//i18n ::TODO::
+            groupCrumbTrailMenu.add(new MenuItem({ href:jsonPathFromTag, link:"Edit Group", title:"Editing group: " + query.gid, callback:jsonFunction }));//i18n ::TODO::
+            
          }
       });
 

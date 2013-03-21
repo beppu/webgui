@@ -6,8 +6,7 @@ define(['jquery','jqueryui','WebGUI/Prime','can'],function($, ui, Prime, can){
       $('.adminOverlayTabs-click').click(function(event){
          var operation = $(event.target).attr('target');
          if ( operation === 'viewOtherHelp' ){          
-            var jsonSource = Prime.config().jsonSourceServer + '/json/help.json';
-            jsonSource = '/json/help.json';
+            var jsonSource = Prime.config().otherHelp;
             $.getJSON(jsonSource, function(help){
                 var template = Prime.config().template.path + 'otherHelp.ejs';
                 $('#otherHelpContainer').html( can.view.render(template, help ) );
