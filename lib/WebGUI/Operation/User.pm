@@ -258,7 +258,7 @@ Hashref.  A set of key,value pairs that will be hidden in the user search form.
 
 =head3 noStatus
 
-Don't display the status filter.
+Don\`t display the status filter.
 
 =cut
 
@@ -1052,43 +1052,36 @@ If the current user is not allowed to edit or create users, it returns adminOnly
 sub www_listUsers {
 	my $session = shift;
 
-    # If the user is only allowed to add users, send them right there.
-	unless (canEdit($session)) {
-		if (canAdd($session)) {
-			return www_editUser($session, undef, "new");
-		}
-        else {
-		    return $session->privilege->adminOnly();
-        }
-	}
-
 	my $i18n = WebGUI::International->new($session);
-	my $output = getUserSearchForm($session,"listUsers");
+   my $rest = WebGUI::Session::Rest->new( session => $session );
+
+   my $output = $session->request->parameters->mixed;
+   # If the user is only allowed to add users, send them right there.
+	unless ( canEdit($session) ) {
+		if ( canAdd($session) ) {
+			return $rest->response({ op => "new" });
+		}
+      else {
+		   return $rest->forbidden( { message => $i18n->get(36) } )
+      }
+	}
+   my $search = undef;
+   my $rowCount = 0;
 	my ($userCount) = $session->db->quickArray("select count(*) from users");
-    if($userCount > 250) {
-        $output .= $i18n->get('high user count');
-    }
-    
-	return _submenu($session,{workarea => $output}) unless ($session->form->process("doit") || $userCount<250 || $session->form->process("pn") > 1);
-	my %status = (
-		Active		=> $i18n->get(817),
-		Deactivated	=> $i18n->get(818),
+   if ( $userCount > 250 ){ # This should really be pulled from the config file it could be config->{highUserCount} || 250
+      $output->{alertMessage} = $i18n->get('high user count');
+   }
+   $output->{iTotalRecords} = $userCount; # Kind of overkill but required for pagination.  total records in database
+   $output->{iTotalDisplayRecords} = $search ? $rowCount : $output->{iTotalRecords}; #Total records, after filtering or same as total records if not filtering
+
+	my $status = {
+		Active		   => $i18n->get(817),
+		Deactivated	   => $i18n->get(818),
 		Selfdestructed	=> $i18n->get(819)
-	);
-        $output .= '<table border="1" cellpadding="5" cellspacing="0" align="center">';
-        $output .= '<tr>
-                <td class="tableHeader">'.$i18n->get(816).'</td>
-                <td class="tableHeader">'.$i18n->get(50).'</td>
-                <td class="tableHeader">'.$i18n->get(56).'</td>
-                <td class="tableHeader">'.$i18n->get(453).'</td>
-                <td class="tableHeader">'.$i18n->get(454).'</td>
-                <td class="tableHeader">'.$i18n->get(429).'</td>
-                <td class="tableHeader">'.$i18n->get(434).'</td>
-                <td class="tableHeader">'.$i18n->get(430).'</td>
-                <td class="tableHeader">'.$i18n->get( "time recorded" ).'</td>
-		</tr>';
-	my $p = doUserSearch($session,"listUsers",1);
-    my $user_loginlog = $session->db->prepare(
+	};
+   $output->{statusCodes} = $status;
+
+   my $user_loginlog = $session->db->prepare(
         q{
             select   status, timeStamp, lastPageViewed, sessionId
             from     userLoginLog
@@ -1111,54 +1104,62 @@ sub www_listUsers {
             where  userId = ?
         },
     );
-	foreach my $data (@{$p->getPageData}) {
-        $output .= '<tr class="tableData">';
-        $output .= '<td>'.$status{$data->{status}}.'</td>';
-        $output .= '<td><a href="'.$session->url->page('op=editUser;uid='.$data->{userId})
-           .'">'.$data->{username}.'</a></td>';
-        $output .= '<td class="tableData">'.$data->{email}.'</td>';
-        $output .= '<td class="tableData">'.$session->datetime->epochToHuman($data->{dateCreated},"%z").'</td>';
-        $output .= '<td class="tableData">'.$session->datetime->epochToHuman($data->{lastUpdated},"%z").'</td>';
+   my $users = [];
+	my $sth = doUserSearch( $session,"listUsers" );# no paginator, however we may have millions of users
+   my $limit = $session->form->process("limit");
+	while ( my $data = $sth->fetchrow_hashref ){
+      my $user = {
+         id       => $data->{userId},
+         status   => $status->{ $data->{status} },
+         username => $data->{username},
+         email    => $data->{email},
+         created  => $session->datetime->epochToHuman($data->{dateCreated},"%z"),
+         updated  => $session->datetime->epochToHuman($data->{lastUpdated},"%z"),
+      };
 
-        $user_loginlog->execute([$data->{userId}]);
-        my ( $status, $lastLogin, $lastView, $lastSession ) = $user_loginlog->fetchrow_array;
+      # Find out the last time this user logged in
+      $user_loginlog->execute([$data->{userId}]);
+      my ( $status, $lastLogin, $lastView, $lastSession ) = $user_loginlog->fetchrow_array;
 
-        $last_page_view->execute([$lastSession]);
-        my ($trueLastView) = $last_page_view->fetchrow_array();
+      # Find out the last time this user accessed the site
+      $last_page_view->execute([$lastSession]);
+      my ($trueLastView) = $last_page_view->fetchrow_array();
 
-        # format last page view, preferring session recorded view time
-        $lastView   = $trueLastView || $lastView;
-        $lastView &&= $session->datetime->epochToHuman($lastView);
+      # format last page view, preferring session recorded view time
+      $lastView   = $trueLastView || $lastView;
+      $lastView &&= $session->datetime->epochToHuman($lastView);
 
-        $lastLogin &&= $session->datetime->epochToHuman($lastLogin);
+      $lastLogin &&= $session->datetime->epochToHuman($lastLogin);
 
-        $total_time->execute([$data->{userId}]);
-        my ($totalTime) = $total_time->fetchrow_array();
+      $total_time->execute([$data->{userId}]);
+      my ($totalTime) = $total_time->fetchrow_array();
 
-        if ($totalTime) {
-            my ($interval, $units) 
-                = $session->datetime->secondsToInterval($totalTime);
-            $totalTime = "$interval $units";
-        }
+      if ($totalTime) {
+         my ($interval, $units) = $session->datetime->secondsToInterval($totalTime);
+         $totalTime = "$interval $units";
+      }
 
-        foreach my $cell ($lastLogin, $status, $lastView, $totalTime) {
-            $cell  ||= ' - ';
-            $output .= qq(<td class="tableData">$cell</td>);
-        }
+      $user->{metrics} = {
+          lastLogin => $lastLogin,
+          status    => $status,
+          lastView  => $lastView,
+          totalTime => $totalTime
+      };
 
-        $output .= '</tr>';
+      push(@{ $users }, $user); 
+      # Just in case
+      if ( $limit ){
+         $limit--;
+         last if $limit == 0;
+      }
 	}
-    $output .= '</table>';
-    $p->setAlphabeticalKey('username');
-    $output .= $p->getBarTraditional;
-    $user_loginlog->finish;
-    $last_page_view->finish;
-    $total_time->finish;
-	my $submenu = _submenu(
-                    $session,
-                    { workarea => $output, }
-                  );
-	return $submenu;
+   $output->{users} = $users;
+
+   $user_loginlog->finish;
+   $last_page_view->finish;
+   $total_time->finish;
+
+   return $rest->response( $output ); 
 }
 
 1;
