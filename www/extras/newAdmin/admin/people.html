@@ -1,13 +1,13 @@
 <!-- Overlay wrapper content -->
 <ul> 
-   <li><a id="sessionsTab" class="adminOverlayTabs-click default ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-1" target="op=viewActiveSessions">Sessions</a></li>
-   <li><a id="groupTab" class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-2" target="op=listGroups">Groups</a></li>
-   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-3" target="op=viewLoginHistory">Login History</a></li>
-   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-4" target="op=editProfileSettings">User Profiling</a></li>
-   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#adminOverlayTabs-5" target="op=listUsers">Users</a></li>
+   <li><a id="sessionsTab" class="adminOverlayTabs-click default ui-state-hover ui-state-focus ui-state-active" href="#sessionsTarget" target="op=viewActiveSessions">Sessions</a></li>
+   <li><a id="groupTab" class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#groupsTarget" target="op=listGroups">Groups</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#loginHistoryTarget" target="op=viewLoginHistory">Login History</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#userProfilingTarget" target="op=editProfileSettings">User Profiling</a></li>
+   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#usersTarget" target="op=listUsers">Users</a></li>
 </ul>
 <!-- session div -->
-<div class="adminOverlayContainer ui-corner-all" id="adminOverlayTabs-1">
+<div class="adminOverlayContainer ui-corner-all" id="sessionsTarget">
    <div class="adminTabContainerSubMenu">
       <div id="messageWrapper" class="error ui-state-error ui-state-highlight ui-corner-all" style="padding-left:.5em;display:none">
          <span class="ui-icon ui-icon-alert" style="float:left"></span>
@@ -21,7 +21,7 @@
    
 </div> 
 <!-- Group div -->
-<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-2">
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="groupsTarget">
    <div class="adminTabContainerSubMenu">
       <div id="groupMessageWrapper">
          <div class="info" style="display:none">Info</div>
@@ -33,7 +33,7 @@
    <div id="groupContainer" class="ui-widget-content ui-corner-all"></div>
 </div>
 <!-- login history div -->
-<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-3">
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="loginHistoryTarget">
    <div class="adminTabContainerSubMenu">
       <div id="messageWrapper" class="error ui-state-error ui-state-highlight ui-corner-all" style="padding-left:.5em;display:none">
          <span class="ui-icon ui-icon-alert" style="float:left"></span>
@@ -45,9 +45,9 @@
 
 </div>
 <!-- user profiling div -->
-<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-4"></div>
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="userProfilingTarget"></div>
 <!-- users div -->
-<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="adminOverlayTabs-5">
-
+<div class="adminOverlayContainer ui-widget-content ui-corner-all" id="usersTarget">
+   <table id="userList" class="webguiAdminTable"></table>
 </div>
 <!-- end overlay wrapper content -->
