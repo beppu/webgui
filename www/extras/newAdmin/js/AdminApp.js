@@ -24,7 +24,7 @@ requirejs.config({
          },
          jsonSourceServer: "/",
          jsonp:true,
-         otherHelp:'/json/help.json',
+         otherHelp:'/extras/newAdmin/help.json',
          tooltips: true,
          messageTag: "#messages",
          messageTemplate: "webgui-ajax-message-template.ejs"
