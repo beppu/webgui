@@ -15,6 +15,7 @@ requirejs.config({
       // Main webgui namespace object for scripts.  This can be put into a template and
       //   retrieved from the WebGUI config system
       "WebGUI/Prime" : {
+         basePath:"/extras/newAdmin/",
          error: "",
          errorTag: "#errors",
          errorTemplate: "webgui-ajax-error-template.ejs",
@@ -22,8 +23,8 @@ requirejs.config({
             path: "/extras/newAdmin/js/templates/"
          },
          jsonSourceServer: "/",
-         jsonp:false,
-         otherHelp:'/extras/newAdmin/json/help.json',
+         jsonp:true,
+         otherHelp:'/json/help.json',
          tooltips: true,
          messageTag: "#messages",
          messageTemplate: "webgui-ajax-message-template.ejs"
@@ -43,7 +44,7 @@ requirejs.config({
 /* 
  * Include this in every page we want to include the adminOn option
  */
-require(['domReady','jquery','WebGUI/Prime/AdminMenu','can/view/ejs'],function(domReady, $, adminMenu){
+require(['domReady','jquery','WebGUI/Prime','WebGUI/Prime/AdminMenu','can/view/ejs','jqueryui'],function(domReady, $, Prime, adminMenu){
    // Generic helper functions defined in the JQuery namespace
    $.fn.exists = function(){return this.length>0;};
    
@@ -57,16 +58,28 @@ require(['domReady','jquery','WebGUI/Prime/AdminMenu','can/view/ejs'],function(d
          $('#turn-admin-on-container').html('<a id="turn-admin-on" href="javascript://">Turn Admin On</a>');
 
       }
+      
+      // Load the stylesheets
+      loadCss("/extras/newAdmin/css/normalize.css");
+      loadCss("/extras/newAdmin/css/main.css");
+      loadCss("/extras/newAdmin/css/toolbar.css");
+      loadCss("/extras/newAdmin/css/admin-datatable.css");
+      loadCss("/extras/newAdmin/css/menus.css");
+      loadCss("/extras/newAdmin/css/ui-lightness/main.css");
 
+      // Add click event to enable menu when element clicked
       $('#turn-admin-on').click(function(){
          if ( $('#adminDiv').size() <= 0 ){ // Only fill out body if the admin menu has not been loaded
             $('#adminDiv').remove();// start with a clean slate
             $('body').append('<div id="adminDiv"></div>'); // this has to be removed once we get out of admin mode
-            $('#adminDiv').load('/extras/newAdmin/admin/index.html', adminMenu); // Once the html is loaded attach the adminMenu module
+            $('#adminDiv').load(Prime.config().basePath + 'admin/index.html', adminMenu); // Once the html is loaded attach the adminMenu module
             //var adminTemplate = can.view.render('/admin/index.ejs',{ server: 'http://webgui.dbash.com:8900' });
             //$('#adminDiv').html( adminTemplate ).ready( adminMenu );
             $('#toolbar').show();
-
+            
+            // Enable tooltips for the admin menu
+            $(".tooltip").tooltip();
+            
             // Ajax Global ERROR setup
             $(document).ajaxError(function(event, jqxhr, settings, exception){
                function final_message(url, message){
@@ -109,10 +122,11 @@ require(['domReady','jquery','WebGUI/Prime/AdminMenu','can/view/ejs'],function(d
    });
 });
 
-EnableTooltips = function(selector){//::TODO:: figure out how to enable this based on a flag in the config
-   if ( $.isEmptyObject(selector) ){ 
-      $(".tooltip").tooltip();
-   }else{
-      $(selector).tooltip();        
-   }    
-};
+// Helper function to load css
+function loadCss(url) {
+    var link = document.createElement("link");
+    link.type = "text/css";
+    link.rel = "stylesheet";
+    link.href = url;
+    document.getElementsByTagName("head")[0].appendChild(link);
+}

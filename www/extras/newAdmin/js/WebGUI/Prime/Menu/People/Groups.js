@@ -64,6 +64,7 @@ function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
                                 $('#groupContainer').html('<table id="userGroupList" class="webguiAdminTable"></table>');
                                 // display the users in the added table
                                 users('#userGroupList'); // show the userlist in the group Container table
+                                //groupCrumbTrailMenu.add(new MenuItem({ href:"#", link:"Users in Group", title:"Manage Users in Group", cssClass:"manage-group" ,callback:jsonFunction }));//i18n ::TODO::
                              });
                           break;                              
 
@@ -72,10 +73,8 @@ function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
 
                        }
 
-                    });                          
-                    // Enable/disable tooltips on the website
-                    EnableTooltips();  
-                   } 
+                    });
+                  } 
                });
             };
             jsonFunction(); // Display the contents            
@@ -99,9 +98,7 @@ function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
                 var jsonSubmit = jsonPath + '?op=editGroupSave&' + $('form#groupEditForm').serialize();
                 AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", data: data, logMessage:"Saved",//::TODO:: i18n
                    infoLogger:groupInfoLogger, errorLogger:groupErrorLogger }); // by default message = saved
-             });   
-             // Enable/disable tooltips on the website
-             EnableTooltips();    
+             });
 
          };
          AjaxHelper({ jsonPath:jsonSubmit, infoLogger:groupInfoLogger, errorLogger:groupErrorLogger, callback:callback });
