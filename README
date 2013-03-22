@@ -48,7 +48,7 @@ I'm currently getting 370 requests/second, whereas I'm getting 430/second on the
   objects (one per request)
 
 
-= Using the NewAdmin Interface (Very BETA!!!) =
+= Using the NewAdmin Interface (Very ALPHA!!!) =
 * Add the following to the "Extra <head> elements (tags)" of your page:
   <link rel="stylesheet" href="^Extras(/newAdmin/css/normalize.css);">
   <link rel="stylesheet" href="^Extras(/newAdmin/css/main.css);">
