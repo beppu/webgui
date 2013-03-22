@@ -53,9 +53,6 @@ I'm currently getting 370 requests/second, whereas I'm getting 430/second on the
 
   <script data-main="^Extras(/newAdmin/js/AdminApp);" src="^Extras(/newAdmin/js/libs/require.js);"></script>
 
-Eventually I will get around to including all these css files as part of the app so you should only be left with the
-script tag in the head of your style.
-
   - Take a look at: WebGUI/www/extras/newAdmin/js/AdminApp.js and make any modifications you may have to this file.
     Eventually this file as well as others may be loaded from a template within the WebGUI system.
 
