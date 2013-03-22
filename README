@@ -50,12 +50,7 @@ I'm currently getting 370 requests/second, whereas I'm getting 430/second on the
 
 = Using the NewAdmin Interface (Very ALPHA!!!) =
 * Add the following to the "Extra <head> elements (tags)" of your page:
-  <link rel="stylesheet" href="^Extras(/newAdmin/css/normalize.css);">
-  <link rel="stylesheet" href="^Extras(/newAdmin/css/main.css);">
-  <link rel="stylesheet" href="^Extras(/newAdmin/css/toolbar.css);">
-  <link rel="stylesheet" href="^Extras(/newAdmin/css/admin-datatable.css);">
-  <link rel="stylesheet" href="^Extras(/newAdmin/css/menus.css);">
-  <link rel="stylesheet" href="^Extras(/newAdmin/css/ui-lightness/main.css);" />
+
   <script data-main="^Extras(/newAdmin/js/AdminApp);" src="^Extras(/newAdmin/js/libs/require.js);"></script>
 
 Eventually I will get around to including all these css files as part of the app so you should only be left with the
