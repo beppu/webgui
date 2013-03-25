@@ -284,11 +284,17 @@ A WebGUI::Session object
 
 sub www_addUsersToGroupSave {
 	my $session = shift;
-        return $session->privilege->adminOnly() unless (canEditGroup($session,$session->form->process("gid")) && $session->form->validToken);
-        my @users = $session->form->selectList('users');
-	my $group = WebGUI::Group->new($session,$session->form->process("gid"));
+   my $groupId = $session->form->process("gid");
+	my $i18n = WebGUI::International->new($session);
+   my $output = $session->request->parameters->mixed;
+   my $rest = WebGUI::Session::Rest->new( session => $session );
+   return $rest->forbidden( { message => $i18n->get(36) } )
+      unless ( canEditGroup($session, $groupId) );
+
+   my @users = $session->form->process('users');
+	my $group = WebGUI::Group->new($session, $groupId);
 	$group->addUsers(\@users);
-        return www_manageUsersInGroup($session);
+   return $rest->response({ message => "OK" });
 }
 
 #-------------------------------------------------------------------
@@ -411,17 +417,25 @@ A WebGUI::Session object
 
 sub www_deleteGrouping {
 	my $session = shift;
-        return $session->privilege->adminOnly() unless (canEditGroup($session,$session->form->process("gid")) && $session->form->validToken);
-        if (($session->user->userId eq $session->form->process("uid") || $session->form->process("uid") eq '3') && $session->form->process("gid") eq '3') {
-                return $session->privilege->vitalComponent();
-        }
-        my @users = $session->form->selectList('uid');
-        my @groups = $session->form->group("gid");
-        foreach my $user (@users) {
-                my $u = WebGUI::User->new($session,$user);
-                $u->deleteFromGroups(\@groups);
-        }
-        return WebGUI::Operation::Group::www_manageUsersInGroup($session);
+   my $groupId = $session->form->process("gid");
+	my $i18n = WebGUI::International->new($session);
+   my $output = $session->request->parameters->mixed;
+   my $rest = WebGUI::Session::Rest->new( session => $session );
+   return $rest->forbidden( { message => $i18n->get(36) } )
+      unless ( canEditGroup($session, $groupId) && $session->form->validToken );
+
+   if (($session->user->userId eq $session->form->process("uid") || $session->form->process("uid") eq '3') && $groupId eq '3') {
+      return $rest->vitalComponent();
+   }
+
+   my @users = $session->form->selectList('uid');
+   my @groups = $session->form->group("gid");
+   foreach my $user (@users) {
+      my $u = WebGUI::User->new($session,$user);
+      $u->deleteFromGroups(\@groups);
+   }
+
+   return $rest->response({ message: "OK" });
 }
                                                                                                                                                        
 
@@ -1086,19 +1100,16 @@ sub www_manageUsersInGroup{
 
    my $search = undef;
 
-   # Give me the list of users that are not in this group
-   #use WebGUI::Operation:User::doUserSearch;
-   my $sth = WebGUI::Operation::User::doUserSearch($session, 'manageUsersInGroup', undef, $group->getUsers);
-
-#   my $sth = $session->db->prepare("select users.username,users.userId,groupings.expireDate
-#                from groupings,users where groupings.groupId= ? and groupings.userId=users.userId
-#                order by users.username");
-#   $sth->execute( $groupId );
 	my $status = {
 		Active		   => $i18n->get(817),
 		Deactivated	   => $i18n->get(818),
 		Selfdestructed	=> $i18n->get(819)
 	};
+
+   my $sql = q|select users.userId, users.username, users.status, users.dateCreated, users.lastUpdated, users.email
+                from groupings, users where groupings.groupId= ? and groupings.userId=users.userId
+                order by users.username|;
+   my $sth = $session->dbSlave->read($sql, [$groupId]); 
    my $users = [];
 	while( my $row = $sth->fetchrow_hashref ){
       push(@{ $users }, {
@@ -1109,13 +1120,13 @@ sub www_manageUsersInGroup{
          created  => $session->datetime->epochToHuman($row->{dateCreated},"%z"),
          updated  => $session->datetime->epochToHuman($row->{lastUpdated},"%z"),
       });
+
    }
    $output->{users} = $users;
 
    my $rowCount = @{ $users };
    $output->{iTotalRecords} = $rowCount; # Kind of overkill but required for pagination.  total records in database
    $output->{iTotalDisplayRecords} = $search ? $rowCount : $output->{iTotalRecords}; #Total records, after filtering or same as total records if not filtering
-
 
 	return $rest->response( $output );
 	
