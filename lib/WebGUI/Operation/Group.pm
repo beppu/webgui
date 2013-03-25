@@ -14,6 +14,7 @@ use strict;
 use WebGUI::AdminConsole;
 use WebGUI::Group;
 use WebGUI::Form;
+use WebGUI::Form::CsrfToken;
 use WebGUI::HTMLForm;
 use WebGUI::International;
 use WebGUI::Mail::Send;
@@ -454,7 +455,6 @@ sub www_editGroup {
 		$group = WebGUI::Group->new($session);
 	}
 	
-   use WebGUI::Form::CsrfToken;
    my $hiddenToken = WebGUI::Form::CsrfToken->new($session)->toHtml;
    my $dbLinks = WebGUI::DatabaseLink->getList( $session );
 		
@@ -781,51 +781,44 @@ A WebGUI::Session object
 
 sub www_emailGroup {
 	my $session = shift;
-	return $session->privilege->adminOnly() unless (canEditGroup($session,$session->form->process("gid")));
-	my ($output,$f);
+
+   my $rest = WebGUI::Session::Rest->new( session => $session );	
 	my $i18n = WebGUI::International->new($session);
-    my $group = WebGUI::Group->new($session,$session->form->process("gid"));
-	$f = WebGUI::HTMLForm->new($session);
-	$f->hidden(
-		-name => "op",
-		-value => "emailGroupSend"
-	);
-	$f->hidden(
-		-name => "gid",
-		-value => $session->form->process("gid")
-	);
-        $f->readOnly(
-        -label => $i18n->get(379),
-        -value => $group->getId,
-    );
-    $f->readOnly(
-        -label => $i18n->get(84),
-        -value => $group->name,
-    );
-	$f->email(
-		-name=>"from",
-		-value=>$session->setting->get("companyEmail"),
-		-label=>$i18n->get(811),
-		-hoverHelp=>$i18n->get('811 description'),
-		);
-	$f->text(
-		-name=>"subject",
-		-label=>$i18n->get(229),
-		-hoverHelp=>$i18n->get('229 description'),
-		);
-	$f->yesNo(
-		-name=>'override',
-		-label=>$i18n->get('override user email preference'),
-		-hoverHelp=>$i18n->get('override user email preference description'),
-		);
-	$f->HTMLArea(
-		-name=>"message",
-		-label=>$i18n->get(230),
-		-hoverHelp=>$i18n->get('230 description'),
-		);
-	$f->submit($i18n->get(810));
-	$output = $f->print;
-	return _submenu($session,$output,'809');
+	my $groupId = $session->form->process("gid") || 'new';
+
+	return $rest->forbidden( { message => $i18n->get(36) } )
+	   unless ( canEditGroup( $session, $groupId ) );
+
+   my $hiddenToken = WebGUI::Form::CsrfToken->new($session)->toHtml;
+   my $group = WebGUI::Group->new($session,$groupId);
+
+	my $output = {
+     gid   => $groupId,
+     name  => $group->name,
+     token => $hiddenToken,
+     from => {
+        label       => $i18n->get(811),
+		  value       => $session->setting->get("companyEmail"),
+		  description => $i18n->get('811 description')	
+     },
+     subject => {
+        label       => $i18n->get(229),
+		  value       => "",
+		  description => $i18n->get('229 description')	
+     },
+     override => {
+        label       => $i18n->get('override user email preference'),
+		  value       => ,
+		  description => $i18n->get('override user email preference description')	
+     },
+     message => {
+        label       => $i18n->get(230),
+		  value       => "",
+		  description => $i18n->get('230 description')	
+     },
+	};
+
+	return $rest->response( $output );
 }
 
 #-------------------------------------------------------------------
@@ -843,13 +836,18 @@ A WebGUI::Session object
 
 sub www_emailGroupSend {
 	my $session = shift;
-	my $f = $session->form;
-	return $session->privilege->adminOnly()
-		unless (canEditGroup($session,$f->get('gid')) && $f->validToken);
+
+   my $rest = WebGUI::Session::Rest->new( session => $session );	
+	my $i18n = WebGUI::International->new($session);
+	my $groupId = $session->form->process("gid");
+
+   my $f = $session->form;
+	return $rest->forbidden( { message => $i18n->get(36) } )
+	   unless ( canEditGroup( $session, $groupId ) && $f->validToken );
 
 	WebGUI::Inbox::Message->create(
 		$session, {
-			groupId                 => $f->get('gid'),
+			groupId                 => $groupId,
 			subject                 => $f->get('subject'),
 			status                  => 'unread',
 			message                 => $f->process('message', 'HTMLArea'),
@@ -858,8 +856,8 @@ sub www_emailGroupSend {
 			extraHeaders            => { from => $f->get('from') }
 		}
 	);
-	my $i18n = WebGUI::International->new($session);
-	return _submenu($session,$i18n->get(812));
+
+	return $rest->response({ message => $i18n->get(812) });
 }
 
 #-------------------------------------------------------------------
@@ -1071,41 +1069,54 @@ A WebGUI::Session object
 
 =cut
 
-sub www_manageUsersInGroup {
+sub www_manageUsersInGroup{
 	my $session = shift;
    my $groupId = $session->form->process("gid");
 	my $i18n = WebGUI::International->new($session);
+   my $output = $session->request->parameters->mixed;
    my $rest = WebGUI::Session::Rest->new( session => $session );
    return $rest->forbidden( { message => $i18n->get(36) } )
       unless ( canEditGroup($session, $groupId) );
    
    my $group = WebGUI::Group->new( $session, $groupId );
 
-	my $output = {
-		gid  => $groupId,
-       op  => "deleteGrouping",
-     users => $group->getUsers
-   };
+	$output->{gid}  = $groupId;
+	$output->{op}   = "deleteGrouping";
+   $output->{name} = $group->name;
 
+   my $search = undef;
 
+   # Give me the list of users that are not in this group
+   #use WebGUI::Operation:User::doUserSearch;
+   my $sth = WebGUI::Operation::User::doUserSearch($session, 'manageUsersInGroup', undef, $group->getUsers);
 
-
-#        $p->setDataByQuery("select users.username,users.userId,groupings.expireDate
-#                from groupings,users where groupings.groupId=".$session->db->quote($session->form->process("gid"))." and groupings.userId=users.userId
+#   my $sth = $session->db->prepare("select users.username,users.userId,groupings.expireDate
+#                from groupings,users where groupings.groupId= ? and groupings.userId=users.userId
 #                order by users.username");
-#	foreach my $row (@{$p->getPageData}) {
-#                $output .= '<tr><td>'
-#			.WebGUI::Form::checkbox($session,{
-#				name=>"uid",
-#				value=>$row->{userId}
-#				})
-#                        .$session->icon->edit('op=editGrouping;uid='.$row->{userId}.';gid='.$session->form->process("gid"))
-#                        .'</td>';
-#                $output .= '<td class="tableData"><a href="'.$session->url->page('op=editUser;uid='.$row->{userId}).'">'.$row->{username}.'</a></td>';
-#                $output .= '<td class="tableData">'.$session->datetime->epochToHuman($row->{expireDate},"%z").'</td></tr>';
-#        }
+#   $sth->execute( $groupId );
+	my $status = {
+		Active		   => $i18n->get(817),
+		Deactivated	   => $i18n->get(818),
+		Selfdestructed	=> $i18n->get(819)
+	};
+   my $users = [];
+	while( my $row = $sth->fetchrow_hashref ){
+      push(@{ $users }, {
+         id       => $row->{userId},
+         status   => $status->{ $row->{status} },
+         username => $row->{username},
+         email    => $row->{email},
+         created  => $session->datetime->epochToHuman($row->{dateCreated},"%z"),
+         updated  => $session->datetime->epochToHuman($row->{lastUpdated},"%z"),
+      });
+   }
+   $output->{users} = $users;
 
-    
+   my $rowCount = @{ $users };
+   $output->{iTotalRecords} = $rowCount; # Kind of overkill but required for pagination.  total records in database
+   $output->{iTotalDisplayRecords} = $search ? $rowCount : $output->{iTotalRecords}; #Total records, after filtering or same as total records if not filtering
+
+
 	return $rest->response( $output );
 	
 }
