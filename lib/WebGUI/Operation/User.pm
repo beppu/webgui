@@ -1062,7 +1062,7 @@ sub www_listUsers {
 			return $rest->response({ op => "new" });
 		}
       else {
-		   return $rest->forbidden( { message => $i18n->get(36) } )
+		   return $rest->forbidden({ message => $i18n->get(36) });
       }
 	}
    my $search = undef;
@@ -1105,7 +1105,7 @@ sub www_listUsers {
         },
     );
    my $users = [];
-	my $sth = doUserSearch( $session,"listUsers" );# no paginator, however we may have millions of users
+	my $sth = doUserSearch( $session, "listUsers" );# no paginator, however we may have millions of users
    my $limit = $session->form->process("limit");
 	while ( my $data = $sth->fetchrow_hashref ){
       my $user = {
