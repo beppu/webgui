@@ -291,7 +291,7 @@ sub www_addUsersToGroupSave {
    return $rest->forbidden( { message => $i18n->get(36) } )
       unless ( canEditGroup($session, $groupId) );
 
-   my @users = $session->form->process('users');
+   my @users = $session->form->process('uid');
 	my $group = WebGUI::Group->new($session, $groupId);
 	$group->addUsers(\@users);
    return $rest->response({ message => "OK" });
@@ -429,10 +429,9 @@ sub www_deleteGrouping {
    }
 
    my @users = $session->form->selectList('uid');
-   my @groups = $session->form->group("gid");
    foreach my $user (@users) {
       my $u = WebGUI::User->new($session,$user);
-      $u->deleteFromGroups(\@groups);
+      $u->deleteFromGroups([$groupId]);#\@groups);
    }
 
    return $rest->response({ message => "OK" });
@@ -649,7 +648,7 @@ sub www_editGroupSave {
 	my $groupId = $session->form->process("gid") || 'new';
 	
 	return $rest->forbidden( { message => $i18n->get(36) } )
-	   unless ( canEditGroup( $session, $groupId ) );#&& $session->form->validToken );
+	   unless ( canEditGroup( $session, $groupId ) && $session->form->validToken );
 	
    # We don't want them to use an existing name.  If needed, we'll add a number to the name to keep it unique.
    my $groupName = $session->form->process("groupName");
@@ -1094,9 +1093,9 @@ sub www_manageUsersInGroup{
    
    my $group = WebGUI::Group->new( $session, $groupId );
 
-	$output->{gid}  = $groupId;
-	$output->{op}   = "deleteGrouping";
-   $output->{name} = $group->name;
+	$output->{gid}   = $groupId;
+	$output->{token} = WebGUI::Form::CsrfToken->new($session)->toHtml;
+   $output->{name}  = $group->name;
 
    my $search = $session->form->process("sSearch");
 
@@ -1107,7 +1106,6 @@ sub www_manageUsersInGroup{
 	};
 
    my $notInGroup = $session->form->process("not");
-   my $notInFilter = undef;
    my $sth = undef;
    # Users already assigned to this group
    if ( ! $notInGroup ){
