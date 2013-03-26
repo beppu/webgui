@@ -431,7 +431,7 @@ sub www_deleteGrouping {
    my @users = $session->form->selectList('uid');
    foreach my $user (@users) {
       my $u = WebGUI::User->new($session,$user);
-      $u->deleteFromGroups([$groupId]);#\@groups);
+      $u->deleteFromGroups([$groupId]);#\@groups); ::TODO:: can we delete users from groups???
    }
 
    return $rest->response({ message => "OK" });
