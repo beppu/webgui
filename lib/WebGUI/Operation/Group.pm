@@ -435,7 +435,7 @@ sub www_deleteGrouping {
       $u->deleteFromGroups(\@groups);
    }
 
-   return $rest->response({ message: "OK" });
+   return $rest->response({ message => "OK" });
 }
                                                                                                                                                        
 
@@ -1098,7 +1098,7 @@ sub www_manageUsersInGroup{
 	$output->{op}   = "deleteGrouping";
    $output->{name} = $group->name;
 
-   my $search = undef;
+   my $search = $session->form->process("sSearch");
 
 	my $status = {
 		Active		   => $i18n->get(817),
@@ -1106,10 +1106,28 @@ sub www_manageUsersInGroup{
 		Selfdestructed	=> $i18n->get(819)
 	};
 
-   my $sql = q|select users.userId, users.username, users.status, users.dateCreated, users.lastUpdated, users.email
-                from groupings, users where groupings.groupId= ? and groupings.userId=users.userId
-                order by users.username|;
-   my $sth = $session->dbSlave->read($sql, [$groupId]); 
+   my $notInGroup = $session->form->process("not");
+   my $notInFilter = undef;
+   my $sth = undef;
+   # Users already assigned to this group
+   if ( ! $notInGroup ){
+      my $sql = qq|select users.userId, users.username, users.status, users.dateCreated, users.lastUpdated, users.email
+                from groupings, users where groupings.groupId= ? and groupings.userId=users.userId|;
+      $sth = $session->dbSlave->read($sql, [$groupId]);
+
+   # Users NOT assigned to this group
+   }else{
+      my $usersAssigned = $session->db->buildArrayRef("select userId from groupings where groupId=?", [$groupId]);
+      my $appendToUsersQuery = undef;
+      if ( @$usersAssigned > 0 ){
+         $appendToUsersQuery = 'where users.userId not in(' . $session->db->quoteAndJoin($usersAssigned) . ')';
+      }
+      my $sql = qq|select users.userId, users.username, users.status, users.dateCreated, users.lastUpdated, users.email
+         from users $appendToUsersQuery|;     
+      $sth = $session->dbSlave->read($sql);
+
+   }
+  
    my $users = [];
 	while( my $row = $sth->fetchrow_hashref ){
       push(@{ $users }, {
