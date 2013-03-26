@@ -1,5 +1,5 @@
 define(['jquery','WebGUI/Prime'],function($,Prime){
-   return function(params){
+   return function(params){  
       var jsonParams = { dataType:'json' };// always receive json data
       if ( ! $.isEmptyObject(params.data) ){
          jsonParams.data = params.data;     
@@ -15,7 +15,9 @@ define(['jquery','WebGUI/Prime'],function($,Prime){
       // Define the success callback for this call
       jsonParams.success = function(data, textStatus, jqXHR){
          try{
-            params.callback(data);
+            if ( typeof params.callback !== 'undefined' ){
+               params.callback(data);
+            }
          }catch(exception){
             console.log("Fix this issue: " + exception);//::TODO:: 
          } 
@@ -52,7 +54,7 @@ define(['jquery','WebGUI/Prime'],function($,Prime){
          if ( ! $.isEmptyObject(params.infoLogger) ){ params.infoLogger.hide(); } 
          console.log( message );
       }; 
-
+      
       // Finally, make the call!!!
       $.ajax( jsonPath, jsonParams );
    };   

@@ -38,7 +38,7 @@ function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
                        switch(operation.op){
                           case 'editGroupSave':// the operation is already included in the template/form
                              var jsonSubmit = jsonPath + '?' + $('form#groupEditForm').serialize();
-                             AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", logMessage:"Saved", infoLogger:groupInfoLogger, errorLogger:groupErrorLogger });                                
+                             AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", logMessage:"Saved", method:"POST", infoLogger:groupInfoLogger, errorLogger:groupErrorLogger });                                
                           break;                       
 
                           case 'deleteGroup':
@@ -59,16 +59,19 @@ function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
                           break;
 
                           case 'manageUsersInGroup':
-                             require(['WebGUI/Prime/Menu/People/UserList'],function(users){
-                                // add a userlist table to the container
-                                $('#groupContainer').html('<table id="userGroupList" class="webguiAdminTable"></table>');
-                                // display the users in the added table
-                                users('#userGroupList'); // show the userlist in the group Container table
-                                //groupCrumbTrailMenu.add(new MenuItem({ href:"#", link:"Users in Group", title:"Manage Users in Group", cssClass:"manage-group" ,callback:jsonFunction }));//i18n ::TODO::
+                             require(['WebGUI/Prime/Menu/People/ManageUsersInGroup'],function(groupUserManagement){
+                                groupUserManagement('#groupContainer', query.gid);
                              });
-                          break;                              
+                          break;
+                       
+                          case 'emailGroup':
+                             require(['WebGUI/Prime/Menu/People/EmailGroup'],function(emailGroup){
+                                emailGroup('#groupContainer', query.gid );
+                             });
+                          break;                         
 
                           default:
+                             console.log(groupActionTarget);
                              alert ("Still need to implement: " + operation.op);
 
                        }
@@ -96,7 +99,7 @@ function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
              // What happens when we click the save button
              $('input.manage-group').button().click(function( event ) {
                 var jsonSubmit = jsonPath + '?op=editGroupSave&' + $('form#groupEditForm').serialize();
-                AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", data: data, logMessage:"Saved",//::TODO:: i18n
+                AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#groupTab", method:"POST", data: data, logMessage:"Saved",//::TODO:: i18n
                    infoLogger:groupInfoLogger, errorLogger:groupErrorLogger }); // by default message = saved
              });
 

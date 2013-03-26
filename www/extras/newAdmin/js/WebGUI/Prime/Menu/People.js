@@ -23,7 +23,12 @@ define(['jquery','jqueryui','WebGUI/Prime'],function($, ui, Prime){
          }else if ( operation === 'op=listUsers' ){
             require(['WebGUI/Prime/Menu/People/UserList'],function(users){
                // display the users in the added table
-               users('#userList'); // show the userlist in the group Container table
+               users('#userList',{op:"listUsers"}).on('click', "tr", function(event){
+                  event.preventDefault();
+                  var jsonPathFromTag = event['target']['href'];
+                  console.log( jsonPathFromTag ); 
+
+               });
             });
             
          }else{

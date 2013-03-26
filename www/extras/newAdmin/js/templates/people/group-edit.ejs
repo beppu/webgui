@@ -1,9 +1,9 @@
 <input class="manage-group" type="submit" src="?op=editGroupSave" value="Save">
 <% if ( id !== null ){ %>
-   <input class="manage-group" type="submit" src="?op=deleteGroup" value="Delete">
-   <input class="manage-group" type="submit" src="?op=manageUsersInGroup" value="Manage the users in this group">
-   <input class="manage-group" type="submit"src="?op=manageGroupsInGroup" value="Manage Groups in group">
-   <input class="manage-group" type="submit"src="?op=emailGroup" value="Email this group">
+   <input class="manage-group" type="submit" src="?op=deleteGroup"         value="Delete">
+   <input class="manage-group" type="submit" src="?op=manageUsersInGroup"  value="Manage the users in this group">
+   <input class="manage-group" type="submit" src="?op=manageGroupsInGroup" value="Manage Groups in group">
+   <input class="manage-group" type="submit" src="?op=emailGroup"          value="Email this group">
 <% } %>
 <form id="groupEditForm" name="groupEditForm">
   <input type="hidden" name="op" value="<%= op %>" />
@@ -108,10 +108,10 @@
         </tr>   
    </table>
 </form>
-<input class="manage-group" type="submit" src="?editGroupSave" value="Save">
+<input class="manage-group" type="submit" src="?op=editGroupSave" value="Save">
 <% if ( id !== null ){ %>
-   <input class="manage-group" type="submit" src="?deleteGroup" value="Delete">
-   <input class="manage-group" type="submit" src="?manageUsersInGroup" value="Manage the users in this group">
-   <input class="manage-group" type="submit"src="?manageGroupsInGroup" value="Manage Groups in group">
-   <input class="manage-group" type="submit"src="?emailGroup" value="Email this group">
+   <input class="manage-group" type="submit" src="?op=deleteGroup"         value="Delete">
+   <input class="manage-group" type="submit" src="?op=manageUsersInGroup"  value="Manage the users in this group">
+   <input class="manage-group" type="submit" src="?op=manageGroupsInGroup" value="Manage Groups in group">
+   <input class="manage-group" type="submit" src="?op=emailGroup"          value="Email this group">
 <% } %>
