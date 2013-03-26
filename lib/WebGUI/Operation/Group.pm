@@ -821,7 +821,12 @@ sub www_emailGroup {
      },
      override => {
         label       => $i18n->get('override user email preference'),
-		  value       => ,
+		  value       => {
+                          'options' => {
+                             1 => $i18n->get(138),
+                             0 => $i18n->get(139)
+                        }
+        },
 		  description => $i18n->get('override user email preference description')	
      },
      message => {
