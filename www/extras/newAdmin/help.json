@@ -34,7 +34,8 @@
       {"href":"http://www.youtube.com/watch?v=gLVmkhLnxwM","description":"Learn How To Stucture Javascript Code Like A Pro!"},
       {"href":"http://bardevblog.wordpress.com/2013/01/05/re-learning-backbone-js-require-js-and-amd/","description":"Re-Learning Backbone.js – Require.js (AMD and Shim)"},
       {"href":"http://stackoverflow.com/questions/309953/how-do-i-catch-jquery-getjson-or-ajax-with-datatype-set-to-jsonp-error-w", "description":"Catching JsonP errors."},
-      {"href":"http://canjs.us/release/latest/","description":"Weekly Widget 5 - Real-Time Chat"}
+      {"href":"http://canjs.us/release/latest/","description":"Weekly Widget 5 - Real-Time Chat"},
+      {"href":"http://diveintohtml5.info/video.html","description":"Video on the Web"}
    ]
 }
 ]

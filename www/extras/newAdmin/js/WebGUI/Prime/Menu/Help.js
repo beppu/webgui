@@ -16,7 +16,7 @@ define(['jquery','jqueryui','WebGUI/Prime','can'],function($, ui, Prime, can){
             var target = $(event.target).attr('href');
             $( target ).load( Prime.config().jsonSourceServer + '?' + operation , function(response, status, xhr) {
                if (status === 'error') {
-                  $('#message').html( exception );
+                  $('#message').html( response.message );
                }
             });
          }     

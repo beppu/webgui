@@ -1,15 +1,16 @@
 requirejs.config({
    paths :{
       can       : '/extras/newAdmin/js/libs/can',
-      datatables: ['http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min',
+      datatables: ['//ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min',
                    '/extras/newAdmin/js/libs/jquery.dataTables.min'],
       domReady  : '/extras/newAdmin/js/libs/domReady',
-      jquery    : ['http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min',
+      jquery    : ['//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min',
                    '/extras/newAdmin/js/libs/jquery-1.9.1'],
-      jqueryui  : ['http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min',
+      jqueryui  : ['//ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min',
                    '/extras/newAdmin/js/libs/jquery-ui-1.10.1.custom.min'],
       jquerypp  : '/extras/newAdmin/js/libs/jquerypp.custom',
-      URIjs     : '/extras/newAdmin/js/libs/URI'
+      URIjs     : '/extras/newAdmin/js/libs/URI',
+      modernizr : "/extras/newAdmin/js/libs/modernizr-2.6.2.min"
    },
    config: {
       // Main webgui namespace object for scripts.  This can be put into a template and
@@ -44,13 +45,35 @@ requirejs.config({
 /* 
  * Include this in every page we want to include the adminOn option
  */
-require(['domReady','jquery','WebGUI/Prime','WebGUI/Prime/AdminMenu','can/view/ejs','jqueryui'],function(domReady, $, Prime, adminMenu){
+require(['domReady','jquery','WebGUI/Prime','WebGUI/Prime/AdminMenu','can/view/ejs','jqueryui','modernizr'],function(domReady, $, Prime, adminMenu){
    // Generic helper functions defined in the JQuery namespace
-   $.fn.exists = function(){return this.length>0;};
+   // check to make sure html element exists
+   $.exists = function(){return this.length>0;};
+   
+   // HTML5 Boilerplate code!!!
+   // Avoid `console` errors in browsers that lack a console.
+   if (!(window.console && console.log)) {
+       (function() {
+           var noop = function() {};
+           var methods = ['assert', 'clear', 'count', 'debug', 'dir', 'dirxml', 'error', 'exception', 'group', 'groupCollapsed', 'groupEnd', 'info', 'log', 'markTimeline', 'profile', 'profileEnd', 'markTimeline', 'table', 'time', 'timeEnd', 'timeStamp', 'trace', 'warn'];
+           var length = methods.length;
+           var console = window.console = {};
+           while (length--) {
+               console[methods[length]] = noop;
+           }
+       }());
+   }   
+   
+   // Google Analytics: change UA-XXXXX-X to be your site's ID.
+   // Enable when you are ready.
+   /* var _gaq=[['_setAccount','UA-XXXXX-X'],['_trackPageview']];
+   (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+   g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+   s.parentNode.insertBefore(g,s)}(document,'script'));   */
    
    domReady(function(){
       // Make sure we have our turn admin on link!
-      if ( $('#turn-admin-on-container').length == 0 ){
+      if ( $('#turn-admin-on-container').exists ){
          if ( $('#turn-admin-on').length <= 0 ){
             $('body').append('<a id="turn-admin-on" href="javascript://" style="position:absolute;right:10px;top:0">Turn Admin On</a>');
          }
@@ -61,10 +84,8 @@ require(['domReady','jquery','WebGUI/Prime','WebGUI/Prime/AdminMenu','can/view/e
       
       // Load the stylesheets
       loadCss("/extras/newAdmin/css/normalize.css");
-      loadCss("/extras/newAdmin/css/main.css");
-      loadCss("/extras/newAdmin/css/toolbar.css");
+      loadCss("/extras/newAdmin/css/main.css"); // The admin toolbar css is in here!!!
       loadCss("/extras/newAdmin/css/admin-datatable.css");
-      loadCss("/extras/newAdmin/css/menus.css");
       loadCss("/extras/newAdmin/css/ui-lightness/main.css");
 
       // Add click event to enable menu when element clicked
