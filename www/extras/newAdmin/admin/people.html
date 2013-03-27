@@ -48,6 +48,15 @@
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="userProfilingTarget"></div>
 <!-- users div -->
 <div class="adminOverlayContainer ui-widget-content ui-corner-all" id="usersTarget">
-   <table id="userList" class="webguiAdminTable"></table>
+   <div class="adminTabContainerSubMenu">
+      <div id="messageWrapper" class="error ui-state-error ui-state-highlight ui-corner-all" style="padding-left:.5em;display:none">
+         <span class="ui-icon ui-icon-alert" style="float:left"></span>
+         <div id="message" class="ui-state-error-text"></div>
+      </div>
+      <img src="/extras/adminConsole/users.gif">
+      <input type="checkbox" id="delete-all-users-toggle" /> All &nbsp;
+      <button type="button" id="delete-users-button">Delete Selected</button>
+   </div>
+   <div id="usersContainer" class="ui-widget-content ui-corner-all"></div>
 </div>
 <!-- end overlay wrapper content -->

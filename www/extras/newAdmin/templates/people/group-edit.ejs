@@ -1,0 +1,117 @@
+<input class="manage-group" type="submit" src="?op=editGroupSave" value="Save">
+<% if ( id !== null ){ %>
+   <input class="manage-group" type="submit" src="?op=deleteGroup"         value="Delete">
+   <input class="manage-group" type="submit" src="?op=manageUsersInGroup"  value="Manage the users in this group">
+   <input class="manage-group" type="submit" src="?op=manageGroupsInGroup" value="Manage Groups in group">
+   <input class="manage-group" type="submit" src="?op=emailGroup"          value="Email this group">
+<% } %>
+<form id="groupEditForm" name="groupEditForm">
+  <input type="hidden" name="op" value="<%= op %>" />
+  <%== token %>
+   <table>
+<% if (  id !== null ){ %>
+        <tr>
+           <td>Group ID</td><td><input type="hidden" name="gid" value="<%= id %>" /><%= id %></td>
+        </tr>
+<% } %>          
+        <tr>
+           <td class="tooltip" title="<%= groupName.description %>"><%= groupName.label %></td><td><input type="text" name="groupName" value="<%= groupName.value %>" /></td>
+        </tr>
+        <tr>
+           <td class="tooltip" title="<%= description.description %>"><%= description.label %></td><td><textarea name="description"><%= description.value %></textarea></td>
+        </tr> 
+        <tr>
+           <td class="tooltip" title="<%= isEditable.description %>"><%= isEditable.label %></td><td>Yes<input type="radio" name="isEditable" value="1" <% if ( isEditable.value == 1 ){ %>checked<% } %>>
+                                                No<input type="radio" name="isEditable" value="0" <% if ( isEditable.value == 0 ){ %>checked<% } %>></td>
+        </tr> 
+        <tr>
+           <td class="tooltip" title="<%= showInForms.description %>"><%= showInForms.label %></td><td>Yes<input type="radio" name="showInForms" value="1" <% if ( showInForms.value == 1 ){ %>checked<% } %>>
+                                                No<input type="radio" name="showInForms" value="0" <% if ( showInForms.value == 0 ){ %>checked<% } %>></td>
+        </tr>
+        <tr>
+           <td class="tooltip" title="<%= expireOffset.description %>"><%= expireOffset.label %></td><td><input type="text" name="expireOffset_interval" value="<%= expireOffset.value.interval %>" />
+                                                 <select name="expireOffset_units">
+                                                 <% can.each(unitsOfTime,function(data, index){ %>
+                                                    <option value="<%= index %>" <% if ( expireOffset.value.unit === data ){ %>selected<% } %>><%= data %></option>
+                                                 <% }) %>
+                                                 </select></td>
+        </tr> 
+        <tr>
+           <td class="tooltip" title="<%= expireNotify.description %>"><%= expireNotify.label %></td><td>Yes<input type="radio" name="expireNotify" value="1" <% if ( expireNotify.value == 1 ){ %>checked<% } %>>
+                                                No<input type="radio" name="expireNotify" value="0" <% if ( expireNotify.value == 0 ){ %>checked<% } %>></td>
+        </tr>    
+        <tr>
+           <td class="tooltip" title="<%= expireNotifyOffset.description %>"><%= expireNotifyOffset.label %></td><td><input type="text" name="expireNotifyOffset" value="<%= expireNotifyOffset.value %>" /></td>
+        </tr>
+        <tr>
+           <td class="tooltip" title="<%= expireNotifyMessage.description %>"><%= expireNotifyMessage.label %></td><td><textarea name="expireNotifyMessage"><%= expireNotifyMessage.value %></textarea></td>
+        </tr> 
+        <tr>
+           <td class="tooltip" title="<%= deleteOffset.description %>"><%= deleteOffset.label %></td><td><input type="text" name="deleteOffset" value="<%= deleteOffset.value %>" /></td>
+        </tr>   
+        <tr>
+           <td class="tooltip" title="<%= ipFilter.description %>"><%= ipFilter.label %></td><td><textarea name="ipFilter"><%= ipFilter.value %></textarea></td>
+        </tr> 
+        <tr>
+           <td class="tooltip" title="<%= scratchFilter.description %>"><%= scratchFilter.label %></td><td><textarea name="scratchFilter"><%= scratchFilter.value %></textarea></td>
+        </tr>    
+<% if ( id !== 3 ){ %><%# Horrible but necessary at this point! %>
+        <tr>
+           <td class="tooltip" title="<%= autoAdd.description %>"><%= autoAdd.label %></td><td>Yes<input type="radio" name="autoAdd" value="1" <% if ( autoAdd.value == 1 ){ %>checked<% } %>>
+                                                No<input type="radio" name="autoAdd" value="0" <% if ( autoAdd.value === 0 ){ %>checked<% } %>></td>
+        </tr>
+<% } %>
+        <tr>
+           <td class="tooltip" title="<%= autoDelete.description %>"><%= autoDelete.label %></td><td>Yes<input type="radio" name="autoDelete" value="1" <% if ( autoDelete.value == 1 ){ %>checked<% } %>>
+                                                No<input type="radio" name="autoDelete" value="0" <% if ( autoDelete.value == 0 ){ %>checked<% } %>></td>
+        </tr>
+        <tr>
+           <td class="tooltip" title="<%= databaseLink.description %>"><%= databaseLink.label %></td><td>
+                <select name="databaseLink">
+                <% can.each(databaseLink.options,function(data, index){ %>
+                   <option value="<%= index %>" <% if ( databaseLink.value == index ){ %>selected<% } %>><%= data %></option>
+                <% }) %>
+                </select><button>manage</button></td>
+        </tr>
+        <tr>
+           <td class="tooltip" title="<%= dbQuery.description %>"><%= dbQuery.label %></td><td><textarea name="dbQuery"><%= dbQuery.value %></textarea></td>
+        </tr>
+        <tr>
+           <td class="tooltip" title="<%= ldapLinkId.description %>"><%= ldapLinkId.label %></td><td>
+                <select name="ldapLinkId">
+                <% can.each(ldapLinkId.options,function(data, index){ %>
+                   <option value="<%= index %>" <% if ( ldapLinkId.value == index ){ %>selected<% } %>><%= data %></option>
+                <% }) %>
+                </select>
+           </td>
+        </tr>
+        <tr>
+           <td class="tooltip" title="<%= ldapGroup.description %>"><%= ldapGroup.label %></td><td><input type="text" name="ldapGroup" value="<%= ldapGroup.value %>" /></td>
+        </tr>   
+        <tr>
+           <td class="tooltip" title="<%= ldapGroupProperty.description %>"><%= ldapGroupProperty.label %></td><td><input type="text" name="ldapGroupProperty" value="<%= ldapGroupProperty.value %>" /></td>
+        </tr>      
+        <tr>
+           <td class="tooltip" title="<%= ldapRecursiveProperty.description %>"><%= ldapRecursiveProperty.label %></td><td><input type="text" name="ldapRecursiveProperty" value="<%= ldapRecursiveProperty.value %>" /></td>
+        </tr>   
+        <tr>
+           <td class="tooltip" title="<%= ldapRecursiveFilter.description %>"><%= ldapRecursiveFilter.label %></td><td><textarea name="ldapRecursiveFilter"><%= ldapRecursiveFilter.value %></textarea></td>
+        </tr>
+        <tr>
+           <td class="tooltip" title="<%= groupCacheTimeout.description %>"><%= groupCacheTimeout.label %></td><td><input type="text" name="groupCacheTimeout_interval" value="<%= groupCacheTimeout.value.interval %>" />
+                                                 <select name="groupCacheTimeout_units">
+                                                 <% can.each(unitsOfTime,function(data, index){ %>
+                                                    <option value="<%= index %>" <% if ( groupCacheTimeout.value.unit === data ){ %>selected<% } %>><%= data %></option>
+                                                 <% }) %>
+                                                 </select>
+           </td>
+        </tr>   
+   </table>
+</form>
+<input class="manage-group" type="submit" src="?op=editGroupSave" value="Save">
+<% if ( id !== null ){ %>
+   <input class="manage-group" type="submit" src="?op=deleteGroup"         value="Delete">
+   <input class="manage-group" type="submit" src="?op=manageUsersInGroup"  value="Manage the users in this group">
+   <input class="manage-group" type="submit" src="?op=manageGroupsInGroup" value="Manage Groups in group">
+   <input class="manage-group" type="submit" src="?op=emailGroup"          value="Email this group">
+<% } %>
