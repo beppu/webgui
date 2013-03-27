@@ -1065,14 +1065,12 @@ sub www_listUsers {
 		   return $rest->forbidden({ message => $i18n->get(36) });
       }
 	}
-   my $search = undef;
-   my $rowCount = 0;
+
 	my ($userCount) = $session->db->quickArray("select count(*) from users");
    if ( $userCount > 250 ){ # This should really be pulled from the config file it could be config->{highUserCount} || 250
       $output->{alertMessage} = $i18n->get('high user count');
    }
-   $output->{iTotalRecords} = $userCount; # Kind of overkill but required for pagination.  total records in database
-   $output->{iTotalDisplayRecords} = $search ? $rowCount : $output->{iTotalRecords}; #Total records, after filtering or same as total records if not filtering
+   $output->{iTotalRecords} = $userCount; # Kind of overkill but required for pagination.  total records in database 
 
 	my $status = {
 		Active		   => $i18n->get(817),
@@ -1104,9 +1102,22 @@ sub www_listUsers {
             where  userId = ?
         },
     );
-   my $users = [];
+
+   # If the we need to limit the list by user search
+   my $search = $session->form->process('sSearch');
+   if ( $search =~ m/\S/ ){
+	   $session->scratch->set("userSearchKeyword", $search);
+      $session->scratch->set("userSearchModifier", "contains");
+
+   }else{
+	   $session->scratch->delete('userSearchKeyword');
+	   $session->scratch->delete('userSearchModifier');
+
+   }
+
 	my $sth = doUserSearch( $session, "listUsers" );# no paginator, however we may have millions of users
    my $limit = $session->form->process("limit");
+   my $users = [];
 	while ( my $data = $sth->fetchrow_hashref ){
       my $user = {
          id       => $data->{userId},
@@ -1154,6 +1165,7 @@ sub www_listUsers {
       }
 	}
    $output->{users} = $users;
+   $output->{iTotalDisplayRecords} = $sth->rows; #Total records, after filtering or same as total records if not filtering
 
    $user_loginlog->finish;
    $last_page_view->finish;

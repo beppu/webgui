@@ -1103,6 +1103,10 @@ sub www_manageUsersInGroup{
    $output->{name}  = $group->name;
 
    my $search = $session->form->process("sSearch");
+   my $searchFilter = undef;
+   if ( $search =~ m/\S/ ){
+      $searchFilter = q| users.username like '%| . $search . q|%' |;
+   }
 
 	my $status = {
 		Active		   => $i18n->get(817),
@@ -1115,7 +1119,10 @@ sub www_manageUsersInGroup{
    # Users already assigned to this group
    if ( ! $notInGroup ){
       my $sql = qq|select users.userId, users.username, users.status, users.dateCreated, users.lastUpdated, users.email
-                from groupings, users where groupings.groupId= ? and groupings.userId=users.userId|;
+                from groupings, users where groupings.groupId= ? and groupings.userId=users.userId |;
+      if ( $searchFilter ){ # append the user search filter to the query
+         $sql .= qq| and $searchFilter|;
+      }
       $sth = $session->dbSlave->read($sql, [$groupId]);
 
    # Users NOT assigned to this group
@@ -1124,6 +1131,13 @@ sub www_manageUsersInGroup{
       my $appendToUsersQuery = undef;
       if ( @$usersAssigned > 0 ){
          $appendToUsersQuery = 'where users.userId not in(' . $session->db->quoteAndJoin($usersAssigned) . ')';
+         if ( $searchFilter ){ # append the user search filter to the query
+            $appendToUsersQuery .= qq| and $searchFilter|;
+         }
+  
+      }elsif ( $searchFilter ){
+          $appendToUsersQuery = qq| where $searchFilter|;
+
       }
       my $sql = qq|select users.userId, users.username, users.status, users.dateCreated, users.lastUpdated, users.email
          from users $appendToUsersQuery|;     
