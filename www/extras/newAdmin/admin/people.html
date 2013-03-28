@@ -4,7 +4,7 @@
    <li><a id="groupTab" class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#groupsTarget" target="op=listGroups">Groups</a></li>
    <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#loginHistoryTarget" target="op=viewLoginHistory">Login History</a></li>
    <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#userProfilingTarget" target="op=editProfileSettings">User Profiling</a></li>
-   <li><a class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#usersTarget" target="op=listUsers">Users</a></li>
+   <li><a id="usersTab" class="adminOverlayTabs-click ui-state-hover ui-state-focus ui-state-active" href="#usersTarget" target="op=listUsers">Users</a></li>
 </ul>
 <!-- session div -->
 <div class="adminOverlayContainer ui-corner-all" id="sessionsTarget">
@@ -54,8 +54,10 @@
          <div id="message" class="ui-state-error-text"></div>
       </div>
       <img src="/extras/adminConsole/users.gif">
+      <button id="add-users-button">Add</button>
+      &nbsp;&nbsp;&nbsp;&nbsp;
       <input type="checkbox" id="delete-all-users-toggle" /> All &nbsp;
-      <button type="button" id="delete-users-button">Delete Selected</button>
+      <button id="delete-users-button">Delete Selected</button>
    </div>
    <div id="usersContainer" class="ui-widget-content ui-corner-all"></div>
 </div>
