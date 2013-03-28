@@ -24,7 +24,7 @@ requirejs.config({
             path: "/extras/newAdmin/js/templates/"
          },
          jsonSourceServer: "/",
-         jsonp:true,
+         jsonp:false,
          otherHelp:'/extas/newAdmin/help.json',
          tooltips: false,
          messageTag: "#messages",

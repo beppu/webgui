@@ -1,7 +1,0 @@
-<div class="<% if ( type === 'info' ){ %>ui-state-highlight<% }else{ %>ui-state-error<% } %> ui-corner-all">
-   <ul>
-   <% can.each(messages, function(message){ %>
-      <li <%= (el) -> el.data('message', message) %>><%= message.message %></li>
-   <% }) %>
-   </ul>
-</div>
