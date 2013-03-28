@@ -20,6 +20,7 @@ use WebGUI::HTMLForm;
 use WebGUI::International;
 use WebGUI::Operation::Auth;
 use WebGUI::Paginator;
+use WebGUI::Session::Rest;
 use WebGUI::SQL;
 use WebGUI::User;
 use JSON;
@@ -508,6 +509,55 @@ sub www_ajaxDeleteUser {
     return createServiceResponse( $outputFormat, {
         message         => 'User deleted',
     } );
+}
+
+#-------------------------------------------------------------------
+
+=head2 www_deleteUsers ( )
+
+Delete a user using a web service.
+
+=cut
+
+sub www_deleteUsers {
+    my $session = shift;
+    
+	 my $i18n = WebGUI::International->new($session);
+    my $rest = WebGUI::Session::Rest->new( session => $session );
+
+    my $output = $session->request->parameters->mixed;
+    # If the user is only allowed to add users, send them right there.
+	 unless ( canEdit($session) ){
+		 return $rest->forbidden({ message => $i18n->get(36) });
+
+	 }
+
+    # Verify access
+   # if ( !canEdit($session) || !canUseService($session) ) {????
+
+    # Verify data
+    my @userIds  = split(',', $session->form->get('ids'));
+    if ( @userIds ) {
+       return $rest->response({ message => "userid" });
+    }
+    
+    foreach my $userId ( @userIds ){
+       # make sure we don't remove essential users
+       if ( $userId eq "1" || $userId eq "3" ) {
+          return $rest->vitalComponent()
+
+       }elsif ( ! WebGUI::User->validUserId( $session, $userId ) ) {
+          return $rest->response({ message => "userid" });
+
+       }else{
+          ### Delete user
+          my $user = WebGUI::User->new( $session, $userId );
+          $user->delete;
+       }
+
+    }
+
+    return $rest->response({});
 }
 
 #-------------------------------------------------------------------
