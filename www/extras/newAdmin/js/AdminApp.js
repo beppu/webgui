@@ -24,9 +24,9 @@ requirejs.config({
             path: "/extras/newAdmin/js/templates/"
          },
          jsonSourceServer: "/",
-         jsonp:false,
-         otherHelp:'/extras/newAdmin/help.json',
-         tooltips: true,
+         jsonp:true,
+         otherHelp:'/extas/newAdmin/help.json',
+         tooltips: false,
          messageTag: "#messages",
          messageTemplate: "webgui-ajax-message-template.ejs"
       }
@@ -48,7 +48,7 @@ requirejs.config({
 require(['domReady','jquery','WebGUI/Prime','WebGUI/Prime/AdminMenu','can/view/ejs','jqueryui','modernizr'],function(domReady, $, Prime, adminMenu){
    // Generic helper functions defined in the JQuery namespace
    // check to make sure html element exists
-   $.exists = function(){return this.length>0;};
+   $.fn.exists = function(){return this.length>0;};
    
    // HTML5 Boilerplate code!!!
    // Avoid `console` errors in browsers that lack a console.
