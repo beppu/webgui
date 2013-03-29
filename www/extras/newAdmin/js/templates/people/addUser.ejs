@@ -1,1 +1,73 @@
-Load the new user form!
+<div id="userAddContainer">
+   <h3 style="text-align: center">User Managment</h3>
+   <button id="saveUser">Save</button>
+<form id="add-user-form" autocomplete="true">
+   <%== token %>
+   <input type="hidden" name="op" value="editUserSave">
+   <input type="hidden" name="uid" value="<%= uid %>">   
+
+   <ul> 
+      <li><a id="accountTab" href="#accountTarget" data-target="accountTarget" class="adminUsersTabs-click ui-state-hover ui-state-focus ui-state-active default">Account</a></li>
+      <li><a id="profileTab" href="#profileTarget" data-target="profileTarget" class="adminUsersTabs-click ui-state-hover ui-state-focus ui-state-active">Profile</a></li>
+      <li><a id="groupsTab"  href="#groupsTarget"  data-target="groupsTarget"  class="adminUsersTabs-click ui-state-hover ui-state-focus ui-state-active">Groups</a></li>
+   </ul>
+
+   <!-- account div -->
+   <div class="userTabContainer ui-corner-all" id="accountTarget">
+      <table>
+         <tr>
+            <td><label><%= username.label %></label></td><td><input type="text" name="username" value="<%= username.value %>" required></td>
+         </tr>  
+         <tr>
+            <td><label>ID</label></td><td><%= uid %></td>
+         </tr>
+         <tr>
+            <td><label><%= dateCreated.label %></label></td><td><time><%= dateCreated.value %></time></td>
+         </tr>
+         <tr>
+            <td><label><%= lastUpdated.label %></label></td><td><time><%= lastUpdated.value %></time></td>
+         </tr>       
+         <tr>
+            <td><label>Status</label></td>
+            <td>
+               <select name="status">
+                  <option value="1">Fill out with can</option>    
+               </select>
+            </td>
+         </tr>
+         <tr>
+            <td><label>Authentication Method</label></td>
+            <td>
+               <select name="authMethod">
+                  <option value="WebGUI">WebGUI</option>    
+               </select>
+            </td>
+         </tr>         
+      </table>
+         
+   </div> 
+
+   <!-- profile div -->
+   <div class="userTabContainer ui-corner-all" id="profileTarget">
+      <table>
+      <% $.each( profile, function( index, category ){ %>
+         <tr>
+            <td colspan="2"><h3><%= category.name %></h3></td>
+         </tr>
+         <% $.each( category.values, function( index, field ){ %>
+         <tr>
+            <td><label><%== field.label %></label></td><td><input type="text" name="<%= field.name %>"></td>
+         </tr>
+         <% }) %>
+      <% }) %>
+      </table>
+   </div> 
+
+   <!-- groups div -->
+   <div class="userTabContainer ui-corner-all" id="groupsTarget">
+      <h3>Groups here!</h3>
+
+   </div>    
+
+</form> 
+</div>

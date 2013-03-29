@@ -25,8 +25,8 @@ requirejs.config({
          },
          jsonSourceServer: "/",
          jsonp:false,
-         otherHelp:'/extas/newAdmin/help.json',
-         tooltips: false,
+         otherHelp:'/extras/newAdmin//help.json',
+         tooltips: true,
          messageTag: "#messages",
          messageTemplate: "webgui-ajax-message-template.ejs"
       }
@@ -45,7 +45,7 @@ requirejs.config({
 /* 
  * Include this in every page we want to include the adminOn option
  */
-require(['domReady','jquery','WebGUI/Prime','WebGUI/Prime/AdminMenu','can/view/ejs','jqueryui','modernizr'],function(domReady, $, Prime, adminMenu){
+require(['domReady','jquery','WebGUI/Prime','WebGUI/Prime/AdminMenu','can/view/ejs','jqueryui','modernizr'],function(domReady, $, Prime, adminMenu,can,jqueryui,modernizr){
    // Generic helper functions defined in the JQuery namespace
    // check to make sure html element exists
    $.fn.exists = function(){return this.length>0;};

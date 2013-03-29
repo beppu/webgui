@@ -1,4 +1,11 @@
 [
+{ "topic":"Perl (of course)",
+  "data": [
+      {"href":"http://www.cpan.org/", "description":"Comprehensive Perl Archive Network (CPAN)"},
+      {"href":"http://perl.com/", "description":"News and views of the Perl programming language"},
+      {"href":"http://perlmonks.org/", "description":"PerlMonks - The Monastery Gates"}
+  ]
+},
 { "topic":"JQuery",
   "data": [
       {"href":"http://docs.jquery.com/UI/Theming/API", "description":"JQuery CSS Framework API"},
@@ -35,7 +42,9 @@
       {"href":"http://bardevblog.wordpress.com/2013/01/05/re-learning-backbone-js-require-js-and-amd/","description":"Re-Learning Backbone.js – Require.js (AMD and Shim)"},
       {"href":"http://stackoverflow.com/questions/309953/how-do-i-catch-jquery-getjson-or-ajax-with-datatype-set-to-jsonp-error-w", "description":"Catching JsonP errors."},
       {"href":"http://canjs.us/release/latest/","description":"Weekly Widget 5 - Real-Time Chat"},
-      {"href":"http://diveintohtml5.info/video.html","description":"Video on the Web"}
+      {"href":"http://diveintohtml5.info/video.html","description":"Video on the Web"},
+      {"href":"http://www.w3schools.com/html/html5_new_elements.asp", "description":"HTML5 Element List (W3C)"},
+      {"href":"http://microformats.org/wiki/existing-rel-values", "description":"HTML 5 known rel values"}     
    ]
 }
 ]

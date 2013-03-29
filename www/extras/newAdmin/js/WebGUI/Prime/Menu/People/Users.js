@@ -20,12 +20,13 @@ define(['WebGUI/Prime','WebGUI/Prime/Menu/People/UserList','WebGUI/Prime/AjaxHel
       });   
 
       // Add users
-      $('button#add-users-button').button().click(function(event){
+      $('button#add-users-button').show().button().click(function(event){
          event.preventDefault();
          require(['WebGUI/Prime/Menu/People/AddUser'],function(addUser){
             addUser();
+            
          });
-
+         
       });      
       
       // Delete selected users
@@ -44,8 +45,7 @@ define(['WebGUI/Prime','WebGUI/Prime/Menu/People/UserList','WebGUI/Prime/AjaxHel
                buttons: {
                   "Delete all items":function(){
                      var jsonSubmit = jsonPath + '?op=deleteUsers&ids=' + users;
-                     AjaxHelper({ jsonPath: jsonSubmit });
-                     userDatatable.fnDraw();// refresh the table once I remove the session
+                     AjaxHelper({ jsonPath: jsonSubmit, callback:function(){ userDatatable.fnDraw(); } }); //::TODO:: may have to do the datatable refresh after this line.
                      $( this ).dialog( "close" );
                   },
                   Cancel: function() {
