@@ -141,7 +141,7 @@ sub getOperations {
 
 		'viewInbox' => 'Inbox',
 		'viewInboxMessage' => 'Inbox',
-        'sendPrivateMessage' => 'Inbox',
+      'sendPrivateMessage' => 'Inbox',
 
 		'inviteUser'       => 'Invite',
 		'acceptInvite'     => 'Invite',
@@ -190,7 +190,7 @@ sub getOperations {
 		'spectreTest' => 'Spectre',
 		'spectreStatus' => 'Spectre',
 
-        'ssoViaSessionId' => 'SSO',
+      'ssoViaSessionId' => 'SSO',
 
 		'disableSendWebguiStats' => 'Statistics',
 		'enableSendWebguiStats' => 'Statistics',
@@ -200,9 +200,9 @@ sub getOperations {
 		'setPersonalStyle' => 'Style',
 		'unsetPersonalStyle' => 'Style',
 
-        'ajaxCreateUser' => 'User',
-        'ajaxDeleteUser' => 'User',
-        'ajaxUpdateUser' => 'User',
+      'ajaxCreateUser' => 'User',
+      'ajaxDeleteUser' => 'User',
+      'ajaxUpdateUser' => 'User',
 		'becomeUser' => 'User',
 		'confirmUserEmail' => 'User',
 		'deleteUser' => 'User',
