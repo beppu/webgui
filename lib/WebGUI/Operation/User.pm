@@ -39,62 +39,62 @@ Operation for creating, deleting, editing and many other user related functions.
 
 
 #-------------------------------------------------------------------
-
-=head2 _submenu ( session, properties )
-
-Internal utility routine for setting up the Admin Console for User functions.
-
-=head3 session
-
-A reference to the current session.
-
-=head3 properties
-
-A hash reference containing all the properties to set in this submenu
-
-workarea: content to render in admin console
-
-userId: userId of user to be modified by submenu controls such as edit and delete
-
-title: internationalization key from users for text to display as the admin consoles title
-
-=cut
-
-sub _submenu {
-	my $session = shift;
-	my $properties = shift;
-	my $i18n = WebGUI::International->new($session);
-	my $ac = WebGUI::AdminConsole->new($session,"users");
-	my $userId = $properties->{userId} || $session->form->get("uid");
-	my $workarea = $properties->{workarea};
-	my $title;
-	$title = $i18n->get($properties->{title}) if ($properties->{title});
-
-	if (canEdit($session)) {
-		$ac->addSubmenuItem($session->url->page("op=editUser;uid=new"), $i18n->get(169));
-	}
-
-    $ac->setFormUrl($session->url->page('op=editUser;uid='.$userId));
-    my $formId = $ac->getSubmenuFormId;
-	if (canEdit($session)) {
-		unless ($session->form->process("op") eq "listUsers" 
-			|| $session->form->process("op") eq "deleteUser"
-			|| $userId eq "new") {
-			$ac->addSubmenuItem($session->url->page("op=editUser;uid=$userId"), $i18n->get(457));
-			$ac->addSubmenuItem($session->url->page('op=becomeUser;uid='.$userId), $i18n->get(751), qq|onclick="var thisForm=document.getElementById('$formId');thisForm.op.value='becomeUser';thisForm.submit(); return false;"|);
-            my $user = WebGUI::User->new($session, $userId);
-			$ac->addSubmenuItem($user->getProfileUrl(), $i18n->get('view profile'));
-            my $confirm = $i18n->get(167);
-            $confirm =~ s/([\\\'])/\\$1/g;
-			$ac->addSubmenuItem($session->url->page('op=deleteUser;uid='.$userId), $i18n->get(750), qq|onclick="var ack = confirm('$confirm'); if (ack) { var thisForm=document.getElementById('$formId');thisForm.op.value='deleteUser';thisForm.submit();} return false;"|);
-			if ($session->setting->get("useKarma")) {
-				$ac->addSubmenuItem($session->url->page("op=editUserKarma;uid=$userId"), $i18n->get(555));
-			}
-		}
-		$ac->addSubmenuItem($session->url->page("op=listUsers"), $i18n->get(456));
-	}
-        return $ac->render($workarea, $title);
-}
+#
+#=head2 _submenu ( session, properties )
+#
+#Internal utility routine for setting up the Admin Console for User functions.
+#
+#=head3 session
+#
+#A reference to the current session.
+#
+#=head3 properties
+#
+#A hash reference containing all the properties to set in this submenu
+#
+#workarea: content to render in admin console
+#
+#userId: userId of user to be modified by submenu controls such as edit and delete
+#
+#title: internationalization key from users for text to display as the admin consoles title
+#
+#=cut
+#
+#sub _submenu {
+#	my $session = shift;
+#	my $properties = shift;
+#	my $i18n = WebGUI::International->new($session);
+#	my $ac = WebGUI::AdminConsole->new($session,"users");
+#	my $userId = $properties->{userId} || $session->form->get("uid");
+#	my $workarea = $properties->{workarea};
+#	my $title;
+#	$title = $i18n->get($properties->{title}) if ($properties->{title});
+#
+#	if (canEdit($session)) {
+#		$ac->addSubmenuItem($session->url->page("op=editUser;uid=new"), $i18n->get(169));
+#	}
+#
+#    $ac->setFormUrl($session->url->page('op=editUser;uid='.$userId));
+#    my $formId = $ac->getSubmenuFormId;
+#	if (canEdit($session)) {
+#		unless ($session->form->process("op") eq "listUsers" 
+#			|| $session->form->process("op") eq "deleteUser"
+#			|| $userId eq "new") {
+#			$ac->addSubmenuItem($session->url->page("op=editUser;uid=$userId"), $i18n->get(457));
+#			$ac->addSubmenuItem($session->url->page('op=becomeUser;uid='.$userId), $i18n->get(751), qq|onclick="var thisForm=document.getElementById('$formId');thisForm.op.value='becomeUser';thisForm.submit(); return false;"|);
+#            my $user = WebGUI::User->new($session, $userId);
+#			$ac->addSubmenuItem($user->getProfileUrl(), $i18n->get('view profile'));
+#            my $confirm = $i18n->get(167);
+#            $confirm =~ s/([\\\'])/\\$1/g;
+#			$ac->addSubmenuItem($session->url->page('op=deleteUser;uid='.$userId), $i18n->get(750), qq|onclick="var ack = confirm('$confirm'); if (ack) { var thisForm=document.getElementById('$formId');thisForm.op.value='deleteUser';thisForm.submit();} return false;"|);
+#			if ($session->setting->get("useKarma")) {
+#				$ac->addSubmenuItem($session->url->page("op=editUserKarma;uid=$userId"), $i18n->get(555));
+#			}
+#		}
+#		$ac->addSubmenuItem($session->url->page("op=listUsers"), $i18n->get(456));
+#	}
+#        return $ac->render($workarea, $title);
+#}
 
 #----------------------------------------------------------------------------
 
@@ -240,90 +240,90 @@ sub doUserSearch {
 }
 
 #-------------------------------------------------------------------
-
-=head2 getUserSearchForm ( session, op, params, noStatus )
-
-Form front-end and display for searching for users.
-
-=head3 session
-
-A reference to the current session.
-
-=head3 op
-
-The name of the calling operation, passed so that pagination links work correctly.
-
-=head3 params
-
-Hashref.  A set of key,value pairs that will be hidden in the user search form.
-
-=head3 noStatus
-
-Don\`t display the status filter.
-
-=cut
-
-sub getUserSearchForm {
-	my $session = shift;
-	my $op = shift;
-	my $params = shift;
-	my $noStatus = shift;
-	$session->scratch->set("userSearchKeyword",$session->form->process("keyword")) if defined($session->form->process("keyword"));
-	$session->scratch->set("userSearchStatus",$session->form->process("status")) if defined($session->form->process("status"));
-	$session->scratch->set("userSearchModifier",$session->form->process("modifier")) if defined($session->form->process("modifier"));
-	my $i18n = WebGUI::International->new($session);
-	my $output = '<div align="center">'
-		.WebGUI::Form::formHeader($session,{ method => 'GET'}, )
-		.WebGUI::Form::hidden($session,
-			name => "op",
-			value => $op
-			);
-	foreach my $key (keys %{$params}) {
-		$output .= WebGUI::Form::hidden($session,
-			name=>$key,
-			value=>$params->{$key}
-			);
-	}
-	$output .= WebGUI::Form::hidden($session,
-		-name=>"doit",
-		-value=>1
-		)
-	.WebGUI::Form::selectBox($session,
-		-name=>"modifier",
-		-value=>($session->scratch->get("userSearchModifier") || "contains"),
-		-options=>{
-			startsWith=>$i18n->get("starts with"),
-			contains=>$i18n->get("contains"),
-			endsWith=>$i18n->get("ends with")
-			}
-		)
-	.WebGUI::Form::text($session,
-		-name=>"keyword",
-		-value=>$session->scratch->get("userSearchKeyword"),
-		-size=>15
-		);
-	if ($noStatus) {	
-		$output .= WebGUI::Form::hidden($session,
-                        name => "status",
-                        value => "Active"
-                        );
-	} else {
-		$output .= WebGUI::Form::selectBox($session,
-			-name	=> "status",
-			-value	=> ($session->scratch->get("userSearchStatus") || "users.status like '%'"),
-			-options=> { 
-				""		=> $i18n->get(821),
-				Active		=> $i18n->get(817),
-				Deactivated	=> $i18n->get(818),
-				Selfdestructed	=> $i18n->get(819)
-				}
-		);
-	}
-	$output .= WebGUI::Form::submit($session,value=>$i18n->get(170))
-	.WebGUI::Form::formFooter($session,);
-	$output .= '</div>';
-	return $output;
-}
+#
+#=head2 getUserSearchForm ( session, op, params, noStatus )
+#
+#Form front-end and display for searching for users.
+#
+#=head3 session
+#
+#A reference to the current session.
+#
+#=head3 op
+#
+#The name of the calling operation, passed so that pagination links work correctly.
+#
+#=head3 params
+#
+#Hashref.  A set of key,value pairs that will be hidden in the user search form.
+#
+#=head3 noStatus
+#
+#Don\`t display the status filter.
+#
+#=cut
+#
+#sub getUserSearchForm {
+#	my $session = shift;
+#	my $op = shift;
+#	my $params = shift;
+#	my $noStatus = shift;
+#	$session->scratch->set("userSearchKeyword",$session->form->process("keyword")) if defined($session->form->process("keyword"));
+#	$session->scratch->set("userSearchStatus",$session->form->process("status")) if defined($session->form->process("status"));
+#	$session->scratch->set("userSearchModifier",$session->form->process("modifier")) if defined($session->form->process("modifier"));
+#	my $i18n = WebGUI::International->new($session);
+#	my $output = '<div align="center">'
+#		.WebGUI::Form::formHeader($session,{ method => 'GET'}, )
+#		.WebGUI::Form::hidden($session,
+#			name => "op",
+#			value => $op
+#			);
+#	foreach my $key (keys %{$params}) {
+#		$output .= WebGUI::Form::hidden($session,
+#			name=>$key,
+#			value=>$params->{$key}
+#			);
+#	}
+#	$output .= WebGUI::Form::hidden($session,
+#		-name=>"doit",
+#		-value=>1
+#		)
+#	.WebGUI::Form::selectBox($session,
+#		-name=>"modifier",
+#		-value=>($session->scratch->get("userSearchModifier") || "contains"),
+#		-options=>{
+#			startsWith=>$i18n->get("starts with"),
+#			contains=>$i18n->get("contains"),
+#			endsWith=>$i18n->get("ends with")
+#			}
+#		)
+#	.WebGUI::Form::text($session,
+#		-name=>"keyword",
+#		-value=>$session->scratch->get("userSearchKeyword"),
+#		-size=>15
+#		);
+#	if ($noStatus) {	
+#		$output .= WebGUI::Form::hidden($session,
+#                        name => "status",
+#                        value => "Active"
+#                        );
+#	} else {
+#		$output .= WebGUI::Form::selectBox($session,
+#			-name	=> "status",
+#			-value	=> ($session->scratch->get("userSearchStatus") || "users.status like '%'"),
+#			-options=> { 
+#				""		=> $i18n->get(821),
+#				Active		=> $i18n->get(817),
+#				Deactivated	=> $i18n->get(818),
+#				Selfdestructed	=> $i18n->get(819)
+#				}
+#		);
+#	}
+#	$output .= WebGUI::Form::submit($session,value=>$i18n->get(170))
+#	.WebGUI::Form::formFooter($session,);
+#	$output .= '</div>';
+#	return $output;
+#}
 
 #-------------------------------------------------------------------
 
@@ -691,124 +691,146 @@ sub www_deleteUser {
 
 =head2 www_editUser ( )
 
-Provides a form for editing a user, or adding a new user.
+Provides values for editing a user, or adding a new user.
 
 =cut
 
 sub www_editUser {
 	my $session = shift;
-	return $session->privilege->adminOnly() unless canAdd($session);
 	my $error = shift;
-	my $uid = shift || $session->form->process("uid");
+   my $uid = shift || $session->form->process("uid");
+
+   my $i18n = WebGUI::International->new($session, "WebGUI");
+   my $rest = WebGUI::Session::Rest->new( session => $session );
+
+	return $rest->unauthorized({ message => 'unauthorized' }) # ::TODO:: i18n
+      unless canAdd( $session );
+
 	my $u = WebGUI::User->new($session,($uid eq 'new') ? '' : $uid); #Setting uid to '' when uid is 'new' so visitor defaults prefill field for new user
 	my $username = ($u->isVisitor && $uid ne "1") ? '' : $u->username;
-	my $i18n = WebGUI::International->new($session, "WebGUI");
-    my $f = WebGUI::FormBuilder->new( $session, 
-        action => $session->url->page,
-        extras => 'autocomplete="off"',
-    );
-    $f->addField( 'csrfToken', name => 'csrfToken' );
-    $f->addField( "hidden",
-        name => 'op',
-        value => 'editUserSave',
-    );
-    $f->addField( "hidden", 
-        name => "uid", 
-        value => $uid,
-    );
-    my $account = $f->addTab( name => "account", label => $i18n->get('account') );
-    my $profile = $f->addTab( name => "profile", label => $i18n->get('profile') );
-    my $groups = $f->addTab( name => "groups", label => $i18n->get('89') );
 
-    # Normal user fields
-    $account->addField( "readOnly", 
-        name => "uid", 
-        value => $uid, 
-        label => $i18n->get(378),
-    );
-    $account->addField( "readOnly", 
-        name => "karma", 
-        value => $u->karma,
-        label => $i18n->get(537)
-    ) if ($session->setting->get("useKarma"));
-    $account->addField( "readOnly",
-        name => "dateCreated",
-        value=>$session->datetime->epochToHuman($u->dateCreated,"%z"),
-        label=>$i18n->get(453)
-    );
-    $account->addField( "readOnly",
-        name => "lastUpdated",
-        value=>$session->datetime->epochToHuman($u->lastUpdated,"%z"),
-        label=>$i18n->get(454)
-    );
-    $account->addField( "text",
-        name=>"username",
-        label=>$i18n->get(50),
-        value=>$username,
-        extras=>'autocomplete="off"',
-    );
+   my $hiddenToken = WebGUI::Form::CsrfToken->new($session)->toHtml;
+   my $output = {
+      token => $hiddenToken,
+      uid   => $uid,
 
-	if ($u->userId eq $session->user->userId) {
-		$account->addField( "hidden",
-			name => "status",
-			value => $u->status
-			);
-	}
-    else {
-        tie my %status, 'Tie::IxHash', (
-            Active		=>$i18n->get(817),
-            Deactivated	=>$i18n->get(818),
-            Selfdestructed	=>$i18n->get(819)
-        );
-		$account->addField( "selectBox",
-			name => "status",
-			options => \%status,
-			label => $i18n->get(816),
-			value => $u->status
-			);
-	}
+      karma => {
+			label => $i18n->get('84 description'),
+			value => $u->karma,
+			description => ""			  
+		},
 
-    # Auth configurations
-	my $options;
-	foreach (@{$session->config->get("authMethods")}) {
-		$options->{$_} = $_;
-	}
-	$account->addField( "selectBox",
-	        name=>"authMethod",
-		options=>$options,
-		label=>$i18n->get(164),
-		value=>$u->authMethod,
-    );
-	foreach my $auth (@{$session->config->get("authMethods")}) {
-		my $authInstance = WebGUI::Operation::Auth::getInstance($session,$auth,$u->userId);
-        my $editUserForm = $authInstance->editUserForm;
-        next unless $editUserForm;
-        $account->addFieldset( $editUserForm, name => $auth, label => $auth );
-	}
+      dateCreated => {
+			label => $i18n->get(453),
+			value => $session->datetime->epochToHuman($u->dateCreated,"%z"),
+			description => ""			  
+		},
 
-    # Profile fields
-	foreach my $category (@{WebGUI::ProfileCategory->getCategories($session)}) {
-		my $fieldset = $profile->addFieldset( name => $category->getLabel, label => $category->getLabel );
-		foreach my $field (@{$category->getFields}) {
-			next if $field->getId =~ /contentPositions/;
-			my $label = $field->getLabel . ($field->isRequired ? "*" : '');
-			if ($u->isVisitor) {
-				$fieldset->addField($field->formField({label=>$label},1,undef,undef,undef,1,'useFormDefault'));
-			}
-            else {
-				$fieldset->addField($field->formField({label=>$label},1,$u,undef,undef,1));
-			}
+      lastUpdated => {
+			label => $i18n->get(454),
+			value => $session->datetime->epochToHuman($u->lastUpdated,"%z"),
+			description => ""			  
+		},
+
+      username => {
+			label => $i18n->get(50),
+			value => $username,
+			description => ""			  
 		}
+
+#
+#
+#      __field__ => {
+#			label => "",
+#			value =>"",
+#			description => ""			  
+#		},
+
+   };
+
+   my $profile = [];
+   # Profile fields
+	foreach my $category ( @{ WebGUI::ProfileCategory->getCategories($session) } ) {
+      my $fields = [];
+		foreach my $field ( @{ $category->getFields } ){
+			next if $field->getId =~ /contentPositions/;
+			push(@{ $fields }, {
+            name     => $field->getId,
+            label    => $field->getLabel . ($field->isRequired ? "*" : ''),
+            reserved => $field->isReservedFieldName,
+            extras   => $field->getExtras,
+            viewable => $field->isViewable
+
+         });
+		}
+
+      push( @{ $profile }, {
+         name   => $category->getLabel, 
+         label  => $category->getLabel,
+         values => $fields
+
+      });
+
 	}
 
-    # Groups
+   $output->{profile} = $profile;
+
+
+
+#    my $account = $f->addTab( name => "account", label => $i18n->get('account') );
+#    my $profile = $f->addTab( name => "profile", label => $i18n->get('profile') );
+#    my $groups = $f->addTab( name => "groups",   label => $i18n->get('89') );
+#
+#	if ($u->userId eq $session->user->userId) {
+#		$account->addField( "hidden",
+#			name => "status",
+#			value => $u->status
+#			);
+#	}
+#    else {
+#        tie my %status, 'Tie::IxHash', (
+#            Active		=>$i18n->get(817),
+#            Deactivated	=>$i18n->get(818),
+#            Selfdestructed	=>$i18n->get(819)
+#        );
+#		$account->addField( "selectBox",
+#			name => "status",
+#			options => \%status,
+#			label => $i18n->get(816),
+#			value => $u->status
+#			);
+#	}
+
+#    # Auth configurations
+#	my $options;
+#	foreach (@{$session->config->get("authMethods")}) {
+#		$options->{$_} = $_;
+#	}
+#	$account->addField( "selectBox",
+#	        name=>"authMethod",
+#		options=>$options,
+#		label=>$i18n->get(164),
+#		value=>$u->authMethod,
+#    );
+#	foreach my $auth (@{$session->config->get("authMethods")}) {
+#		my $authInstance = WebGUI::Operation::Auth::getInstance($session,$auth,$u->userId);
+#        my $editUserForm = $authInstance->editUserForm;
+#        next unless $editUserForm;
+#        $account->addFieldset( $editUserForm, name => $auth, label => $auth );
+#	}
+
+   return $rest->response( $output );
+
+
+   # Groups
+   my $groups = undef;
 	my @groupsToAdd = $session->form->group("groupsToAdd");
 	my @exclude = $session->db->buildArray("select groupId from groupings where userId=?",[$u->userId]);
 	push @exclude,"1","2","7"; # Special groups cannot be left/joined
-    my $secondaryAdmin = $session->user->isInGroup('11');
-    if ($secondaryAdmin && !$session->user->isAdmin) {
-        push @exclude, $session->db->buildArray('select groupId from groups where groupId not in (select groupId from groupings where userId=?)',[$session->user->userId]);
-    }
+   my $secondaryAdmin = $session->user->isInGroup('11');
+   if ($secondaryAdmin && !$session->user->isAdmin) {
+      push @exclude, $session->db->buildArray('select groupId from groups where groupId not in (select groupId from groupings where userId=?)',[$session->user->userId]);
+   }
 	$groups->addField( "group",
 		name=>"groupsToAdd",
 		label=>$i18n->get("groups to add"),
@@ -838,6 +860,7 @@ sub www_editUser {
 		size=>15,
 		value=>\@groupsToDelete
 		);
+   my $f = undef;
 	return '<h1>' . $i18n->get(168) . '</h1>' . $error . $f->toHtml;
 }
 
@@ -852,10 +875,14 @@ to add/edit users and the submitted form passes the validToken check.
 
 sub www_editUserSave {
 	my $session = shift;
-	my $postedUserId = $session->form->process("uid"); #userId posted from www_editUser form
-	my $isAdmin = canEdit($session);
-	my $isSecondary;
+
 	my $i18n = WebGUI::International->new($session);
+   my $rest = WebGUI::Session::Rest->new( session => $session );
+
+	my $postedUserId = $session->form->process("uid"); #userId posted from www_editUser form
+	my $isAdmin = canEdit( $session );
+	my $isSecondary;
+
 	my ($existingUserId) = $session->db->quickArray("select userId from users where username=".$session->db->quote($session->form->process("username")));
 	my $error;
 	my $actualUserId;  #userId returned from the user object
