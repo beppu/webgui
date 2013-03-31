@@ -715,37 +715,45 @@ sub www_editUser {
       uid   => $uid,
 
       karma => {
-			label => $i18n->get('84 description'),
-			value => $u->karma,
+         class       => 'account',
+			label       => $i18n->get('84 description'),
+			value       => $u->karma,
 			description => ""			  
 		},
 
       dateCreated => {
-			label => $i18n->get(453),
-			value => $session->datetime->epochToHuman($u->dateCreated,"%z"),
+         class       => 'account',
+			label       => $i18n->get(453),
+			value       => $session->datetime->epochToHuman($u->dateCreated,"%z"),
 			description => ""			  
 		},
 
       lastUpdated => {
-			label => $i18n->get(454),
-			value => $session->datetime->epochToHuman($u->lastUpdated,"%z"),
+         class       => 'account',
+			label       => $i18n->get(454),
+			value       => $session->datetime->epochToHuman($u->lastUpdated,"%z"),
 			description => ""			  
 		},
 
       username => {
-			label => $i18n->get(50),
-			value => $username,
+         class       => 'account',
+			label       => $i18n->get(50),
+			value       => $username,
 			description => ""			  
-		}
+		},
 
-#
-#
-#      __field__ => {
-#			label => "",
-#			value =>"",
-#			description => ""			  
-#		},
-
+      status => {
+         id      => 'status',
+         class   => 'account',
+         name    => 'status',
+         label   => $i18n->get(816),
+         type    => 'select',
+         options => [
+           { value =>'Active',         label => $i18n->get(817), selected => $u->status eq 'Active' ? 'selected' : undef },
+           { value =>'Deactivated',    label => $i18n->get(818), selected => $u->status eq 'Deactivated' ? 'selected' : undef },
+           { value =>'Selfdestructed', label => $i18n->get(819), selected => $u->status eq 'Selfdestructed' ? 'selected' : undef }
+         ]
+      }
    };
 
    my $profile = [];
@@ -755,11 +763,14 @@ sub www_editUser {
 		foreach my $field ( @{ $category->getFields } ){
 			next if $field->getId =~ /contentPositions/;
 			push(@{ $fields }, {
+            id       => $field->getId,
+            class    => 'profile',
             name     => $field->getId,
             label    => $field->getLabel . ($field->isRequired ? "*" : ''),
             reserved => $field->isReservedFieldName,
             extras   => $field->getExtras,
-            viewable => $field->isViewable
+            viewable => $field->isViewable,
+            options  => []
 
          });
 		}
