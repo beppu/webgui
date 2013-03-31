@@ -1,0 +1,5 @@
+<select id="<%= this.id %>" class="<%= this.class %>" name="<%= this.name %>">
+<% $.each( this.options, function( index, option ){ %>
+<option value="<%= option.value %>" <%= option.selected %>><%= option.label %></option>
+<% }) %>
+</select>

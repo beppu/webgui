@@ -396,6 +396,13 @@ div.adminTabContainerSubMenu{
    margin:0;
 }
 
+/* User controls */
+div.delete-controls{
+   float:right;
+   padding-right: 1em;
+}
+
+
 
 /* ==========================================================================
     * END * Admin ToolBar styles  

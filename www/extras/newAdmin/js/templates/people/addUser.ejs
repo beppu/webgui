@@ -28,20 +28,10 @@
             <td><label><%= lastUpdated.label %></label></td><td><time><%= lastUpdated.value %></time></td>
          </tr>       
          <tr>
-            <td><label>Status</label></td>
-            <td>
-               <select name="status">
-                  <option value="1">Fill out with can</option>    
-               </select>
-            </td>
+            <td><label><%= status.label %></label></td><td><%== status.rendered %></td>
          </tr>
          <tr>
-            <td><label>Authentication Method</label></td>
-            <td>
-               <select name="authMethod">
-                  <option value="WebGUI">WebGUI</option>    
-               </select>
-            </td>
+            <td><label><%== authMethods.label %></label></td><td><%== authMethods.rendered %></td>
          </tr>         
       </table>
          
@@ -56,7 +46,7 @@
          </tr>
          <% $.each( category.values, function( index, field ){ %>
          <tr>
-            <td><label><%== field.label %></label></td><td><input type="text" name="<%= field.name %>"></td>
+            <td><label><%== field.label %></label></td><td><%== field.rendered %></td>
          </tr>
          <% }) %>
       <% }) %>
