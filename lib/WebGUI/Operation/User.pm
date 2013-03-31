@@ -756,6 +756,24 @@ sub www_editUser {
       }
    };
 
+   # Set the auth methods
+   my $authMethodOptions = [];
+   foreach my $authMethod ( @{ $session->config->get("authMethods") } ){
+      push(@{ $authMethodOptions }, {
+         value    => $authMethod,
+         label    => $authMethod,
+         selected => $u->authMethod eq $authMethod ? 'selected' : ''
+      });
+   }
+	$output->{authMethods} = {
+       id      => 'authMethods',
+       class   => 'account',
+       name    => 'authMethods',
+       label   => $i18n->get(164),
+       type    => 'select',
+       options => $authMethodOptions 
+   };
+
    my $profile = [];
    # Profile fields
 	foreach my $category ( @{ WebGUI::ProfileCategory->getCategories($session) } ) {
@@ -783,52 +801,7 @@ sub www_editUser {
       });
 
 	}
-
    $output->{profile} = $profile;
-
-
-
-#    my $account = $f->addTab( name => "account", label => $i18n->get('account') );
-#    my $profile = $f->addTab( name => "profile", label => $i18n->get('profile') );
-#    my $groups = $f->addTab( name => "groups",   label => $i18n->get('89') );
-#
-#	if ($u->userId eq $session->user->userId) {
-#		$account->addField( "hidden",
-#			name => "status",
-#			value => $u->status
-#			);
-#	}
-#    else {
-#        tie my %status, 'Tie::IxHash', (
-#            Active		=>$i18n->get(817),
-#            Deactivated	=>$i18n->get(818),
-#            Selfdestructed	=>$i18n->get(819)
-#        );
-#		$account->addField( "selectBox",
-#			name => "status",
-#			options => \%status,
-#			label => $i18n->get(816),
-#			value => $u->status
-#			);
-#	}
-
-#    # Auth configurations
-#	my $options;
-#	foreach (@{$session->config->get("authMethods")}) {
-#		$options->{$_} = $_;
-#	}
-#	$account->addField( "selectBox",
-#	        name=>"authMethod",
-#		options=>$options,
-#		label=>$i18n->get(164),
-#		value=>$u->authMethod,
-#    );
-#	foreach my $auth (@{$session->config->get("authMethods")}) {
-#		my $authInstance = WebGUI::Operation::Auth::getInstance($session,$auth,$u->userId);
-#        my $editUserForm = $authInstance->editUserForm;
-#        next unless $editUserForm;
-#        $account->addFieldset( $editUserForm, name => $auth, label => $auth );
-#	}
 
    return $rest->response( $output );
 
