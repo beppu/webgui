@@ -767,19 +767,50 @@ sub www_editUser {
    }
 	$output->{authMethods} = {
        id      => 'authMethods',
-       class   => 'account',
+       class   => 'authMethod',
        name    => 'authMethods',
        label   => $i18n->get(164),
        type    => 'select',
        options => $authMethodOptions 
    };
 
+   my $userProfileFields = $u->get();
    my $profile = [];
    # Profile fields
 	foreach my $category ( @{ WebGUI::ProfileCategory->getCategories($session) } ) {
       my $fields = [];
 		foreach my $field ( @{ $category->getFields } ){
 			next if $field->getId =~ /contentPositions/;
+
+         # get the field type
+         my $fieldOptions = [];
+         my $type = $field->formProperties->{fieldType};
+         if ( lc($type) eq 'selectbox' ){
+            # If we have any options split into a usable set for the Javascript API
+            my $optionsHash = $field->formProperties->{options};
+            foreach my $key ( keys %{ $optionsHash } ){
+               push(@{ $fieldOptions }, {
+                  value     => $key,
+                  label     => $optionsHash->{ $key },
+                  selected  => $userProfileFields->{ $key } ? 'selected' : ''
+               });
+            }
+            $type = 'select';
+            
+         }elsif ( lc($type) eq 'yesno' ){ # unfortunately I found "yesNo" and "YesNo" values
+            my $yesNo = WebGUI::Form::YesNo->new( $session );
+            my $optionsHash = $yesNo->getOptions;
+            foreach my $key ( keys %{ $optionsHash } ){
+               push(@{ $fieldOptions }, {
+                  value     => $key,
+                  label     => $optionsHash->{ $key },
+                  selected  => $userProfileFields->{ $key } ? 'selected' : ''
+               });
+            }
+            $type = 'radio'; 
+
+         }
+
 			push(@{ $fields }, {
             id       => $field->getId,
             class    => 'profile',
@@ -788,8 +819,9 @@ sub www_editUser {
             reserved => $field->isReservedFieldName,
             extras   => $field->getExtras,
             viewable => $field->isViewable,
-            options  => []
-
+            options  => $fieldOptions,
+            type     => $type,
+            required => $field->isRequired       
          });
 		}
 
