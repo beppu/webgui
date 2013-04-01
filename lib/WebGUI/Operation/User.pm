@@ -792,7 +792,7 @@ sub www_editUser {
                push(@{ $fieldOptions }, {
                   value     => $key,
                   label     => $optionsHash->{ $key },
-                  selected  => $userProfileFields->{ $key } ? 'selected' : ''
+                  selected  => $userProfileFields->{ $field->getId } eq $key ? 'selected' : ''
                });
             }
             $type = 'select';
@@ -804,7 +804,7 @@ sub www_editUser {
                push(@{ $fieldOptions }, {
                   value     => $key,
                   label     => $optionsHash->{ $key },
-                  selected  => $userProfileFields->{ $key } ? 'selected' : ''
+                  selected  => $userProfileFields->{ $field->getId } eq $key ? 'selected' : ''
                });
             }
             $type = 'radio'; 
