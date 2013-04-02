@@ -774,9 +774,9 @@ sub www_editUser {
        options => $authMethodOptions 
    };
 
+   # Profile fields
    my $userProfileFields = $u->get();
    my $profile = [];
-   # Profile fields
 	foreach my $category ( @{ WebGUI::ProfileCategory->getCategories($session) } ) {
       my $fields = [];
 		foreach my $field ( @{ $category->getFields } ){
@@ -835,49 +835,30 @@ sub www_editUser {
 	}
    $output->{profile} = $profile;
 
+   # Groups
+   my $groups = [];
+   my $sqlCommand = q|select groups.groupId, groups.groupName from groups join groupings 
+      on groups.groupId = groupings.groupId where userid = ?|;
+   my $groupHash = $session->db->buildHashRef( $sqlCommand, [$uid] );
+   foreach my $key ( keys( %{ $groupHash } ) ){
+      push( @{ $groups }, {
+         label => $groupHash->{ $key },
+         value => $key
+      });
+
+   }
+   $output->{groups} = {
+         id      => 'userGroups',
+         class   => 'userGroups',
+         name    => 'userGroups',
+         label   => $i18n->get("groups to delete"),
+         type    => 'select',
+         options => $groups
+
+   };
+
    return $rest->response( $output );
 
-
-   # Groups
-   my $groups = undef;
-	my @groupsToAdd = $session->form->group("groupsToAdd");
-	my @exclude = $session->db->buildArray("select groupId from groupings where userId=?",[$u->userId]);
-	push @exclude,"1","2","7"; # Special groups cannot be left/joined
-   my $secondaryAdmin = $session->user->isInGroup('11');
-   if ($secondaryAdmin && !$session->user->isAdmin) {
-      push @exclude, $session->db->buildArray('select groupId from groups where groupId not in (select groupId from groupings where userId=?)',[$session->user->userId]);
-   }
-	$groups->addField( "group",
-		name=>"groupsToAdd",
-		label=>$i18n->get("groups to add"),
-		excludeGroups=>\@exclude,
-		size=>15,
-		multiple=>1,
-		value=>\@groupsToAdd
-		);
-	my @include; 
-	foreach my $group (@exclude) {
-		unless (
-			$group eq "1" || $group eq "2" || $group eq "7"     # can't remove user from magic groups 
-			|| ($session->user->userId eq $uid  && $group eq 3) # cannot remove self from admin
-			|| ($uid eq '3' && $group eq "3")                   # user Admin cannot be removed from admin group
-			) {
-			push(@include,$group);
-		}
-	}
-	push (@include, "0");
-	my @groupsToDelete = $session->form->group("groupsToDelete");
-	$groups->addField( "selectList",
-		name=>"groupsToDelete",
-		options=>$session->db->buildHashRef("select groupId, groupName from groups 
-			where groupId in (".$session->db->quoteAndJoin(\@include).") and showInForms=1 order by groupName"),
-		label=>$i18n->get("groups to delete"),
-		multiple=>1,
-		size=>15,
-		value=>\@groupsToDelete
-		);
-   my $f = undef;
-	return '<h1>' . $i18n->get(168) . '</h1>' . $error . $f->toHtml;
 }
 
 #-------------------------------------------------------------------
