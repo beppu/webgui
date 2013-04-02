@@ -800,11 +800,15 @@ sub www_editUser {
          }elsif ( lc($type) eq 'yesno' ){ # unfortunately I found "yesNo" and "YesNo" values
             my $yesNo = WebGUI::Form::YesNo->new( $session );
             my $optionsHash = $yesNo->getOptions;
+            my $checked = $userProfileFields->{ $field->getId };
+            if ( ! $checked ){
+               $checked = 0;
+            }
             foreach my $key ( keys %{ $optionsHash } ){
                push(@{ $fieldOptions }, {
-                  value     => $key,
-                  label     => $optionsHash->{ $key },
-                  selected  => $userProfileFields->{ $field->getId } eq $key ? 'selected' : ''
+                  value   => $key,
+                  label   => $optionsHash->{ $key },
+                  checked => $checked eq $key ? 'checked' : ''
                });
             }
             $type = 'radio'; 
