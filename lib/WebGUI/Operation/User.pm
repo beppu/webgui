@@ -797,7 +797,7 @@ sub www_editUser {
             }
             $type = 'select';
             
-         }elsif ( lc($type) eq 'yesno' ){ # unfortunately I found "yesNo" and "YesNo" values
+         }elsif ( lc($type) eq 'yesno' || lc($type) eq 'radiolist' ){ # unfortunately I found "yesNo" and "YesNo" values
             my $yesNo = WebGUI::Form::YesNo->new( $session );
             my $optionsHash = $yesNo->getOptions;
             my $checked = $userProfileFields->{ $field->getId };
@@ -839,7 +839,7 @@ sub www_editUser {
 	}
    $output->{profile} = $profile;
 
-   # Groups
+   # Groups user belongs to
    my $groups = [];
    my $sqlCommand = q|select groups.groupId, groups.groupName from groups join groupings 
       on groups.groupId = groupings.groupId where userid = ?|;
@@ -856,6 +856,28 @@ sub www_editUser {
          class   => 'userGroups',
          name    => 'userGroups',
          label   => $i18n->get("groups to delete"),
+         type    => 'select',
+         options => $groups
+
+   };
+
+   # Now get the groups that the user does not belong to
+   $groups = [];
+   $sqlCommand = q|select groups.groupId, groups.groupName from groups join groupings 
+      on groups.groupId = groupings.groupId where userid != ?|;
+   $groupHash = $session->db->buildHashRef( $sqlCommand, [$uid] );
+   foreach my $key ( keys( %{ $groupHash } ) ){
+      push( @{ $groups }, {
+         label => $groupHash->{ $key },
+         value => $key
+      });
+
+   }
+   $output->{availableGroups} = {
+         id      => 'availableGroups',
+         class   => 'availableGroups',
+         name    => 'availableGroups',
+         label   => $i18n->get("groups to add"),
          type    => 'select',
          options => $groups
 
