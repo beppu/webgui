@@ -841,45 +841,56 @@ sub www_editUser {
 
    # Groups user belongs to
    my $groups = [];
-   my $sqlCommand = q|select groups.groupId, groups.groupName from groups join groupings 
-      on groups.groupId = groupings.groupId where userid = ?|;
-   my $groupHash = $session->db->buildHashRef( $sqlCommand, [$uid] );
-   foreach my $key ( keys( %{ $groupHash } ) ){
+   my $sqlCommand = q|select groups.groupId, groups.groupName, groups.description 
+      from groups join groupings on groups.groupId = groupings.groupId 
+      where groupings.userid = ?|;
+   my $groupArray = $session->db->buildArrayRefOfHashRefs( $sqlCommand, [$uid] );
+   my @avoidTheseGroups = ();
+   foreach my $row ( @{ $groupArray } ){
       push( @{ $groups }, {
-         label => $groupHash->{ $key },
-         value => $key
+         groupName   => $row->{groupName},
+         groupId     => $row->{groupId},
+         description => $row->{description}
       });
+      push( @avoidTheseGroups, $row->{groupId} ); # Store these so we can avoid them in the next query
 
    }
    $output->{groups} = {
-         id      => 'userGroups',
-         class   => 'userGroups',
-         name    => 'userGroups',
-         label   => $i18n->get("groups to delete"),
-         type    => 'select',
-         options => $groups
+      id      => 'userGroups',
+      class   => 'userGroups',
+      name    => 'userGroups',
+      label   => $i18n->get("groups to delete"),
+      type    => 'select',
+      options => $groups
 
    };
 
    # Now get the groups that the user does not belong to
    $groups = [];
-   $sqlCommand = q|select groups.groupId, groups.groupName from groups join groupings 
-      on groups.groupId = groupings.groupId where userid != ?|;
-   $groupHash = $session->db->buildHashRef( $sqlCommand, [$uid] );
-   foreach my $key ( keys( %{ $groupHash } ) ){
+   my $parameterCount = @avoidTheseGroups;
+   my $whereClause = undef;
+   if ( $parameterCount > 0 ){
+      my $parameterPlaceholders = join(",",split(" ",("? " x $parameterCount)));
+      $whereClause = qq| where groupId not in ($parameterPlaceholders) |;
+   } 
+   $sqlCommand = qq|select groups.groupId, groups.groupName, groups.description 
+      from groups $whereClause|;
+   $groupArray = $session->db->buildArrayRefOfHashRefs( $sqlCommand, [ @avoidTheseGroups ] );
+   foreach my $row ( @{ $groupArray } ){
       push( @{ $groups }, {
-         label => $groupHash->{ $key },
-         value => $key
+         groupName   => $row->{groupName},
+         groupId     => $row->{groupId},
+         description => $row->{description}
       });
 
    }
    $output->{availableGroups} = {
-         id      => 'availableGroups',
-         class   => 'availableGroups',
-         name    => 'availableGroups',
-         label   => $i18n->get("groups to add"),
-         type    => 'select',
-         options => $groups
+      id      => 'availableGroups',
+      class   => 'availableGroups',
+      name    => 'availableGroups',
+      label   => $i18n->get("groups to add"),
+      type    => 'select',
+      options => $groups
 
    };
 
