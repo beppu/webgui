@@ -839,65 +839,6 @@ sub www_editUser {
 	}
    $output->{profile} = $profile;
 
-#   my $webParams = $session->request->parameters->mixed;
-#   my $limitParam = "";
-#   my $start = $session->form->param('iDisplayStart');
-#   my $length = $session->form->param('iDisplayLength');
-#   if ( $length ){
-#      $limitParam = qq| LIMIT ?, ?|;
-#      push(@sqlParams, $start);         
-#      push(@sqlParams, $length);
-#   }
-#   $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
-#   $webParams->{iTotalDisplayRecords} = $search ? $rowCount : $webParams->{iTotalRecords}; #Total records,
-
-   # Groups user belongs to
-#   my $groups = [];
-#   my $sqlCommand = q|select groups.groupId
-#      from groups where groupid not in (select groupId from groupings where userid = ?)|;
-#   my @avoidTheseGroups = $session->db->buildArray( $sqlCommand, [$uid] );
-#   my $sth = WebGUI::Operation::Group::doGroupSearch( $session, undef, undef, [ @avoidTheseGroups ] );
-#   @avoidTheseGroups = (); # Cleanup this array for the next section where I can include all the groups that I do not belong to
-#   while( my $row = $sth->fetchrow_hashref ){
-#      push( @{ $groups }, {
-#         groupName   => $row->{groupName},
-#         groupId     => $row->{groupId},
-#         description => $row->{description}
-#      });
-#      push( @avoidTheseGroups, $row->{groupId} ); # Store these so we can avoid them in the next query
-#
-#   }
-#   $output->{groups} = {
-#      id      => 'userGroups',
-#      class   => 'userGroups',
-#      name    => 'userGroups',
-#      label   => $i18n->get("groups to delete"),
-#      type    => 'select',
-#      options => $groups
-#
-#   };
-#
-#   # Now get the groups that the user does not belong to
-#   $groups = [];
-#   $sth = WebGUI::Operation::Group::doGroupSearch( $session, undef, undef, [ @avoidTheseGroups ] );
-#   while( my $row = $sth->fetchrow_hashref ){
-#      push( @{ $groups }, {
-#         groupName   => $row->{groupName},
-#         groupId     => $row->{groupId},
-#         description => $row->{description}
-#      });
-#
-#   }
-#   $output->{availableGroups} = {
-#      id      => 'availableGroups',
-#      class   => 'availableGroups',
-#      name    => 'availableGroups',
-#      label   => $i18n->get("groups to add"),
-#      type    => 'select',
-#      options => $groups
-#
-#   };
-
    return $rest->response( $output );
 
 }
@@ -921,7 +862,7 @@ sub www_editUserSave {
 	my $isAdmin = canEdit( $session );
 	my $isSecondary;
 
-	my ($existingUserId) = $session->db->quickArray("select userId from users where username=".$session->db->quote($session->form->process("username")));
+	my ($existingUserId) = $session->db->quickArray("select userId from users where username= ?", [ $session->form->process("username") ]);
 	my $error;
 	my $actualUserId;  #userId returned from the user object
 
@@ -929,9 +870,10 @@ sub www_editUserSave {
 		$isSecondary = (canAdd($session) && $postedUserId eq "new");
 	}
 
-	return $session->privilege->adminOnly() unless ($isAdmin || $isSecondary) && $session->form->validToken;
+	return $rest->unauthorized({ message => "Admin Only" }) # i18n  ::TODO::
+      unless ($isAdmin || $isSecondary) && $session->form->validToken;
 
-    # Check to see if
+   # Check to see if
 	# 1) the userId associated with the posted username matches the posted userId (we're editing an account)
 	# or that the userId is new and the username selected is unique (creating new account)
 	# or that the username passed in isn't assigned a userId (changing a username)
@@ -941,82 +883,75 @@ sub www_editUserSave {
 
 	my $postedUsername = $session->form->process("username");
 	$postedUsername = WebGUI::HTML::filter($postedUsername, "all");
-
-    if (($existingUserId eq $postedUserId || ($postedUserId eq "new" && !$existingUserId) || $existingUserId eq '')
-             && $postedUsername ne '') 
-             {
-        # Create a user object with the id passed in.  If the Id is 'new', the new method will return a new user,
-        # otherwise return the existing users properties
-	   	my $u = WebGUI::User->new($session,$postedUserId);
-	   	$actualUserId = $u->userId;
+   
+   if (($existingUserId eq $postedUserId || ($postedUserId eq "new" && !$existingUserId) || $existingUserId eq '') && $postedUsername ne ''){
+      # Create a user object with the id passed in.  If the Id is 'new', the new method will return a new user,
+      # otherwise return the existing users properties
+    	my $u = WebGUI::User->new($session,$postedUserId);
+	  	$actualUserId = $u->userId;
 	   	
 		# Update the user properties with passed in values.  These methods will save changes to the db.
-	   	$u->username($postedUsername);
-	   	$u->authMethod($session->form->process("authMethod"));
-	   	$u->status($session->form->process("status"));
+	  	$u->username($postedUsername);
+	  	$u->authMethod($session->form->process("authMethod"));
+	  	$u->status($session->form->process("status"));
 
-        # Loop through all of this users authentication methods
-        foreach (@{$session->config->get("authMethods")}) {
-            # Instantiate each auth object and call it's save method.  These methods are responsible for
-            # updating authentication information with values supplied by the www_editUser form.
-                my $authInstance = WebGUI::Operation::Auth::getInstance($session, $_, $actualUserId);
-                $authInstance->editUserFormSave();
-        }
+      # Loop through all of this users authentication methods
+      foreach (@{$session->config->get("authMethods")}) {
+         # Instantiate each auth object and call it's save method.  These methods are responsible for
+         # updating authentication information with values supplied by the www_editUser form.
+         my $authInstance = WebGUI::Operation::Auth::getInstance($session, $_, $actualUserId);
+         $authInstance->editUserFormSave();
+      }
        		
-        # Loop through all profile fields, and update them with new values.
-        my $address          = {};
-        my $address_mappings = WebGUI::Shop::AddressBook->getProfileAddressMappings;
-        foreach my $field (@{WebGUI::ProfileField->getFields($session)}) {
+      # Loop through all profile fields, and update them with new values.
+      my $address          = {};
+      my $address_mappings = WebGUI::Shop::AddressBook->getProfileAddressMappings;
+      foreach my $field (@{WebGUI::ProfileField->getFields($session)}) {
 			next if $field->getId =~ /contentPositions/;
-            my $field_value = $field->formProcess($u);
+         my $field_value = $field->formProcess($u);
 			$u->update({ $field->getId => $field_value} );
 
-            #set the shop address fields
-            my $address_key          = $address_mappings->{$field->getId};
-            $address->{$address_key} = $field_value if ($address_key);
+         #set the shop address fields
+         my $address_key          = $address_mappings->{$field->getId};
+         $address->{$address_key} = $field_value if ($address_key);
 		}
 
-        #Update or create and update the shop address
-        if ( keys %$address ) {
-            $address->{'isProfile'        } = 1;
+      #Update or create and update the shop address
+      if ( keys %$address ) {
+         $address->{'isProfile'} = 1;
 
-            #Get the address book for the user (one is created if it does not exist)
-            my $addressBook     = WebGUI::Shop::AddressBook->newByUserId($session, $actualUserId,);
-            my $profileAddress = eval { $addressBook->getProfileAddress() };
+         #Get the address book for the user (one is created if it does not exist)
+         my $addressBook     = WebGUI::Shop::AddressBook->newByUserId($session, $actualUserId,);
+         my $profileAddress = eval { $addressBook->getProfileAddress() };
 
-            my $e;
-            if($e = WebGUI::Error->caught('WebGUI::Error::ObjectNotFound')) {
-                #Get home address only mappings to avoid creating addresses with just firstName, lastName, email
-                my %home_address_map = %{$address_mappings};
-                delete $home_address_map{qw/firstName lastName email/};
-                #Add the profile address for the user if there are homeAddress fields
-                if( grep { $address->{$_} } values %home_address_map ) {
-                    $address->{label} = "Profile Address";
-                    my $new_address = $addressBook->addAddress($address);
-                    #Set this as the default address if one doesn't already exist
-                    my $defaultAddress = eval{ $addressBook->getDefaultAddress };
-                    if(WebGUI::Error->caught('WebGUI::Error::ObjectNotFound')) {
-                        $addressBook->update( {
-                            defaultAddressId => $new_address->getId
-                        } );
-                    }
-                    else {
-                        $session->log->warn("The default address exists, and it should not.");
-                    }
+         my $e;
+         if( $e = WebGUI::Error->caught('WebGUI::Error::ObjectNotFound') ){
+            #Get home address only mappings to avoid creating addresses with just firstName, lastName, email
+            my %home_address_map = %{$address_mappings};
+            delete $home_address_map{qw/firstName lastName email/};
+            #Add the profile address for the user if there are homeAddress fields
+            if( grep { $address->{$_} } values %home_address_map ){
+                $address->{label} = "Profile Address";
+                my $new_address = $addressBook->addAddress($address);
+                #Set this as the default address if one doesn't already exist
+                my $defaultAddress = eval{ $addressBook->getDefaultAddress };
+                if( WebGUI::Error->caught('WebGUI::Error::ObjectNotFound') ){
+                   $addressBook->update( { defaultAddressId => $new_address->getId } );
+
+                }else{
+                   $session->log->warn("The default address exists, and it should not.");
                 }
             }
-            elsif ($e = WebGUI::Error->caught) {
-                #Bad stuff happened - log an error but don't fail since this isn't a vital function
-                $session->log->error(
-                    q{Could not update Shop Profile Address for user }
-                        .$u->username.q{ : }.$e->error
-                );
-            }
-            else {
-                #Update the profile address for the user
-                $profileAddress->update($address);
-            }
-        }
+
+         }elsif ($e = WebGUI::Error->caught) {
+            #Bad stuff happened - log an error but don't fail since this isn't a vital function
+             $session->log->error( q{Could not update Shop Profile Address for user } . $u->username.q{ : }.$e->error );
+
+         }else{
+            #Update the profile address for the user
+            $profileAddress->update($address);
+         }
+      }
 		
 		# Update group assignements
 		my @groups = $session->form->group("groupsToAdd");
@@ -1024,40 +959,45 @@ sub www_editUserSave {
 		@groups = $session->form->group("groupsToDelete");
 		$u->deleteFromGroups(\@groups);
 	
-        # trigger workflows	
-        if ($postedUserId eq "new") {
-	        if ($session->setting->get("runOnAdminCreateUser")) {
-		        WebGUI::Workflow::Instance->create($session, {
-			        workflowId=>$session->setting->get("runOnAdminCreateUser"),
+      # trigger workflows	
+      if ($postedUserId eq "new") {
+	      if ($session->setting->get("runOnAdminCreateUser")) {
+		      WebGUI::Workflow::Instance->create($session, {
+		           workflowId=>$session->setting->get("runOnAdminCreateUser"),
 			        methodName=>"new",
 			        className=>"WebGUI::User",
 			        parameters=>$u->userId,
 			        priority=>1
-			        })->start;
-	        }
-        }
-        else {
-	        if ($session->setting->get("runOnAdminUpdateUser")) {
+			   })->start;
+	      }
+
+      }else{
+         if ($session->setting->get("runOnAdminUpdateUser")) {
 		        WebGUI::Workflow::Instance->create($session, {
 			        workflowId=>$session->setting->get("runOnAdminUpdateUser"),
 			        methodName=>"new",
 			        className=>"WebGUI::User",
 			        parameters=>$u->userId,
 			        priority=>1
-			        })->start;
-	        }
-        }
-	# Display an error telling them the username they are trying to use is not available and suggest alternatives	
-	} else {
-       		$error = '<ul>' . sprintf($i18n->get(77), $postedUsername, $postedUsername, $postedUsername, $session->datetime->epochToHuman(time(),"%y")).'</ul>';
-	}
-	if ($isSecondary) {
-		return _submenu($session,{workarea => $i18n->get(978)});
+		        })->start;
+         }
+      }
+      return $rest->response({ id => $u->userId });
 
-	# Display updated user information
-	} else {
-		return www_editUser($session,$error,$actualUserId);
+	# Display an error telling them the username they are trying to use is not available and suggest alternatives	
+   }else{
+      $error = sprintf($i18n->get(77), $postedUsername, $postedUsername, $postedUsername, $session->datetime->epochToHuman(time(),"%y"));
+      return $rest->response({ message => $error });
+
 	}
+
+#	if ( $isSecondary ){
+#		return _submenu($session,{workarea => $i18n->get(978)});
+#
+#	# Display updated user information
+#	} else {
+#		return www_editUser($session,$error,$actualUserId);
+#	}
 }
 
 #-------------------------------------------------------------------
