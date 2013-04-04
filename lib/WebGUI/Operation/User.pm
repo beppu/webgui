@@ -1345,11 +1345,10 @@ sub www_listUserGroups {
       push(@sqlParams, $start);         
       push(@sqlParams, $length);
    }
-   my $sth = $session->db->read($sqlCommand, [@sqlParams]);
 
-  # my $sth = WebGUI::Operation::Group::doGroupSearch( $session, undef, undef, $groupIdsToExclude );
    my $rowCount = 0;
    my $groups = [];
+   my $sth = $session->db->read($sqlCommand, [@sqlParams]);
    while( my $row = $sth->fetchrow_hashref ){
       push( @{ $groups }, {
          groupName   => $row->{groupName},
@@ -1359,7 +1358,7 @@ sub www_listUserGroups {
       $rowCount++;
    }
 
-   $output->{iTotalDisplayRecords} = $search ? $rowCount : $output->{iTotalRecords}; #Total records,
+   $output->{iTotalDisplayRecords} = $search ? $rowCount : $output->{iTotalRecords};
 
    $output->{ $dataParam } = {
       id      => 'userGroups',
