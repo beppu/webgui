@@ -1340,6 +1340,12 @@ sub www_listUserGroups {
 
    }
 
+   if ( $search && $search =~ m/\S/ ){
+      $sqlCommand .= qq| and groupName like ? |;
+      push(@sqlParams, '%' . $search . '%');
+
+   }
+
    if ( $length ){
       $sqlCommand .= qq| LIMIT ?, ? |;
       push(@sqlParams, $start);         
@@ -1358,7 +1364,7 @@ sub www_listUserGroups {
       $rowCount++;
    }
 
-   $output->{iTotalDisplayRecords} = $search ? $rowCount : $output->{iTotalRecords};
+   $output->{iTotalDisplayRecords} = $rowCount > 0 ? $rowCount : $output->{iTotalRecords};
 
    $output->{ $dataParam } = {
       id      => 'userGroups',
