@@ -839,60 +839,64 @@ sub www_editUser {
 	}
    $output->{profile} = $profile;
 
+#   my $webParams = $session->request->parameters->mixed;
+#   my $limitParam = "";
+#   my $start = $session->form->param('iDisplayStart');
+#   my $length = $session->form->param('iDisplayLength');
+#   if ( $length ){
+#      $limitParam = qq| LIMIT ?, ?|;
+#      push(@sqlParams, $start);         
+#      push(@sqlParams, $length);
+#   }
+#   $webParams->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
+#   $webParams->{iTotalDisplayRecords} = $search ? $rowCount : $webParams->{iTotalRecords}; #Total records,
+
    # Groups user belongs to
-   my $groups = [];
-   my $sqlCommand = q|select groups.groupId, groups.groupName, groups.description 
-      from groups join groupings on groups.groupId = groupings.groupId 
-      where groupings.userid = ?|;
-   my $groupArray = $session->db->buildArrayRefOfHashRefs( $sqlCommand, [$uid] );
-   my @avoidTheseGroups = ();
-   foreach my $row ( @{ $groupArray } ){
-      push( @{ $groups }, {
-         groupName   => $row->{groupName},
-         groupId     => $row->{groupId},
-         description => $row->{description}
-      });
-      push( @avoidTheseGroups, $row->{groupId} ); # Store these so we can avoid them in the next query
-
-   }
-   $output->{groups} = {
-      id      => 'userGroups',
-      class   => 'userGroups',
-      name    => 'userGroups',
-      label   => $i18n->get("groups to delete"),
-      type    => 'select',
-      options => $groups
-
-   };
-
-   # Now get the groups that the user does not belong to
-   $groups = [];
-   my $parameterCount = @avoidTheseGroups;
-   my $whereClause = undef;
-   if ( $parameterCount > 0 ){
-      my $parameterPlaceholders = join(",",split(" ",("? " x $parameterCount)));
-      $whereClause = qq| where groupId not in ($parameterPlaceholders) |;
-   } 
-   $sqlCommand = qq|select groups.groupId, groups.groupName, groups.description 
-      from groups $whereClause|;
-   $groupArray = $session->db->buildArrayRefOfHashRefs( $sqlCommand, [ @avoidTheseGroups ] );
-   foreach my $row ( @{ $groupArray } ){
-      push( @{ $groups }, {
-         groupName   => $row->{groupName},
-         groupId     => $row->{groupId},
-         description => $row->{description}
-      });
-
-   }
-   $output->{availableGroups} = {
-      id      => 'availableGroups',
-      class   => 'availableGroups',
-      name    => 'availableGroups',
-      label   => $i18n->get("groups to add"),
-      type    => 'select',
-      options => $groups
-
-   };
+#   my $groups = [];
+#   my $sqlCommand = q|select groups.groupId
+#      from groups where groupid not in (select groupId from groupings where userid = ?)|;
+#   my @avoidTheseGroups = $session->db->buildArray( $sqlCommand, [$uid] );
+#   my $sth = WebGUI::Operation::Group::doGroupSearch( $session, undef, undef, [ @avoidTheseGroups ] );
+#   @avoidTheseGroups = (); # Cleanup this array for the next section where I can include all the groups that I do not belong to
+#   while( my $row = $sth->fetchrow_hashref ){
+#      push( @{ $groups }, {
+#         groupName   => $row->{groupName},
+#         groupId     => $row->{groupId},
+#         description => $row->{description}
+#      });
+#      push( @avoidTheseGroups, $row->{groupId} ); # Store these so we can avoid them in the next query
+#
+#   }
+#   $output->{groups} = {
+#      id      => 'userGroups',
+#      class   => 'userGroups',
+#      name    => 'userGroups',
+#      label   => $i18n->get("groups to delete"),
+#      type    => 'select',
+#      options => $groups
+#
+#   };
+#
+#   # Now get the groups that the user does not belong to
+#   $groups = [];
+#   $sth = WebGUI::Operation::Group::doGroupSearch( $session, undef, undef, [ @avoidTheseGroups ] );
+#   while( my $row = $sth->fetchrow_hashref ){
+#      push( @{ $groups }, {
+#         groupName   => $row->{groupName},
+#         groupId     => $row->{groupId},
+#         description => $row->{description}
+#      });
+#
+#   }
+#   $output->{availableGroups} = {
+#      id      => 'availableGroups',
+#      class   => 'availableGroups',
+#      name    => 'availableGroups',
+#      label   => $i18n->get("groups to add"),
+#      type    => 'select',
+#      options => $groups
+#
+#   };
 
    return $rest->response( $output );
 
@@ -1283,6 +1287,92 @@ sub www_listUsers {
    $total_time->finish;
 
    return $rest->response( $output ); 
+}
+
+#-------------------------------------------------------------------
+
+=head2 www_listUserGroups ( )
+
+Provides a paginated list of all groups for this user.
+
+=cut
+
+sub www_listUserGroups {
+	my $session = shift;
+
+	my $i18n = WebGUI::International->new($session);
+   my $rest = WebGUI::Session::Rest->new( session => $session );
+
+   return $rest->forbidden( { message => $i18n->get(36) } )
+      unless canView( $session, $session->user );
+
+   my $output = $session->request->parameters->mixed;
+
+   my $sqlCommand = "select count(*) from groups where isEditable=1";
+   $output->{iTotalRecords} = $session->db->quickScalar( $sqlCommand ); # Kind of overkill but required for pagination.  total records in database
+   
+   my $uid    = $session->form->param('uid');
+   my $start  = $session->form->param('iDisplayStart');
+   my $length = $session->form->param('iDisplayLength');
+   my $search = $session->form->param('sSearch');
+  
+   my $user = WebGUI::User->new( $session, $uid );
+   my $userGroupsIds = $user->getGroups();
+ 
+   $sqlCommand = q|select * from groups where isEditable=1 |;
+   my @sqlParams = @{ $userGroupsIds };
+   my $parameterCount = @sqlParams;
+   my $parameterPlaceholders = join(",",split(" ",("? " x $parameterCount)));
+   my $dataParam = undef;
+   # Groups user does not belongs to
+   if ( $session->form->param('not') ){
+      if ( $parameterCount > 0 ){
+         $sqlCommand .= qq| and groupId not in ($parameterPlaceholders) |;
+      } 
+      $dataParam = 'availableGroups';
+
+   # Grous the user belongs to
+   }else{
+      if ( $parameterCount > 0 ){
+         $sqlCommand .= qq| and groupId in ($parameterPlaceholders) |;
+      }
+      $dataParam = 'groups';
+
+   }
+
+   if ( $length ){
+      $sqlCommand .= qq| LIMIT ?, ? |;
+      push(@sqlParams, $start);         
+      push(@sqlParams, $length);
+   }
+   my $sth = $session->db->read($sqlCommand, [@sqlParams]);
+
+  # my $sth = WebGUI::Operation::Group::doGroupSearch( $session, undef, undef, $groupIdsToExclude );
+   my $rowCount = 0;
+   my $groups = [];
+   while( my $row = $sth->fetchrow_hashref ){
+      push( @{ $groups }, {
+         groupName   => $row->{groupName},
+         groupId     => $row->{groupId},
+         description => $row->{description}
+      });
+      $rowCount++;
+   }
+
+   $output->{iTotalDisplayRecords} = $search ? $rowCount : $output->{iTotalRecords}; #Total records,
+
+   $output->{ $dataParam } = {
+      id      => 'userGroups',
+      class   => 'userGroups',
+      name    => 'userGroups',
+      label   => $i18n->get("groups to delete"),
+      type    => 'select',
+      options => $groups
+
+   };
+
+   return $rest->response( $output ); 
+
 }
 
 1;
