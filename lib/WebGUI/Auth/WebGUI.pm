@@ -144,6 +144,60 @@ or an empty string if the check was successful.
 
 =cut
 
+
+#-------------------------------------------------------------------
+
+=head2 editUserFields ( )
+
+  Creates a hash of user elements specific to this Auth Method.
+
+=cut
+
+sub editUserFields{
+   my $self = shift;
+	my $i18n = WebGUI::International->new($self->session);
+   my $userData = $self->get;
+
+   my $userChange = $self->session->setting->get("webguiChangeUsername");
+   if($userChange || $userChange eq "0"){
+      $userChange = $userData->{changeUsername};
+   }
+
+   my $passwordChange = $self->session->setting->get("webguiChangePassword");
+   if($passwordChange || $passwordChange eq "0"){
+      $passwordChange = $userData->{changePassword};
+   }
+
+   my $config = {
+      password => {
+         name   => "authWebGUI.identifier",
+	      label  => $i18n->get(51),
+	      value  => "password",
+         extras => 'autocomplete="off"'
+      },
+      interval => {
+         name  => "authWebGUI.passwordTimeout",
+	      label => $i18n->get(16,'AuthWebGUI'),
+	      value => $userData->{passwordTimeout},
+	      defaultValue => $self->session->setting->get("webguiPasswordTimeout")
+      },
+      changeUsername => {
+         type  => 'radio',
+         name  => "authWebGUI.changeUsername",
+         value => $userChange,
+         label => $i18n->get(21,'AuthWebGUI')
+      },
+      changePassword => {
+         type  => 'radio',
+         name  => "authWebGUI.changePassword",
+         value => $passwordChange,
+         label => $i18n->get(20,'AuthWebGUI')
+      }
+   };
+
+   return $config;
+}
+
 #-------------------------------------------------------------------
 
 =head2 editUserForm ( )
