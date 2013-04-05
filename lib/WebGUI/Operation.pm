@@ -206,6 +206,7 @@ sub getOperations {
 		'becomeUser' => 'User',
 		'confirmUserEmail' => 'User',
 		'deleteUser' => 'User',
+      'deleteUsers' => 'User',
 		'editUser' => 'User',
 		'editUserSave' => 'User',
 		'editUserKarma' => 'User',
