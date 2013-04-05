@@ -536,10 +536,10 @@ sub www_deleteUsers {
    # if ( !canEdit($session) || !canUseService($session) ) {????
 
     # Verify data
-    my @userIds  = split(',', $session->form->get('ids'));
-    if ( @userIds ) {
-       return $rest->response({ message => "userid" });
-    }
+    my @userIds = split(',', $session->form->get('ids'));
+
+    return $rest->response({ message => "userid" })
+       unless @userIds;
     
     foreach my $userId ( @userIds ){
        # make sure we don't remove essential users
@@ -676,15 +676,22 @@ after this.
 
 sub www_deleteUser {
 	my $session = shift;
-	return $session->privilege->adminOnly() unless canEdit($session) && $session->form->validToken;
-    if ($session->form->process("uid") eq '1' || $session->form->process("uid") eq '3') {
-        return WebGUI::AdminConsole->new($session,"users")->render($session->privilege->vitalComponent());
-    }
-    else {
-        my $u = WebGUI::User->new($session,$session->form->process("uid"));
-        $u->delete;
-        return www_listUsers($session);
-    }
+
+   my $i18n = WebGUI::International->new($session, "WebGUI");
+   my $rest = WebGUI::Session::Rest->new( session => $session );
+
+	return $rest->unauthorized({ message => 'unauthorized' }) # ::TODO:: i18n
+      unless canEdit( $session ) && $session->form->validToken;
+   my $uid = shift || $session->form->process("uid");
+
+   return $rest->vitalComponent()
+      if ( $uid eq '1' || $uid eq '3' );
+
+   my $u = WebGUI::User->new($session,$session->form->process("uid"));
+   $u->delete;
+
+   return $rest->response({});
+
 }
 
 #-------------------------------------------------------------------
@@ -756,6 +763,13 @@ sub www_editUser {
       }
    };
 
+   # Get the default WebGUI auth method
+   my $authInstance = WebGUI::Operation::Auth::getInstance($session, 'WebGUI', $uid);
+   $output->{webGUIAuthMethod} = {
+      label   => 'WebGUI',
+      options => $authInstance->editUserFields()
+   };
+
    # Set the auth methods
    my $authMethodOptions = [];
    foreach my $authMethod ( @{ $session->config->get("authMethods") } ){
@@ -766,9 +780,9 @@ sub www_editUser {
       });
    }
 	$output->{authMethods} = {
-       id      => 'authMethods',
+       id      => 'authMethod',
        class   => 'authMethod',
-       name    => 'authMethods',
+       name    => 'authMethod',
        label   => $i18n->get(164),
        type    => 'select',
        options => $authMethodOptions 
@@ -781,38 +795,48 @@ sub www_editUser {
       my $fields = [];
 		foreach my $field ( @{ $category->getFields } ){
 			next if $field->getId =~ /contentPositions/;
+         my $defaultValue = $u->get( $field->getId ) || $userProfileFields->{ $field->getId };# just in case we are editing an existing user or get default value
 
          # get the field type
          my $fieldOptions = [];
+         my $optionsHash = undef;
+         my $selectedItem = undef;
          my $type = $field->formProperties->{fieldType};
          if ( lc($type) eq 'selectbox' ){
             # If we have any options split into a usable set for the Javascript API
-            my $optionsHash = $field->formProperties->{options};
-            foreach my $key ( keys %{ $optionsHash } ){
-               push(@{ $fieldOptions }, {
-                  value     => $key,
-                  label     => $optionsHash->{ $key },
-                  selected  => $userProfileFields->{ $field->getId } eq $key ? 'selected' : ''
-               });
-            }
+            $optionsHash = $field->formProperties->{options};
+            $selectedItem = 'selected';
             $type = 'select';
             
          }elsif ( lc($type) eq 'yesno' || lc($type) eq 'radiolist' ){ # unfortunately I found "yesNo" and "YesNo" values
             my $yesNo = WebGUI::Form::YesNo->new( $session );
-            my $optionsHash = $yesNo->getOptions;
-            my $checked = $userProfileFields->{ $field->getId };
-            if ( ! $checked ){
-               $checked = 0;
-            }
-            foreach my $key ( keys %{ $optionsHash } ){
-               push(@{ $fieldOptions }, {
-                  value   => $key,
-                  label   => $optionsHash->{ $key },
-                  checked => $checked eq $key ? 'checked' : ''
-               });
-            }
+            $optionsHash = $yesNo->getOptions;
+            $selectedItem = 'checked';
             $type = 'radio'; 
 
+         }
+         # If we do not have a default set one from the options hash if we indeed have an options hash
+         if ( ! $defaultValue && $optionsHash ){
+            my @keys = keys( %{ $optionsHash } );
+            $defaultValue = shift( @keys );
+         }
+
+
+if ( $field->getId eq 'allowPrivateMessages' ){
+   use Data::Dumper;
+   $session->log->error( $field->getId . " = ( $defaultValue ) Duper: " . Dumper $optionsHash );
+}
+
+
+
+
+
+         foreach my $key ( keys %{ $optionsHash } ){
+            push(@{ $fieldOptions }, {
+               value    => $key,
+               label    => $optionsHash->{ $key },
+               selected => $defaultValue eq $key ? $selectedItem : undef
+            });
          }
 
 			push(@{ $fields }, {
@@ -823,6 +847,7 @@ sub www_editUser {
             reserved => $field->isReservedFieldName,
             extras   => $field->getExtras,
             viewable => $field->isViewable,
+            value    => $defaultValue,
             options  => $fieldOptions,
             type     => $type,
             required => $field->isRequired       
@@ -870,7 +895,7 @@ sub www_editUserSave {
 		$isSecondary = (canAdd($session) && $postedUserId eq "new");
 	}
 
-	return $rest->unauthorized({ message => "Admin Only" }) # i18n  ::TODO::
+	return $rest->unauthorized({ message => "Admin Only" }) # ::TODO:: i18n 
       unless ($isAdmin || $isSecondary) && $session->form->validToken;
 
    # Check to see if
