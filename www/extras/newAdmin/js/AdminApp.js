@@ -23,9 +23,9 @@ requirejs.config({
          template: {
             path: "/extras/newAdmin/js/templates/"
          },
-         jsonSourceServer: "/",
-         jsonp:false,
-         otherHelp:'/extras/newAdmin/help.json',
+         jsonSourceServer: "http://webgui.dbash.com:8900",
+         jsonp:true,
+         otherHelp:'/json/help.json',
          tooltips: true,
          messageTag: "#messages",
          messageTemplate: "webgui-ajax-message-template.ejs"
@@ -73,12 +73,13 @@ require(['domReady','jquery','WebGUI/Prime','WebGUI/Prime/AdminMenu','can/view/e
    
    domReady(function(){
       // Make sure we have our turn admin on link!
-      if ( $('#turn-admin-on-container').exists ){
-         if ( $('#turn-admin-on').length <= 0 ){
+      if ( $('#turn-admin-on-container').exists() ){
+         $('#turn-admin-on-container').html('<a id="turn-admin-on" href="javascript://">Turn Admin On</a>');
+     
+      }else{
+         if ( ! $('#turn-admin-on').exists() ){
             $('body').append('<a id="turn-admin-on" href="javascript://" style="position:absolute;right:10px;top:0">Turn Admin On</a>');
          }
-      }else{
-         $('#turn-admin-on-container').html('<a id="turn-admin-on" href="javascript://">Turn Admin On</a>');
 
       }
       

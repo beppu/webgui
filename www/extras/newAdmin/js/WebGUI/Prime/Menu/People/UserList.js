@@ -1,11 +1,14 @@
 define(['WebGUI/Prime','WebGUI/Prime/Datatable'], function(Prime,dt){
    return function(tagReference, config){
+      if ( typeof config === 'undefined' ){
+         config = {};
+      }
       var appendToQuery = "";
-      if ( typeof config !== 'undefined' && typeof config.limit !== 'undefined' && config.limit > 0 ){
+      if ( typeof config.limit !== 'undefined' && config.limit > 0 ){
          appendToQuery += '&limit=' + config.limit;
       }
       if ( typeof config.op === 'undefined' ){
-         throw "op not specified in config object";//::TODO:: i18n
+         config.op = "listUsers"; // sensible default
       }
 
       var jsonPath = Prime.config().jsonSourceServer;
@@ -14,7 +17,7 @@ define(['WebGUI/Prime','WebGUI/Prime/Datatable'], function(Prime,dt){
          jsonPath:jsonPath + "?op=" + config.op + appendToQuery,
          datasource:"users",
          columns:[
-           {field:'id',uri:jsonPath + '?op=editUser&uid=',type:'link',cssClass:'useridLink'}, 
+           {field:'id',uri:'?op=editUser&uid=',type:'link',cssClass:'useridLink'}, 
            {field:'username',title:'Username'},
            {field:'created',title:'Created'},
            {field:'email',title:'Email'},

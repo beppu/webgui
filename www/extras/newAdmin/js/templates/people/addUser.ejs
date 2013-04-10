@@ -1,7 +1,8 @@
 <div id="userAddContainer">
    <h3 style="text-align: center">User Managment</h3>
    <button id="saveUser">Save</button>
-<form id="add-user-form" autocomplete="true">
+   <br /><br />
+<form id="addUserForm" autocomplete="true">
    <%== token %>
    <input type="hidden" name="op" value="editUserSave">
    <input type="hidden" name="uid" value="<%= uid %>">   
@@ -17,7 +18,16 @@
       <table>
          <tr>
             <td><label><%= username.label %></label></td><td><input type="text" name="username" value="<%= username.value %>" required></td>
-         </tr>  
+         </tr>
+         <tr>
+            <td><label><%= authMethod.options.password.label %></label></td><td><input type="password" name="<%= authMethod.options.password.name %>" value="<%= authMethod.options.password.value %>" required></td>
+         </tr>         
+         <tr>
+            <td><label><%= authMethod.options.changeUsername.label %></label></td><td><%== authMethod.options.changeUsername.rendered %></td>
+         </tr>
+         <tr>
+            <td><label><%= authMethod.options.changePassword.label %></label></td><td><%== authMethod.options.changePassword.rendered %></td>
+         </tr>            
          <tr>
             <td><label>ID</label></td><td><%= uid %></td>
          </tr>
@@ -55,8 +65,35 @@
 
    <!-- groups div -->
    <div class="userTabContainer ui-corner-all" id="groupsTarget">
-      <h3>Groups here!</h3>
-
+      
+      <h3>Groups assigned to user</h3>
+      <table id="userDeleteTable" class="webguiAdminTable">
+         <thead>
+            <tr>
+               <th>Group id</th>
+               <th>Group Name</th>
+               <th>Description</th>
+               <th>Delete selected</th>
+            </tr>
+         </thead>
+         <tbody>
+         </tbody>         
+      </table>       
+      <br />
+      <h3>Groups available to user</h3>      
+      <table id="userAddTable" class="webguiAdminTable">
+         <thead>
+            <tr>
+               <th>Group id</th>
+               <th>Group Name</th>
+               <th>Description</th>
+               <th>Add selected</th>
+            </tr>
+         </thead>
+         <tbody>
+         </tbody>            
+      </table>
+      
    </div>    
 
 </form> 

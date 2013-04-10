@@ -1,6 +1,11 @@
 define(['jquery','WebGUI/Prime/AjaxHelper','WebGUI/Prime/Link','WebGUI/Prime/CheckBox','datatables'],function($,AjaxHelper,link,checkbox){   
    return function(target, config){
       var jsonPath = config.jsonPath;
+      // Define wether we should do search, pagination or refreshing data by making a trip back to the server
+      var serverSide = true;
+      if ( config.serverSide && config.serverSide === false ){
+         serverSide = false;
+      }
       // Configure the columns
       var columns = [];
       config.columns.forEach(function(column){
@@ -32,7 +37,7 @@ define(['jquery','WebGUI/Prime/AjaxHelper','WebGUI/Prime/Link','WebGUI/Prime/Che
          "bProcessing"  : true,
          "bRetrieve"    : true,
          "aoColumns"    : columns,
-         "bServerSide"  : true,
+         "bServerSide"  : serverSide,
          "sAjaxDataProp": config.datasource,
          "sAjaxSource"  : jsonPath,
          "fnServerData": function( jsonPath, aoData, fnCallback ){

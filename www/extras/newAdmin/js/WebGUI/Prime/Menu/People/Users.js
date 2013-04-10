@@ -4,10 +4,13 @@ define(['WebGUI/Prime','WebGUI/Prime/Menu/People/UserList','WebGUI/Prime/AjaxHel
       $('#usersContainer').html( can.view(Prime.config().template.path + 'people/users.ejs' ) );
       
       // display the users in the added table
-      var userDatatable = users('#usersDatatable', {op:"listUsers"} ).on('click', "a", function(event){
+      var userDatatable = users('#usersDatatable').on('click', "a", function(event){
          event.preventDefault();
-         var jsonPathFromTag = event['target']['href'];// edit the user
-         console.log( jsonPathFromTag ); 
+         var userid = event['target']['href'];// edit the user
+         require(['WebGUI/Prime/Menu/People/AddUser'],function(editUser){
+            editUser(userid);
+            
+         });         
 
       }); 
       

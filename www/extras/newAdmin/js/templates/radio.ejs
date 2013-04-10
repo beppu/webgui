@@ -1,0 +1,5 @@
+<% var parent = this;
+   $.each( this.options, function( index, option ){ %> 
+   <input type="<%= parent.type %>" name="<%= parent.name %>" id="<%= parent.id %>" value="<%= option.value %>" <%= option.selected %> />
+   <label for="<%= parent.id %>"><%= option.label %></label>
+<% }) %>
