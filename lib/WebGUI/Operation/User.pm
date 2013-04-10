@@ -712,8 +712,10 @@ sub www_editUser {
 
 	return $rest->unauthorized({ message => 'unauthorized' }) # ::TODO:: i18n
       unless canAdd( $session );
-
-	my $u = WebGUI::User->new($session,($uid eq 'new') ? '' : $uid); #Setting uid to '' when uid is 'new' so visitor defaults prefill field for new user
+   if ( $uid eq 'new' ){
+      $uid = '';#Setting uid to '' when uid is 'new' so visitor defaults prefill field for new user
+   }
+	my $u = WebGUI::User->new($session, $uid); 
 	my $username = ($u->isVisitor && $uid ne "1") ? '' : $u->username;
 
    my $hiddenToken = WebGUI::Form::CsrfToken->new($session)->toHtml;
@@ -765,13 +767,13 @@ sub www_editUser {
 
    # Get the default WebGUI auth method
    my $authInstance = WebGUI::Operation::Auth::getInstance($session, 'WebGUI', $uid);
-   $output->{webGUIAuthMethod} = {
+   $output->{authMethod} = {
       label   => 'WebGUI',
       options => $authInstance->editUserFields()
    };
-
    # Set the auth methods
    my $authMethodOptions = [];
+
    foreach my $authMethod ( @{ $session->config->get("authMethods") } ){
       push(@{ $authMethodOptions }, {
          value    => $authMethod,
@@ -820,16 +822,16 @@ sub www_editUser {
             my @keys = keys( %{ $optionsHash } );
             $defaultValue = shift( @keys );
          }
-
-
-if ( $field->getId eq 'allowPrivateMessages' ){
-   use Data::Dumper;
-   $session->log->error( $field->getId . " = ( $defaultValue ) Duper: " . Dumper $optionsHash );
-}
-
-
-
-
+#
+#
+#if ( $field->getId eq 'allowPrivateMessages' ){
+#   use Data::Dumper;
+#   $session->log->error( $field->getId . " = ( $defaultValue ) Duper: " . Dumper $optionsHash );
+#}
+#
+#
+#
+#
 
          foreach my $key ( keys %{ $optionsHash } ){
             push(@{ $fieldOptions }, {

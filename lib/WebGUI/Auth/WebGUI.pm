@@ -158,21 +158,37 @@ sub editUserFields{
 	my $i18n = WebGUI::International->new($self->session);
    my $userData = $self->get;
 
+   my $yesNoOptions = [
+     { label    => $i18n->get(138),
+       selected => "",
+       value    => 1},
+     { label    => $i18n->get(139),
+       selected => "checked",
+       value    => 0}
+   ];
+   my $yesNoUsernameOptions = $yesNoOptions;
+   my $yesNoPasswordOptions = $yesNoOptions;
+
    my $userChange = $self->session->setting->get("webguiChangeUsername");
-   if($userChange || $userChange eq "0"){
-      $userChange = $userData->{changeUsername};
+   if($userChange || $userChange eq "1"){
+      $yesNoUsernameOptions->[0]->{selected} = 'checked'; 
+      $yesNoUsernameOptions->[1]->{selected} = '';
+      
    }
 
    my $passwordChange = $self->session->setting->get("webguiChangePassword");
    if($passwordChange || $passwordChange eq "0"){
-      $passwordChange = $userData->{changePassword};
+      $yesNoPasswordOptions->[0]->{selected} = 'checked'; 
+      $yesNoPasswordOptions->[1]->{selected} = '';
+
    }
 
    my $config = {
       password => {
          name   => "authWebGUI.identifier",
 	      label  => $i18n->get(51),
-	      value  => "password",
+	      value  => "",
+         type   => "password",
          extras => 'autocomplete="off"'
       },
       interval => {
@@ -181,17 +197,19 @@ sub editUserFields{
 	      value => $userData->{passwordTimeout},
 	      defaultValue => $self->session->setting->get("webguiPasswordTimeout")
       },
-      changeUsername => {
-         type  => 'radio',
-         name  => "authWebGUI.changeUsername",
-         value => $userChange,
-         label => $i18n->get(21,'AuthWebGUI')
+      changeUsername => {    
+         type    => 'radio',
+         name    => "authWebGUI.changeUsername",
+         value   => $userChange,
+         options => $yesNoUsernameOptions,
+         label   => $i18n->get(21,'AuthWebGUI')
       },
       changePassword => {
-         type  => 'radio',
-         name  => "authWebGUI.changePassword",
-         value => $passwordChange,
-         label => $i18n->get(20,'AuthWebGUI')
+         type    => 'radio',
+         name    => "authWebGUI.changePassword",
+         value   => $passwordChange,
+         options => $yesNoPasswordOptions,
+         label   => $i18n->get(20,'AuthWebGUI')
       }
    };
 
