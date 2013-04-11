@@ -1,7 +1,7 @@
 /*
  * WebGUI specific module
  */
-define(['jquery','WebGUI/Prime','WebGUI/Prime/AjaxHelper','WebGUI/Prime/Datatable','jquerypp'],function($, Prime, AjaxHelper, dt){
+define(['jquery','Prime','Prime/AjaxHelper','Prime/Datatable','jquerypp'],function($, Prime, AjaxHelper, dt){
    return function(){
       var sessionsDatatable = dt('#sessionsDatatable', { 
          jsonPath:Prime.config().jsonSourceServer + "?op=viewActiveSessions",

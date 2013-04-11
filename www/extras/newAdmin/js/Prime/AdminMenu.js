@@ -50,10 +50,10 @@ define(['jquery'],function($){
             try{     
                var url = $(this).attr('href');
                //The module name shoud be placed after the url
-               // ex:  http://www.yahoo.com#People will execute the module WebGUI/Prime/Menu/People
+               // ex:  http://www.yahoo.com#People will execute the module Prime/Menu/People
                var module = url.split('#')[1]; 
                if ( typeof module !== 'undefined' ){
-                  module = 'WebGUI/Prime/Menu/' + module; // Use the correct namespace
+                  module = 'Prime/Menu/' + module; // Use the correct namespace
                   require([module],function(module){
                      $('#adminOverlayContent').load( url, module ); 
                   });

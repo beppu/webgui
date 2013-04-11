@@ -1,4 +1,4 @@
-define(['jquery','WebGUI/Prime','WebGUI/Prime/Menu/People/UserList','URIjs/URI','WebGUI/Prime/AjaxHelper','can/view/ejs'],function($,Prime,users,URI,AjaxHelper){
+define(['jquery','Prime','Prime/Menu/People/UserList','URIjs/URI','Prime/AjaxHelper','can/view/ejs'],function($,Prime,users,URI,AjaxHelper){
    return function(groupContainer, gid){
       var jsonPath = Prime.config().jsonSourceServer;
       // add a userlist table to the container

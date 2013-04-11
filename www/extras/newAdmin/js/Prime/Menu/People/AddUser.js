@@ -1,4 +1,4 @@
-define(['WebGUI/Prime','WebGUI/Prime/AjaxHelper','jquery','can/view/ejs','URIjs/URI','WebGUI/Prime/Menu/People/GroupList','jqueryui'], 
+define(['Prime','Prime/AjaxHelper','jquery','can/view/ejs','URIjs/URI','Prime/Menu/People/GroupList','jqueryui'], 
 function(Prime, AjaxHelper, $, can, URI, groupList){
    return function(user){
       if ( user ){

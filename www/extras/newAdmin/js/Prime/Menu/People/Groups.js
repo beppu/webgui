@@ -1,4 +1,4 @@
-define(['WebGUI/Prime','WebGUI/Prime/Datatable','WebGUI/Prime/CrumbTrailMenu','WebGUI/Prime/MenuItem','WebGUI/Prime/AjaxHelper','WebGUI/Prime/MessageQueue','URIjs/URI'],
+define(['Prime','Prime/Datatable','Prime/CrumbTrailMenu','Prime/MenuItem','Prime/AjaxHelper','Prime/MessageQueue','URIjs/URI'],
 function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
    return function(){
       $('#groupContainer').html('<table id="groupDatatable" class="webguiAdminTable"></table>'); // hate to do this but needs to be done for now
@@ -59,13 +59,13 @@ function(Prime,dt,CrumbTrailMenu,MenuItem,AjaxHelper,MessageQueue,URI){
                           break;
 
                           case 'manageUsersInGroup':
-                             require(['WebGUI/Prime/Menu/People/ManageUsersInGroup'],function(groupUserManagement){
+                             require(['Prime/Menu/People/ManageUsersInGroup'],function(groupUserManagement){
                                 groupUserManagement('#groupContainer', query.gid);
                              });
                           break;
                        
                           case 'emailGroup':
-                             require(['WebGUI/Prime/Menu/People/EmailGroup'],function(emailGroup){
+                             require(['Prime/Menu/People/EmailGroup'],function(emailGroup){
                                 emailGroup('#groupContainer', query.gid );
                              });
                           break;                         

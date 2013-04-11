@@ -1,4 +1,4 @@
-define(['jquery','WebGUI/Prime/AjaxHelper','WebGUI/Prime/Link','WebGUI/Prime/CheckBox','datatables'],function($,AjaxHelper,link,checkbox){   
+define(['jquery','Prime/AjaxHelper','Prime/Link','Prime/CheckBox','datatables'],function($,AjaxHelper,link,checkbox){   
    return function(target, config){
       var jsonPath = config.jsonPath;
       // Define wether we should do search, pagination or refreshing data by making a trip back to the server

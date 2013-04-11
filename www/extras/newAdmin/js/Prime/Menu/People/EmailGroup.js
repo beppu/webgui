@@ -1,4 +1,4 @@
-define(['WebGUI/Prime','WebGUI/Prime/AjaxHelper','can/view/ejs'],function(Prime,AjaxHelper){
+define(['Prime','Prime/AjaxHelper','can/view/ejs'],function(Prime,AjaxHelper){
   return function(container, gid){
      var jsonPath = Prime.config().jsonSourceServer;
      var jsonSubmit = jsonPath + '?op=emailGroup&gid=' + gid;

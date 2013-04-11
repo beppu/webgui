@@ -1,4 +1,4 @@
-define(['jquery','WebGUI/Prime'],function($,Prime){
+define(['jquery','Prime'],function($,Prime){
    return function(params){  
       var jsonParams = { dataType:'json' };// always receive json data
       if ( ! $.isEmptyObject(params.data) ){

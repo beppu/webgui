@@ -1,4 +1,4 @@
-define(['WebGUI/Prime','WebGUI/Prime/Menu/People/UserList','WebGUI/Prime/AjaxHelper','jquery','jqueryui'],function(Prime, users, AjaxHelper, $){
+define(['Prime','Prime/Menu/People/UserList','Prime/AjaxHelper','jquery','jqueryui'],function(Prime, users, AjaxHelper, $){
    return function(){
       var jsonPath = Prime.config().jsonSourceServer;
       $('#usersContainer').html( can.view(Prime.config().template.path + 'people/users.ejs' ) );
@@ -7,7 +7,7 @@ define(['WebGUI/Prime','WebGUI/Prime/Menu/People/UserList','WebGUI/Prime/AjaxHel
       var userDatatable = users('#usersDatatable').on('click', "a", function(event){
          event.preventDefault();
          var userid = event['target']['href'];// edit the user
-         require(['WebGUI/Prime/Menu/People/AddUser'],function(editUser){
+         require(['Prime/Menu/People/AddUser'],function(editUser){
             editUser(userid);
             
          });         
@@ -25,7 +25,7 @@ define(['WebGUI/Prime','WebGUI/Prime/Menu/People/UserList','WebGUI/Prime/AjaxHel
       // Add users
       $('button#add-users-button').show().button().click(function(event){
          event.preventDefault();
-         require(['WebGUI/Prime/Menu/People/AddUser'],function(addUser){
+         require(['Prime/Menu/People/AddUser'],function(addUser){
             addUser();
             
          });

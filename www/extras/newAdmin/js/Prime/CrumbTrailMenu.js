@@ -1,7 +1,7 @@
 /*
  *  Creates a dynamic crumbtrail menu in the passed div
  */
-define(['WebGUI/Prime','WebGUI/Prime/LoadPage','WebGUI/Prime/MenuItem','can/control'], 
+define(['Prime','Prime/LoadPage','Prime/MenuItem','can/control'], 
    function(Prime,loadPage,MenuItem){
    return can.Control({
       defaults: {

@@ -1,4 +1,4 @@
-define(['WebGUI/Prime','jquery','can/view/ejs','can/control','can/observe'],function(Prime,$,can){
+define(['Prime','jquery','can/view/ejs','can/control','can/observe'],function(Prime,$,can){
    return can.Control(
       {
          defaults:{

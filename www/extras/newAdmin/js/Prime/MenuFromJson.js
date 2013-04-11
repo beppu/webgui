@@ -9,7 +9,7 @@
  *       ...
  *    </ul>
 */
-define(['jquery','WebGUI/Prime','WebGUI/Prime/LoadPage','can/view/ejs','can/control','can/model'],function($,Prime,loadPage,can){
+define(['jquery','Prime','Prime/LoadPage','can/view/ejs','can/control','can/model'],function($,Prime,loadPage,can){
    return can.Control({
          defaults: {
             levels: 5,
