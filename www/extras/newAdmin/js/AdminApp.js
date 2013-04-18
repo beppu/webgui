@@ -15,7 +15,7 @@ requirejs.config({
    config: {
       // Main webgui namespace object for scripts.  This can be put into a template and
       //   retrieved from the WebGUI config system
-      "WebGUI/Prime" : {
+      "Prime" : {
          basePath:"/extras/newAdmin/",
          error: "",
          errorTag: "#errors",
@@ -45,7 +45,7 @@ requirejs.config({
 /* 
  * Include this in every page we want to include the adminOn option
  */
-require(['domReady','jquery','WebGUI/Prime','WebGUI/Prime/AdminMenu','can/view/ejs','jqueryui','modernizr'],function(domReady, $, Prime, adminMenu,can,jqueryui,modernizr){
+require(['domReady','jquery','Prime','Prime/AdminMenu','can/view/ejs','jqueryui','modernizr'],function(domReady, $, Prime, adminMenu, can, jqueryui, modernizr){
    // Generic helper functions defined in the JQuery namespace
    // check to make sure html element exists
    $.fn.exists = function(){return this.length>0;};

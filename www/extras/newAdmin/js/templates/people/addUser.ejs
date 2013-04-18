@@ -17,6 +17,9 @@
    <div class="userTabContainer ui-corner-all" id="accountTarget">
       <table>
          <tr>
+            <td><label>ID</label></td><td><%= uid %></td>
+         </tr>
+         <tr>
             <td><label><%= username.label %></label></td><td><input type="text" name="username" value="<%= username.value %>" required></td>
          </tr>
          <tr>
@@ -27,9 +30,6 @@
          </tr>
          <tr>
             <td><label><%= authMethod.options.changePassword.label %></label></td><td><%== authMethod.options.changePassword.rendered %></td>
-         </tr>            
-         <tr>
-            <td><label>ID</label></td><td><%= uid %></td>
          </tr>
          <tr>
             <td><label><%= dateCreated.label %></label></td><td><time><%= dateCreated.value %></time></td>

@@ -4,8 +4,8 @@ define(['jquery','Prime'],function($,Prime){
       if ( ! $.isEmptyObject(params.data) ){
          jsonParams.data = params.data;     
       }
-      if ( ! $.isEmptyObject(params.method)){
-         jsonParams.type = params.method; // could be lots of data
+      if ( params.method ){
+         jsonParams.type = params.method; // could be lots of data       
       }
       var jsonPath = params.jsonPath;
       if ( Prime.config().jsonp ){
@@ -21,16 +21,16 @@ define(['jquery','Prime'],function($,Prime){
          }catch(exception){
             console.log("Fix this issue: " + exception);//::TODO:: 
          } 
-         if ( ! $.isEmptyObject(data.message) ){
-            if ( ! $.isEmptyObject(params.errorLogger) ){ params.errorLogger.add({message:data.message}); };
-            if ( ! $.isEmptyObject(params.infoLogger) ){ params.infoLogger.hide(); }
+         if ( data.message ){
+            if ( params.errorLogger ){ params.errorLogger.add({message:data.message}); };
+            if ( params.infoLogger ){ params.infoLogger.hide(); }
          }else{
-            if ( ! $.isEmptyObject(params.infoLogger) && ! $.isEmptyObject(params.logMessage) ){ 
+            if ( params.infoLogger && params.logMessage ){ 
                params.infoLogger.add({message:params.logMessage}); 
             };
-            if ( ! $.isEmptyObject(params.errorLogger) ){ params.errorLogger.hide(); }         
+            if ( params.errorLogger ){ params.errorLogger.hide(); }         
          }  
-         if ( ! $.isEmptyObject(params.clickAfter) ){         
+         if ( params.clickAfter ){         
             $(params.clickAfter).click();
          }         
 
@@ -50,12 +50,15 @@ define(['jquery','Prime'],function($,Prime){
          }catch( exception ){
             message = textStatus + " " + errorThrown;
          }
-         if ( ! $.isEmptyObject(params.errorLogger) ){ params.errorLogger.add({message:message}); };
-         if ( ! $.isEmptyObject(params.infoLogger) ){ params.infoLogger.hide(); } 
+         if ( params.errorLogger ){ params.errorLogger.add({message:message}); };
+         if ( params.infoLogger ){ params.infoLogger.hide(); } 
          console.log( message );
       }; 
-      
+   
       // Finally, make the call!!!
-      $.ajax( jsonPath, jsonParams );
+      //$.post( jsonPath, jsonParams.data );
+      jsonParams.url = jsonPath;
+      $.ajax(jsonParams);         
+
    };   
 });

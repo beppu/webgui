@@ -106,9 +106,9 @@ function(Prime, AjaxHelper, $, can, URI, groupList){
          $('#userAddContainer').tabs( "option", "active", 0 ); // make sure the first panel is active
                  
          // Save User Clicked
-         $('button#saveUser').button().click(function(){
-            var jsonSubmit = jsonPath + '?op=editUserSave&' + $('form#addUserForm').serialize();
-            AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#usersTab", method:"POST", data: data, logMessage:"Saved" });//::TODO:: i18n
+         $('button#saveUser').button().click(function(){          
+            var jsonSubmit = jsonPath + '?op=editUserSave';
+            AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#usersTab", method:"POST", processData:false, data: $('form#addUserForm').serialize(), logMessage:"Saved" });//::TODO:: i18n
 //               infoLogger:groupInfoLogger, errorLogger:groupErrorLogger }); // by default message = saved            
          });
          
