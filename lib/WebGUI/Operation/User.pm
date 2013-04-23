@@ -124,6 +124,66 @@ sub createServiceResponse {
 
 #-------------------------------------------------------------------
 
+=head2 doUserSearch ( session, op, returnPaginator, userFilter )
+
+Subroutine that actually performs the SQL search for users.
+
+=head3 session
+
+A reference to the current session.
+
+=head3 op
+
+The name of the calling operation, passed so that pagination links work correctly.
+
+=head3 returnPaginator
+
+A boolean.  If true, a paginator object is returned.  Otherwise, a WebGUI::SQL
+statement handler is returned.
+
+=head3 userFilter
+
+Array reference, used to screen out user names via a SQL "not in ()" clause.
+
+=cut
+
+sub doUserSearch {
+	my $session = shift;
+	my $op = shift;
+	my $returnPaginator = shift;
+	my $userFilter = shift;
+	push(@{$userFilter},0);
+	my $selectedStatus = '';
+	if ($session->scratch->get("userSearchStatus")) {
+		$selectedStatus = "status='".$session->scratch->get("userSearchStatus")."' and ";
+	}
+	my $keyword = $session->scratch->get("userSearchKeyword");
+	if ($session->scratch->get("userSearchModifier") eq "startsWith") {
+		$keyword .= "%";
+	} elsif ($session->scratch->get("userSearchModifier") eq "contains") {
+		$keyword = "%".$keyword."%";
+	} else {
+		$keyword = "%".$keyword;
+	}
+	my $sql = "select users.userId, users.username, users.status, users.dateCreated, users.lastUpdated,
+                users.email from users 
+                where $selectedStatus (users.username like ? or alias like ? or email like ? 
+                    or firstName like ? or lastName like ? or CONCAT(firstName, ' ', lastName) LIKE ? ) 
+                and users.userId not in (".$session->db->quoteAndJoin($userFilter).")  order by users.username";
+	if ($returnPaginator) {
+      my $p = WebGUI::Paginator->new($session,$session->url->page("op=".$op));
+		$p->setDataByQuery($sql, undef, undef, [$keyword, $keyword, $keyword, $keyword, $keyword, $keyword]);
+		return $p;
+
+	} else {
+		my $sth = $session->dbSlave->read($sql, [$keyword, $keyword, $keyword, $keyword, $keyword, $keyword]);
+		return $sth;
+
+	}
+}
+
+#-------------------------------------------------------------------
+
 =head2 www_confirmUserEmail ( )
 
 Process links clicked from mails sent out by the WaitForUserConfmration
@@ -324,37 +384,41 @@ sub www_editUser {
 
          # get the field type
          my $fieldOptions = [];
-         my $optionsHash = undef;
+         my $optionsHash  = undef;
          my $selectedItem = undef;
-         my $type = $field->formProperties->{fieldType};
-         if ( lc($type) eq 'selectbox' ){
+         my $type         = lc($field->formProperties->{fieldType});
+         if ( $type eq 'selectbox' ){
             # If we have any options split into a usable set for the Javascript API
             $optionsHash = $field->formProperties->{options};
             $selectedItem = 'selected';
             $type = 'select';
             
-         }elsif ( lc($type) eq 'yesno' || lc($type) eq 'radiolist' ){ # unfortunately I found "yesNo" and "YesNo" values
+         }elsif ( $type eq 'yesno' ){ # unfortunately I found "yesNo" and "YesNo" values
             my $yesNo = WebGUI::Form::YesNo->new( $session );
             $optionsHash = $yesNo->getOptions;
             $selectedItem = 'checked';
             $type = 'radio'; 
 
+         }elsif ( $type =~ /radio/ ){
+            $optionsHash = $field->formProperties->{options};
+            $selectedItem = 'checked';
+            $type = 'radio';
+
          }
+
          # If we do not have a default set one from the options hash if we indeed have an options hash
-         if ( ! $defaultValue && $optionsHash ){
+         if ( $optionsHash ){
             my @keys = keys( %{ $optionsHash } );
-            $defaultValue = shift( @keys );
+            if ( $defaultValue !~ m/\S/ ){
+               $defaultValue = shift( @keys );
+
+            }else{
+               my @foundDefaultValue = map{ $_ eq $defaultValue } @keys;
+               $defaultValue = shift( @keys ) unless ( @foundDefaultValue > 0 );
+ 
+            }
+          
          }
-#
-#
-#if ( $field->getId eq 'allowPrivateMessages' ){
-#   use Data::Dumper;
-#   $session->log->error( $field->getId . " = ( $defaultValue ) Duper: " . Dumper $optionsHash );
-#}
-#
-#
-#
-#
 
          foreach my $key ( keys %{ $optionsHash } ){
             push(@{ $fieldOptions }, {
