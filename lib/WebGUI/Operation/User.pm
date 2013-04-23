@@ -404,6 +404,10 @@ sub www_editUser {
             $selectedItem = 'checked';
             $type = 'radio';
 
+         }elsif ( $type eq 'date' ){
+            $defaultValue = $session->datetime->epochToHuman($defaultValue, $userProfileFields->{dateFormat})
+               if ( $defaultValue =~ m/\S/ );
+
          }
 
          # If we do not have a default set one from the options hash if we indeed have an options hash
@@ -419,6 +423,11 @@ sub www_editUser {
             }
           
          }
+
+
+
+#$session->log->error( qq|After[ $defaultValue ]( $type )| ) if $field->getId eq 'birthdate';  
+
 
          foreach my $key ( keys %{ $optionsHash } ){
             push(@{ $fieldOptions }, {
