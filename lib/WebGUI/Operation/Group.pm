@@ -1036,13 +1036,8 @@ sub www_manageGroupsInGroup { # work on this later...
 	return $rest->forbidden( $i18n->get(36) )
 	   unless ( canEditGroup($session, $groupId ) );
 
+   my $webParams = $session->request->parameters->mixed;
 	my $group = WebGUI::Group->new($session, $groupId );
-	
-
-
-
-
-	my @groups;
 	my $groupsIn = $group->getGroupsIn(1);
 	my $groupsFor = $group->getGroupsFor;
 #	push(@groups, @$groupsIn,@$groupsFor, $groupId);
@@ -1056,21 +1051,41 @@ sub www_manageGroupsInGroup { # work on this later...
 #		);
 
 	my $groupsOutput = walkGroups($session, $groupId);
-	
+	my @groups = ();
 	push(@groups, @$groupsIn,@$groupsFor, $groupId);
+   $webParams->{iTotalRecords} = @groups;
+
+   my $searchParam = undef;      
+   my $search = $session->form->param('sSearch');
+   
+   # strip away any groups that do not contain our search pattern
+   if ( $search ){
+      my @groupSubSet = grep($search, @groups);
+      my @allGroups = @groupSubSet;
+
+   }
+   
+   # only display the required subset
+   my $start = $session->form->param('iDisplayStart');
+   my $length = $session->form->param('iDisplayLength');
+   if ( $start && $length ){
+      my @groupSubSet = splice(@groups, $start, $length);
+      my @groups = @groupSubSet;
+
+   }
 	
-	my $output = {
-		op => "addGroupsToGroupSave",
-		id => $group->getId,
-		groupName => {
-			label => $i18n->get(84),
-			value => $group->name,
-			description => $i18n->get('84 description')			  
-		},
-		groupList => [ @groups ]
-	};
-	
-   return $rest->response( $output );
+   $webParams->{iTotalDisplayRecords} = @groups;
+	$webParams->{op}        = "addGroupsToGroupSave";
+	$webParams->{id}        = $group->getId;
+	$webParams->{groupList} = [ @groups ];
+	$webParams->{groupName} = {
+		 label       => $i18n->get(84),
+		 value       => $group->name,
+		 description => $i18n->get('84 description')			  
+   };
+
+   return $rest->response( $webParams );
+
 }
 
 #-------------------------------------------------------------------
@@ -1095,7 +1110,7 @@ sub www_manageUsersInGroup{
    my $rest = WebGUI::Session::Rest->new( session => $session );
    return $rest->forbidden( { message => $i18n->get(36) } )
       unless ( canEditGroup($session, $groupId) );
-   
+  
    my $group = WebGUI::Group->new( $session, $groupId );
 
 	$output->{gid}   = $groupId;
