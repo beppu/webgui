@@ -424,11 +424,6 @@ sub www_editUser {
           
          }
 
-
-
-#$session->log->error( qq|After[ $defaultValue ]( $type )| ) if $field->getId eq 'birthdate';  
-
-
          foreach my $key ( keys %{ $optionsHash } ){
             push(@{ $fieldOptions }, {
                value    => $key,
