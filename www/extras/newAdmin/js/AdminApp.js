@@ -4,10 +4,14 @@ requirejs.config({
       datatables: ['//ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min',
                    '/extras/newAdmin/js/libs/jquery.dataTables.min'],
       domReady  : '/extras/newAdmin/js/libs/domReady',
-      jquery    : ['//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min',
-                   '/extras/newAdmin/js/libs/jquery-1.9.1'],
-      jqueryui  : ['//ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min',
-                   '/extras/newAdmin/js/libs/jquery-ui-1.10.1.custom.min'],
+      jquery    : [
+                   '/extras/newAdmin/js/libs/jquery-1.9.1',
+                   '//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min'
+                  ],
+      jqueryui  : [
+                   '/extras/newAdmin/js/libs/jquery-ui-1.10.1.custom.min',
+                   '//ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min'
+                  ],
       jquerypp  : '/extras/newAdmin/js/libs/jquerypp.custom',
       jqueryForm: '/extras/newAdmin/js/libs/jquery.form',
       URIjs     : '/extras/newAdmin/js/libs/URI',
