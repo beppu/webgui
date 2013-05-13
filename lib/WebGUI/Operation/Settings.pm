@@ -15,6 +15,8 @@ use Tie::IxHash;
 use WebGUI::AdminConsole;
 use WebGUI::International;
 use WebGUI::SQL;
+use WebGUI::Session::Rest;
+
 require WebGUI::Asset::RichEdit;
 
 =head1 NAME
@@ -612,29 +614,19 @@ keys:
 
 sub www_editSettings {
 	my $session     = shift;
-    my $argsHash    = shift;
-	return $session->privilege->adminOnly() unless ($session->user->isAdmin);
-	my $i18n        = WebGUI::International->new($session, "WebGUI");
-    my $output      = '';
 
-    # Show any errors or message
-    if ($argsHash->{message}) {
-        $output .= '<p>' . $argsHash->{message} . '</p>';
-    }
-    my @errors  = @{ $argsHash->{errors} };
-    if (@errors) {
-        $output .= '<p>' . $i18n->get("editSettings error occurred") . '</p>'
-                . '<ul>'
-                ;
-        for my $error (@errors) {
-            $output     .= "<li>$error</li>";
-        }
-        $output .= '</ul>';
-    }
+    my $rest = WebGUI::Session::Rest->new( session => $session );
+	my $i18n        = WebGUI::International->new($session, "WebGUI");
+
+    return $rest->forbidden( { message => $i18n->get(36) } ) unless $session->user->isAdmin; # permission denied
+
+    my $output      = {};
 
     # Start the form
  	my $tabform = WebGUI::FormBuilder->new($session, action => '?op=saveSettings' );
-        $tabform->addField( 'csrfToken', name => 'csrfToken' );
+
+    $tabform->addField( 'csrfToken', name => 'csrfToken' );
+
 	$tabform->addField( "hidden",
 		name        => "op",
 		value       => "saveSettings"
@@ -662,7 +654,7 @@ sub www_editSettings {
 		$tabform->getTab($definition->{tab})->addField( $definition->{fieldType}, %$definition );
 	}
 
-    # Get fieldsets for avaiable auth methods
+    # Get fieldsets for available auth methods
 	foreach my $authName (@{$session->config->get("authMethods")}) {
 		my $authInstance = WebGUI::Operation::Auth::getInstance($session,$_,1);
                 $tabform->getTab( "auth" )->addFieldset( $authInstance->editUserSettingsForm, name => $authName, label => $authName );
@@ -699,10 +691,10 @@ sub www_editSettings {
 	}
 
 	$tabform->addField( "submit", name => "send" );
-    $output .= $tabform->toHtml;
+    $output->{form} = $tabform->toJson( { } );  # passing a hash makes it return a hash rather than JSON
 
-	my $ac = WebGUI::AdminConsole->new($session,"settings");
-	return $ac->render($output);
+    return $rest->response( $output );
+
 }
 
 #----------------------------------------------------------------------------
@@ -710,7 +702,7 @@ sub www_editSettings {
 =head2 www_saveSettings ( $session )
 
 Form postprocessor for www_editSettings.  Returns adminOnly() unless the user
-is in group Admin (3).  Returns the user to the Edit Settings screen, www_editSettings.
+is in group Admin (3).  Returns the user to the Edit Settings screen, www_editSettings.  XXX don't do that for JSON -- just returns errors etc ourself
 
 =cut
 
