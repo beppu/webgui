@@ -27,6 +27,7 @@ with Storage( format => 'JSON' );
 with 'WebGUI::FormBuilder::Role::HasFields';
 with 'WebGUI::FormBuilder::Role::HasFieldsets';
 with 'WebGUI::FormBuilder::Role::HasTabs';
+with 'WebGUI::FormBuilder::Role::ToJson';
 
 =head1 METHODS
 

@@ -5,6 +5,8 @@ use Moose::Role;
 use Carp qw(confess);
 
 with 'WebGUI::FormBuilder::Role::HasObjects';
+with 'WebGUI::FormBuilder::Role::ToJson';  
+
 requires 'session', 'pack', 'unpack';
 
 has 'tabsets' => (
@@ -140,5 +142,20 @@ sub getTabset {
     $name ||= "default";
     return $self->{_tabsetsByName}{$name};
 }
+
+#----------------------------------------------------------------------------
+
+=head2 getTabsets ( name )
+
+Get a list of tabset objects.
+There is no C<getTabs> method.
+
+=cut
+
+sub getTabsets {
+    my ( $self ) = @_;
+    return @{$self->tabsets};
+}
+
 
 1;

@@ -17,6 +17,7 @@ package WebGUI::Form::CsrfToken;
 use strict;
 use base 'WebGUI::Form::Hidden';
 use WebGUI::International;
+use JSON;
 
 =head1 NAME
 
@@ -65,6 +66,24 @@ sub toHtmlAsHidden {
 	return $self->SUPER::toHtmlAsHidden();
 }
 
+#-------------------------------------------------------------------
+
+=head2 toJson
+
+=cut
+
+sub toJson {
+    my $self = shift;
+    my $structure = $_[0] || { };
+    $structure->{name} = 'webguiCsrfToken';
+    $structure->{value} = $self->session->scratch->get('webguiCsrfToken');
+    if( ! $_[0] ) {
+        return encode_json $structure;
+    } else {
+        return $structure;
+    }
+
+}
 
 1;
 

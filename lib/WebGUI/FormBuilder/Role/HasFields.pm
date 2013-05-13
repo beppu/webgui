@@ -14,6 +14,7 @@ has 'fields' => (
 );
 
 with 'WebGUI::FormBuilder::Role::HasObjects';
+with 'WebGUI::FormBuilder::Role::ToJson';
 
 =head1 METHODS
 
@@ -134,6 +135,20 @@ sub getField {
     my ( $self, $name ) = @_;
     return $self->{_fieldsByName}{$name};
 }
+
+#----------------------------------------------------------------------------
+
+=head2 getFields
+
+Returns a list of field objects.
+
+=cut
+
+sub getFields {
+    my ( $self ) = @_;
+    return @{$self->fields};
+}
+
 
 #----------------------------------------------------------------------------
 

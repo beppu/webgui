@@ -19,7 +19,9 @@ use strict;
 use Tie::IxHash;
 use WebGUI::Form;
 use WebGUI::HTMLForm;
+use Moose;
 
+with 'WebGUI::FormBuilder::Role::ToJson';
 
 =head1 NAME
 

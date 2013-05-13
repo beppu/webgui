@@ -20,6 +20,7 @@ use Scalar::Util qw( blessed );
 use WebGUI::International;
 use WebGUI::Pluggable;
 use WebGUI::Deprecate;
+use JSON;
 
 =head1 NAME
 
@@ -158,9 +159,6 @@ sub formHeader {
 
     return '<form action="'.$action.'" enctype="'.$enctype.'" method="'.$method.'" '.$params->{extras}.'><div class="formContents">'.$hidden;
 }
-
-
-
 
 
 1;

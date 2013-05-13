@@ -3,6 +3,8 @@ package WebGUI::FormBuilder::Role::HasFieldsets;
 use strict;
 use Moose::Role;
 
+with 'WebGUI::FormBuilder::Role::ToJson';  
+
 has 'fieldsets' => (
     is      => 'rw',
     isa     => 'ArrayRef',
@@ -106,6 +108,19 @@ Get a fieldset object by name
 sub getFieldset {
     my ( $self, $name ) = @_;
     return $self->{_fieldsetsByName}{$name};
+}
+
+#----------------------------------------------------------------------------
+
+=head2 getFieldsets
+
+Get a list of fieldsets objects.
+
+=cut
+
+sub getFieldsets {
+    my ( $self ) = @_;
+    return @{$self->fieldsets};
 }
 
 #----------------------------------------------------------------------------

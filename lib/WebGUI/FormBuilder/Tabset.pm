@@ -3,6 +3,9 @@ package WebGUI::FormBuilder::Tabset;
 use Moose;
 use MooseX::Storage;
 use WebGUI::FormBuilder::Tab;
+use JSON;
+
+with 'WebGUI::FormBuilder::Role::ToJson';
 
 =head1 NAME
 

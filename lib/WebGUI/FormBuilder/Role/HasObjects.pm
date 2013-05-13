@@ -17,6 +17,8 @@ package WebGUI::FormBuilder::Role::HasObjects;
 use WebGUI::BestPractices;
 use Moose::Role;
 
+with 'WebGUI::FormBuilder::Role::ToJson';  
+
 has 'objects' => (
     is => 'rw',
     isa => 'ArrayRef',
@@ -78,6 +80,15 @@ sub addObjectAt {
     my ( $self, $object, $position ) = @_;
     splice @{$self->objects}, $position, 0, $object;
     return $object;
+}
+
+=head2 getObjects
+
+=cut
+
+sub getObjects {
+    my $self = shift;
+    return @{$self->objects};
 }
 
 =head2 process ( )

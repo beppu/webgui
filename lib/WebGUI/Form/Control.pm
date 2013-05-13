@@ -17,6 +17,7 @@ package WebGUI::Form::Control;
 use strict;
 use WebGUI::International;
 use Scalar::Util qw( blessed );
+use JSON;
 
 =head1 NAME
 
@@ -745,6 +746,36 @@ sub toTemplateVars {
     );
     return \%var;
 }
+
+#----------------------------------------------------------------------------
+
+=head2 toJson ( )
+
+Returns a JSON representation of this form control.
+
+If passed a hash ref (not shown), it will populate that hashref with information about itself,
+and return that hashref back out again without JSON conversion.
+
+=cut
+
+sub toJson {
+    my $self = shift;
+    my $root = defined $_[0] ? 0 : 1;
+    my $structure = shift() || { };
+    $structure->{    class  } = ref $self;
+    my %templateVars =    %{ $self->toTemplateVars };
+    for my $key ( keys %templateVars ) {
+        $structure->{ $key } = $templateVars{ $key };
+    }
+
+    if( $root ) {
+        return encode_json $structure;
+    } else {
+        return $structure;
+    }
+
+}
+
 
 1;
 
