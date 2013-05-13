@@ -81,7 +81,6 @@ require(['domReady','jquery','Prime','Prime/AdminMenu','can/view/ejs','jqueryui'
          if ( ! $('#turn-admin-on').exists() ){
             $('body').append('<a id="turn-admin-on" href="javascript://" style="position:absolute;right:10px;top:0">Turn Admin On</a>');
          }
-
       }
       
       // Load the stylesheets
