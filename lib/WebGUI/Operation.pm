@@ -214,6 +214,7 @@ sub getOperations {
 		'formUsers' => 'User',
 		'listUsers' => 'User',
       'listUserGroups' => 'User',
+      'ajaxUploadFile' => 'User',
 
 		'approveVersionTag' => 'VersionTag',
 		'commitVersionTag' => 'VersionTag',
