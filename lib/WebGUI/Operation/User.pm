@@ -103,27 +103,6 @@ sub canView {
 
 #-------------------------------------------------------------------
 
-=head2 createServiceResponse ( format, data ) 
-
-Create a string with the correct C<format> from the given C<data>.
-
-Possible formats are "json" and "xml".
-
-=cut
-
-sub createServiceResponse {
-    my ( $format, $data ) = @_;
-    
-    if ( lc $format eq "xml" ) {
-        return XML::Simple::XMLout($data, NoAttr => 1, RootName => "response" );
-    }
-    else {
-        return JSON->new->encode($data);
-    }
-}
-
-#-------------------------------------------------------------------
-
 =head2 doUserSearch ( session, op, returnPaginator, userFilter )
 
 Subroutine that actually performs the SQL search for users.
@@ -523,7 +502,7 @@ sub www_editUserSave {
       # Loop through all profile fields, and update them with new values.
       my $address          = {};
       my $address_mappings = WebGUI::Shop::AddressBook->getProfileAddressMappings;
-      foreach my $field (@{WebGUI::ProfileField->getFields($session)}) {
+      foreach my $field (@{WebGUI::ProfileField->getFields($session)}){
 			next if $field->getId =~ /contentPositions/;
          my $field_value = $field->formProcess($user);
 			$user->update({ $field->getId => $field_value} );
@@ -538,7 +517,7 @@ sub www_editUserSave {
          $address->{'isProfile'} = 1;
 
          #Get the address book for the user (one is created if it does not exist)
-         my $addressBook     = WebGUI::Shop::AddressBook->newByUserId($session, $actualUserId,);
+         my $addressBook     = WebGUI::Shop::AddressBook->newByUserId($session, $actualUserId);
          my $profileAddress = eval { $addressBook->getProfileAddress() };
 
          my $e;
@@ -910,6 +889,37 @@ sub www_listUserGroups {
    };
 
    return $rest->response( $output ); 
+
+}
+
+=head2 www_ajaxUploadFile ( )
+
+Provides the ability to upload files via ajax instead of submitting the page
+
+=cut
+
+sub www_ajaxUploadFile{
+   use WebGUI::Storage;
+	my $session = shift;
+	my $i18n = WebGUI::International->new( $session );
+   my $rest = WebGUI::Session::Rest->new( session => $session );
+   my $response = {};
+   if ( my $storageId = WebGUI::Form::File->new($session,{name => 'photo'})->getValue ){
+      my $storage = WebGUI::Storage->get( $session, $storageId );
+      my $filename = shift( @{ $storage->getFiles } );
+      $response->{id}        = $storageId;
+      $response->{filename}  = $filename;
+      $response->{url}       = $storage->getUrl( $filename );
+      if ( $storage->generateThumbnail( $filename ) ){
+         $response->{thumbnail} = $storage->getThumbnailUrl( $filename );
+      }
+
+   }else{
+      $response->{error} = "Action failed!";
+
+   }
+
+   return $rest->response( $response );
 
 }
 
