@@ -904,7 +904,8 @@ sub www_ajaxUploadFile{
 	my $i18n = WebGUI::International->new( $session );
    my $rest = WebGUI::Session::Rest->new( session => $session );
    my $response = {};
-   if ( my $storageId = WebGUI::Form::File->new($session,{name => 'photo'})->getValue ){
+   my $formFieldName = $session->form->param('__form_field_name'); # Get the field name from posted parameters
+   if ( my $storageId = WebGUI::Form::File->new($session,{ name => $formFieldName })->getValue ){
       my $storage = WebGUI::Storage->get( $session, $storageId );
       my $filename = shift( @{ $storage->getFiles } );
       $response->{id}        = $storageId;
@@ -915,7 +916,8 @@ sub www_ajaxUploadFile{
       }
 
    }else{
-      $response->{error} = "Action failed!";
+      $session->log->warn("Action failed for field: $formFieldName");
+      $response->{error} = "Action failed for field: $formFieldName";
 
    }
 
