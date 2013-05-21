@@ -2,7 +2,7 @@
    <h3 style="text-align: center">User Managment</h3>
    <button id="saveUser">Save</button>
    <br /><br />
-<form id="addUserForm" autocomplete="true">
+<form id="addUserForm" autocomplete="true" enctype="multipart/form-data">
    <%== token %>
    <input type="hidden" name="op" value="editUserSave">
    <input type="hidden" name="uid" value="<%= uid %>">   
@@ -23,7 +23,7 @@
             <td><label><%= username.label %></label></td><td><input type="text" name="username" value="<%= username.value %>" required></td>
          </tr>
          <tr>
-            <td><label><%= authMethod.options.password.label %></label></td><td><input type="password" name="<%= authMethod.options.password.name %>" value="<%= authMethod.options.password.value %>" required></td>
+            <td><label><%= authMethod.options.password.label %></label></td><td><input type="password" name="<%= authMethod.options.password.name %>" value="<%= authMethod.options.password.value %>"></td>
          </tr>         
          <tr>
             <td><label><%= authMethod.options.changeUsername.label %></label></td><td><%== authMethod.options.changeUsername.rendered %></td>

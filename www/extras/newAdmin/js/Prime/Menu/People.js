@@ -1,4 +1,4 @@
-define(['jquery','jqueryui','Prime'],function($, ui, Prime){
+define(['Prime','jquery','jqueryui'],function(Prime){
    return function(){
       //var sessionsDatatable, groupDatatable, loginHistoryDatatable; // Make sure we can reference these objects in the code below
       $('#adminOverlayContent').tabs(); // Make sure the tabs are rendered if we have any

@@ -3,6 +3,9 @@ define(['Prime','Prime/Menu/People/UserList','Prime/AjaxHelper','jquery','jquery
       var jsonPath = Prime.config().jsonSourceServer;
       $('#usersContainer').html( can.view(Prime.config().template.path + 'people/users.ejs' ) );
       
+      // Show the controls if not shown at this point
+      $('div.user-add-delete-controls').show();
+      
       // display the users in the added table
       var userDatatable = users('#usersDatatable').on('click', "a", function(event){
          event.preventDefault();

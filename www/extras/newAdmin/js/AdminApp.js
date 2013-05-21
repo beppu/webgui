@@ -9,6 +9,7 @@ requirejs.config({
       jqueryui  : ['//ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min',
                    '/extras/newAdmin/js/libs/jquery-ui-1.10.1.custom.min'],
       jquerypp  : '/extras/newAdmin/js/libs/jquerypp.custom',
+      jqueryForm: '/extras/newAdmin/js/libs/jquery.form',
       URIjs     : '/extras/newAdmin/js/libs/URI',
       modernizr : "/extras/newAdmin/js/libs/modernizr-2.6.2.min"
    },

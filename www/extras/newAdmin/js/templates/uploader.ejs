@@ -1,0 +1,15 @@
+<form id="form_<%= target %>" action="<%= form_action %>" method="POST" enctype="multipart/form-data" encoding="multipart/form-data">
+   <input type="hidden" name="__<%= target %>_action" value="<%= file_action %>" />
+   <input type="hidden" name="op" value="<%= op %>" />
+   <input type="hidden" name="__form_field_name" value="<%= target %>" />
+   <table id="imagePreviewTable" border="1px" >
+      <tr>
+         <th>Image</th><th>Filename</th><th>Action</th>
+      </tr>
+      <tr>
+         <td><img id="image" /></td><td id="filename"></td><td id="action"><input name="<%= target %>_file" type="file" class="fileUpload" /></td>
+      </tr>
+   </table>
+   <div id="fileUploadDetails"></div>
+   <div id="fileUploadResponse"></div>
+</form>

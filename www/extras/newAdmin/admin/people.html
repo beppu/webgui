@@ -53,8 +53,15 @@
          <span class="ui-icon ui-icon-alert" style="float:left"></span>
          <div id="message" class="ui-state-error-text"></div>
       </div>
-      <img src="/extras/adminConsole/users.gif">
-      <button id="add-users-button">Add</button>
+
+<!-- put token here ! -->
+<div class="user-add-delete-controls"> 
+   <img src="/extras/adminConsole/users.gif">
+   <button id="add-users-button">Add</button>
+   <input type="checkbox" id="delete-all-users-toggle" />All&nbsp;
+   <button id="delete-users-button">Delete Selected</button>
+</div>
+         
    </div>
    <div id="usersContainer" class="ui-widget-content ui-corner-all"></div>
 </div>

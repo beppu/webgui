@@ -11,7 +11,7 @@ function(Prime, AjaxHelper, $, can, URI, groupList){
          
       }
 
-      $('button#add-users-button').hide(); // hide the add button as we don't want to loose our data
+      $('div.user-add-delete-controls').hide(); // hide the add button as we don't want to loose our data
       var jsonPath = Prime.config().jsonSourceServer;
       var jsonSubmit = jsonPath + '?op=editUser&uid=' + user;      
       AjaxHelper({jsonPath:jsonSubmit, callback:function(data){
@@ -80,6 +80,9 @@ function(Prime, AjaxHelper, $, can, URI, groupList){
                }else if ( field.type === 'radio' ){
                   template = 'radio.ejs';           
 
+               }else if ( field.type === 'image' ){
+                  template = 'imageLoader.ejs';
+
                }else{
                   if ( field.required == 1 ){// don't change from == to ===
                      field.required = 'required';
@@ -109,7 +112,7 @@ function(Prime, AjaxHelper, $, can, URI, groupList){
          $('button#saveUser').button().click(function(){          
             var jsonSubmit = jsonPath + '?op=editUserSave';
             AjaxHelper({ jsonPath:jsonSubmit, clickAfter:"#usersTab", method:"POST", processData:false, data: $('form#addUserForm').serialize(), logMessage:"Saved" });//::TODO:: i18n
-//               infoLogger:groupInfoLogger, errorLogger:groupErrorLogger }); // by default message = saved            
+               //infoLogger:groupInfoLogger, errorLogger:groupErrorLogger }); // by default message = saved            
          });
          
          // List the groups assigned to this user  
@@ -117,8 +120,19 @@ function(Prime, AjaxHelper, $, can, URI, groupList){
          //availableGroups  
          var userGroupsNotTable = groupList('#userAddTable',{ op:"listUserGroups&not=1&uid=" + user, groupId:"groupsToAdd", data:"availableGroups.options", serverSide:false });      
 
+         $('button#photo_upload').click(function(event){
+            event.preventDefault();       
+            var action = 'upload';
+            require(['Prime/Uploader'],function(uploader){
+               event.jsonPath = '/';
+               event.op = 'ajaxUploadFile';
+               event.file_action = action;
+               uploader(event);
+            });            
+         });
+
       }}); 
-   
+
    };
 
 });
