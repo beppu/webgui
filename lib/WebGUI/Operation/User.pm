@@ -387,6 +387,18 @@ sub www_editUser {
             $defaultValue = $session->datetime->epochToHuman($defaultValue, $userProfileFields->{dateFormat})
                if ( $defaultValue =~ m/\S/ );
 
+         }elsif ( $type eq 'image' ){
+            # only do this if we have a storage location/value in the field
+            my $storageId = $defaultValue;
+            if ( my $storage = WebGUI::Storage->get( $session, $storageId ) ){
+               my $filename = shift( @{ $storage->getFiles } );
+               $defaultValue = {
+                  storageid => $storageId,
+                  filename  => $filename,
+                  url       => $storage->getUrl( $filename ),
+                  thumbnail => $storage->getThumbnailUrl( $filename )
+               };
+            }
          }
 
          # If we do not have a default set one from the options hash if we indeed have an options hash
@@ -504,7 +516,16 @@ sub www_editUserSave {
       my $address_mappings = WebGUI::Shop::AddressBook->getProfileAddressMappings;
       foreach my $field (@{WebGUI::ProfileField->getFields($session)}){
 			next if $field->getId =~ /contentPositions/;
-         my $field_value = $field->formProcess($user);
+         my $field_value = undef;
+         # Special fields 
+         if ( $field->get("fieldType") eq 'Image' ){
+            $field_value = $session->form->process( $field->getId );
+
+         }else{
+            $field_value = $field->formProcess($user);
+
+         }
+
 			$user->update({ $field->getId => $field_value} );
 
          #set the shop address fields
