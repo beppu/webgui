@@ -60,8 +60,8 @@ function(Prime, AjaxHelper, $, can, URI, groupList){
    "label":"WebGUI"
 }
 */  
-         
-         
+         // keep track of the images to add upload actions later
+         var imageArray = [];
          
          // Profile section
          $.each(data.profile, function(index, category ){
@@ -82,7 +82,9 @@ function(Prime, AjaxHelper, $, can, URI, groupList){
 
                }else if ( field.type === 'image' ){
                   template = 'imageLoader.ejs';
-
+                  // create the tag id to be used with the click event
+                  imageArray.push( field.name );
+   
                }else{
                   if ( field.required == 1 ){// don't change from == to ===
                      field.required = 'required';
@@ -120,16 +122,22 @@ function(Prime, AjaxHelper, $, can, URI, groupList){
          //availableGroups  
          var userGroupsNotTable = groupList('#userAddTable',{ op:"listUserGroups&not=1&uid=" + user, groupId:"groupsToAdd", data:"availableGroups.options", serverSide:false });      
 
-         $('button#photo_upload').click(function(event){
-            event.preventDefault();       
-            var action = 'upload';
-            require(['Prime/Uploader'],function(uploader){
-               event.jsonPath = '/';
-               event.op = 'ajaxUploadFile';
-               event.file_action = action;
-               uploader(event);
-            });            
-         });
+         // Iterate through the image array to add dynamic upload capabilities
+         for (index = 0; index < imageArray.length; ++index) {
+            // create the tag action id
+            var tagActionId = 'button#' + imageArray[index] + '_upload';             
+            // We use on here because...
+            $(tagActionId).on("click",function(event){
+               event.preventDefault();       
+               var action = 'upload';
+               require(['Prime/Uploader'],function(uploader){
+                  event.jsonPath = '/';
+                  event.op = 'ajaxUploadFile';
+                  event.file_action = action;
+                  uploader(event);
+               });            
+            });                  
+         } 
 
       }}); 
 
