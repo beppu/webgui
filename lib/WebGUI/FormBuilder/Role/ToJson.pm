@@ -58,16 +58,6 @@ warn "toJson: root: $root class: " . ref $self;
         $structure->{tabsets} = \@tabsets;
     }
 
-    if ( $self->DOES('WebGUI::FormBuilder::Role::HasObjects') ) {
-        my @objects;
-        for my $object ( @{$self->objects} ) {
-            my $sub_structure = { };
-            push @objects, $sub_structure;
-            $object->toJson( $sub_structure );
-        }
-        $structure->{objects} = \@objects;
-    }
-
     if ( $self->isa('WebGUI::FormBuilder::Tabset') ) {
         my @tabs;
         for my $tab ( @{$self->tabs} ) {
@@ -93,5 +83,24 @@ warn "toJson: root: $root class: " . ref $self;
     }
 
 }
+
+=head2 fromJson
+
+XXX
+
+Call on an existing object of the correct type, such as an L<WebGUI::WebGUI::FormBuilder>.
+Returns a hash of key => value pairs.
+
+=cut
+
+sub fromJson {
+    my $self = shift;
+    my $structure = shift;
+    my $not_root = shift;
+
+    $structure = decode_json $structure if ! $not_root;
+
+}
+
 
 1;
