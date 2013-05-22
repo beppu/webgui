@@ -43,8 +43,7 @@ define(['jquery','Prime','Prime/AjaxHelper','Prime/Datatable','jquerypp'],functi
                buttons: {
                   "Delete all items":function(){
                      var jsonPath = Prime.config().jsonSourceServer + '?op=killSession&sid=' + sid;
-                     AjaxHelper({ jsonPath: jsonPath });
-                     sessionsDatatable.fnDraw();// refresh the table once I remove the session
+                     AjaxHelper({ jsonPath: jsonPath, callback:function(){ sessionsDatatable.fnDraw(); } });
                      $( this ).dialog( "close" );
                   },
                   Cancel: function() {
