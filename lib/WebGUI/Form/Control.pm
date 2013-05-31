@@ -762,7 +762,7 @@ sub toJson {
     my $self = shift;
     my $root = defined $_[0] ? 0 : 1;
     my $structure = shift() || { };
-    $structure->{    class  } = ref $self;
+    $structure->{ type } = ref $self;
     my %templateVars =    %{ $self->toTemplateVars };
     for my $key ( keys %templateVars ) {
         $structure->{ $key } = $templateVars{ $key };
