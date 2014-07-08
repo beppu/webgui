@@ -1,6 +1,5 @@
 package WebGUI::Macro::FormField;
 
-#-------------------------------------------------------------------
 # WebGUI is Copyright 2001-2012 Plain Black Corporation.
 #-------------------------------------------------------------------
 # Please read the legal notices (docs/legal.txt) and the license

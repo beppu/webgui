@@ -71,8 +71,9 @@ $output = WebGUI::Macro::FormField::process(
     sortByValue => 1,
 );
 
-#my $numTests = 11 + scalar @{ $testBlock } + 1;
-my $numTests = 8;
+warn $output;
+
+my $numTests = 11 + scalar @{ $testBlock } + 1;
 
 plan tests => $numTests;
 
