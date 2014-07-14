@@ -11,14 +11,14 @@ To run it installer on CentOS, do this, as root:
 
 yum install wget 
 yum install perl 
-wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate
+wget https://gist.githubusercontent.com/scrottie/2973558/raw/webgui_installer.pl --no-check-certificate
 perl webgui_installer.pl
 
 To run it installer on Debian, do this, as root:
 
 apt-get install wget
 apt-get install perl
-wget https://raw.github.com/gist/2973558/webgui_installer.pl --no-check-certificate
+wget https://gist.githubusercontent.com/scrottie/2973558/raw/webgui_installer.pl --no-check-certificate
 perl webgui_installer.pl
 
 It uses a Curses interface, asking the user about install options
