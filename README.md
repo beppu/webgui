@@ -64,16 +64,16 @@ Where things are at:
 
 * The bug tracker is here:  http://www.webgui.org/8
 * Developer discussion forums, for conversations relating to the code itself, are here:  http://www.webgui.org/webgui/dev/discuss
-* Community process discussion is here:  https://github.com/scrottie/webgui/issues/
+* Community process discussion is here:  https://github.com/AlliumCepa/webgui/issues/
 * IRC chat is at #webgui on FreeNode; use your favorite IRC-enabled chat client or see irc.org for more info
 * The Wiki is at http://webgui.org/wiki
 * The official PlainBlack WebGUI repo is at http://github.org/plainblack/webgui
-* The (an?) unofficial community process repo is at http://github.org/scrottie/webgui
+* The (an?) unofficial community process repo is at http://github.org/AlliumCepa/webgui
 
 As a general rule, if you're fixing a bug mentioned in http://www.webgui.org/8, discuss it at http://www.webgui.org/webgui/dev/discuss.
-If you're adding a new feature or want to talk about the community process itself, discuss it on https://github.com/scrottie/webgui/issues/.
+If you're adding a new feature or want to talk about the community process itself, discuss it on https://github.com/AlliumCepa/webgui/issues/.
 
-If you're adding a new feature, improving wG, or fixing bugs, please fork http://github.org/scrottie/webgui.
+If you're adding a new feature, improving wG, or fixing bugs, please fork http://github.org/AlliumCepa/webgui.
 If you're only fixing bugs, you may wish to fork http://github.org/plainblack/webgui.
 
 There are plenty of ways to help:
@@ -84,8 +84,8 @@ There are plenty of ways to help:
 * Fix bugs
 * Work on code
 
-Fork http://github.org/scrottie/webgui, make changes in master or in a branch, commit them, push them up, and then use github to send a "pull request".
-If the request is accepted, your code goes into http://github.org/scrottie/webgui.
+Fork http://github.org/AlliumCepa/webgui, make changes in master or in a branch, commit them, push them up, and then use github to send a "pull request".
+If the request is accepted, your code goes into http://github.org/AlliumCepa/webgui.
 
 Here are some specific tasks to be done:
 
