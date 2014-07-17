@@ -50,6 +50,11 @@ See docs/install.txt for a recommended plack configuration for production.
 * Content Managers Guide:  https://www.webgui.org/community/webgui-user-guides/content-managers-guide
 * Administrators Guide:  https://www.webgui.org/user-guides/webgui-administrators-guide
 
+## Developing Applications on top of WebGUI
+
+* Doug Bell's talk for MadMongers:  http://preaction.github.io/WebGUI/8-apps.html
+* Developers Guide for wG7 (out of date with respect to 8):  https://www.webgui.org/user-guides/developers-guide
+
 ## Community Process
 
 We welcome contributions.
@@ -83,11 +88,13 @@ If the request is accepted, your code goes into http://github.org/AlliumCepa/web
 
 Here are some specific tasks to be done:
 
-* Develop a good looking community development process site perhaps similar in style to https://powerbulletin.com/ to be hosted on github pages
 * Merge in Haarg's work on replacing ImageMagick with something that installs reliably 
-* Track down the WordPress->wG convertion utility, document the state of it, and add it to the project; one ex-PlainBlack employee started it and the code should be on github somewhere
+* Work on an importer for WordPress sites:  https://github.com/AlliumCepa/webgui/issues/9
 * Merge in the experimental installer from https://gist.github.com/scrottie/2973558 and update the documentation to suggest using it
 * Create a new, modern theme; documentation for doing this is in the _WebGUI Designers Guide_ at https://www.webgui.org/documentation2/webgui-designers-guide
+* Merge in various projects people have started:  https://github.com/AlliumCepa/webgui/issues/3
+* Forward port relevant bug fixes from the 7.x branch to 8.x.
+* Fix up the Developer's Guide for 8.
 
 Rules and process:
 
@@ -107,6 +114,8 @@ Rules and process:
 * The project is GPL licensed (see http://www.gnu.org/licenses/gpl.html for exact terms and conditions); use and modification of this code constitutes agreement to the terms; one of the terms is that code added to the project must also be released as GPL
 
 ## The Request Cycle
+
+This needs to be moved to a design document.
 
 * The root level app.psgi file loads all the config files found and loads the site specific psgi file for each, linking them to the proper host names.
 * The site psgi file uses the WEBGUI_CONFIG environment variable to find the config.
