@@ -43,18 +43,12 @@ A proxy server such as nginx or Apache configured to proxy is highly recommended
 The proxy server should serve /extras and /uploads and pass everything else to the plack server process.
 See docs/install.txt for a recommended plack configuration for production.
 
-## The Request Cycle
+## Using WebGUI
 
-* The root level app.psgi file loads all the config files found and loads the site specific psgi file for each, linking them to the proper host names.
-* The site psgi file uses the WEBGUI_CONFIG environment variable to find the config.
-* It instantiates the $wg WebGUI object (one per app).
-* $wg creates and stores the WebGUI::Config (one per app)
-* $wg creates the $app PSGI app code ref (one per app)
-* WebGUI::Middleware::Session is wrapped around $app at the outer-most layer so that it can open and close the $session WebGUI::Session. Any other wG middleware that needs $session should go in between it and $app ($session created one per request)
-* $session creates the $request WebGUI::Session::Request and $response WebGUI::Session::Response objects (one per request)
-* lib/WebGUI.pm does basic dispatch, first checking for a content handler, and then as a last resort (but the usual case), defaulting to the asset content handler
-* The content handlers are configured in the .conf file
-* The asset content handler, lib/WebGUI/Content/Asset.pm, looks up the asset by URL in the database
+* Setting up a new site after you've installed and started wG:  https://www.youtube.com/watch?v=spPQsD4uAAs
+* Help forums:  http://webgui.org/forums
+* Content Managers Guide:  https://www.webgui.org/community/webgui-user-guides/content-managers-guide
+* Administrators Guide:  https://www.webgui.org/user-guides/webgui-administrators-guide
 
 ## Community Process
 
@@ -111,4 +105,18 @@ Rules and process:
 * If you don't have a commit bit, don't worry, just send a pull request from your fork
 * Generally, commit bits will be taken back if you're idle, or if you commit major things to the master branch without to discussion and wind up upsetting people
 * The project is GPL licensed (see http://www.gnu.org/licenses/gpl.html for exact terms and conditions); use and modification of this code constitutes agreement to the terms; one of the terms is that code added to the project must also be released as GPL
+
+## The Request Cycle
+
+* The root level app.psgi file loads all the config files found and loads the site specific psgi file for each, linking them to the proper host names.
+* The site psgi file uses the WEBGUI_CONFIG environment variable to find the config.
+* It instantiates the $wg WebGUI object (one per app).
+* $wg creates and stores the WebGUI::Config (one per app)
+* $wg creates the $app PSGI app code ref (one per app)
+* WebGUI::Middleware::Session is wrapped around $app at the outer-most layer so that it can open and close the $session WebGUI::Session. Any other wG middleware that needs $session should go in between it and $app ($session created one per request)
+* $session creates the $request WebGUI::Session::Request and $response WebGUI::Session::Response objects (one per request)
+* lib/WebGUI.pm does basic dispatch, first checking for a content handler, and then as a last resort (but the usual case), defaulting to the asset content handler
+* The content handlers are configured in the .conf file
+* The asset content handler, lib/WebGUI/Content/Asset.pm, looks up the asset by URL in the database
+
 
