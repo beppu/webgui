@@ -42,6 +42,10 @@ xdanger
 
 XXX todo:
 
+XXXXX add instructions for starting spectre into the startup .sh we generate and check the hostname to make sure it resolves to the host (otherwise spectre won't work)
+
+XXX plebgui support
+XXX don't overwrite an existing nginx.conf without permission
 XXX warn about impossiblely early date time; Curses wouldn't build
 XXX service startup stuff on Debian, nginx config on Debian
 XXX sudo mode hasn't been tested recently and is almost certainly broken
@@ -981,7 +985,7 @@ EOF
         run( "$sudo_command /sbin/chkconfig mysqld on" );
         run( "$sudo_command /sbin/service mysqld start" ); # this initializes the database, when it works
 
-        update( qq{ Please pick a MySQL root password. } );
+        update( qq{ Please pick a MySQL root password\nDon't forget to write it down.  You'll need it to create other database and manage MySQL.} );
         $mysql_root_password = text('MySQL Root Password', '');
         update( qq{ Setting MySQL root password. } );
         # run( qq{mysql --user=root -e "SET PASSWORD FOR 'root' = PASSWORD('$mysql_root_password'); SET PASSWORD FOR 'root'\@'localhost' = PASSWORD('$mysql_root_password') SET PASSWORD FOR 'root'\@'127.0.0.1' = PASSWORD('$mysql_root_password');" } );
@@ -1426,7 +1430,7 @@ do {
     } );
     scankey($mwh);
 
-    open my $fh, '>', "$install_dir/webgui.sh";
+    open my $fh, '>', "$install_dir/webgui.sh" or bail("failed to write to $installer_dir/webgui.sh: $!");
     $fh->print(<<EOF);
 cd $install_dir/WebGUI
 export PERL5LIB="\$PERL5LIB:$install_dir/WebGUI/lib"
