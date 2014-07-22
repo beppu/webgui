@@ -1486,6 +1486,7 @@ sub template {
     # close $infh or die $!;
     my $input = $infn;  # moved to hard-coding the template data into the installer file
 
+    # XXX if not writeable by us, write to a temp file and then use sudo to move it into place
     open my $outfh, '>', $outfn or bail "templating out config files, couldn't open output file $outfn: $!";
 
     my $template = Template->new(INCLUDE_PATH=>'/');
