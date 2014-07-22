@@ -1430,7 +1430,7 @@ do {
     } );
     scankey($mwh);
 
-    open my $fh, '>', "$install_dir/webgui.sh" or bail("failed to write to $installer_dir/webgui.sh: $!");
+    open my $fh, '>', "$install_dir/webgui.sh" or bail("failed to write to $install_dir/webgui.sh: $!");
     $fh->print(<<EOF);
 cd $install_dir/WebGUI
 export PERL5LIB="\$PERL5LIB:$install_dir/WebGUI/lib"
