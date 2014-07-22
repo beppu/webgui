@@ -1,0 +1,49 @@
+
+This is an experimental installer for WebGUI8 that attempts to use the
+system package manager rather than the WRE.  It currently targets
+CentOS and Debian.
+
+It is currently incomplete -- it doesn't set up WebGUI to run at boot
+time on Debian, and it doesn't set up log rotation, or cron to run
+wremonitor, and a few other things.
+
+To run it installer on CentOS, do this, as root:
+
+yum install wget 
+yum install perl 
+wget https://gist.githubusercontent.com/scrottie/2973558/raw/webgui_installer.pl --no-check-certificate
+perl webgui_installer.pl
+
+To run it installer on Debian, do this, as root:
+
+apt-get install wget
+apt-get install perl
+wget https://gist.githubusercontent.com/scrottie/2973558/raw/webgui_installer.pl --no-check-certificate
+perl webgui_installer.pl
+
+It uses a Curses interface, asking the user about install options
+(paths and passwords and such), and getting confirmation before running
+commands.
+
+It has been at points successfully tested on Debian 32 bit and CentOS 64
+bit.
+
+It asks for your sudo password and attempts to use that if run as a user,
+but this is less well tested.  There's some goo in the code for attempting
+a user level permission install but that's incomplete.  For now, running
+as root is recommended.  Update -- sudo mode is currently broken.
+
+Curses, Curses::UI, and the setupfiles and docs directory are bundled
+into the __DATA__ section of the webgui_installer.pl script.  If changes
+are made to those files in the github repo, the __DATA__ section of
+the installer needs to be updated with uuencoded copies.
+
+NO WARRANTY:
+
+This script is provided without warranty, including warranty for
+merchantability, suitability for any purpose, and is not warrantied against
+special or incidental damages.	It may not work, and it may
+even break things.  Use at your own risk!  Always have go
+od backups.  Consult the included file docs/license.txt and source for
+full copyright and license.
+

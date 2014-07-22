@@ -1,0 +1,28 @@
+#!/bin/bash
+# chkconfig: 2345 90 60
+# description: Start and stop WebGUI (non-WRE) plack-based service
+# processname: webgui
+
+export PERL5LIB="$PERL5LIB:[% webgui_root %]/lib"
+export PATH="$PATH:/usr/local/bin"  # starman gets installed into here
+
+# See how we were called.
+case "$1" in
+  	start)
+        cd [% webgui_root %]
+   		starman  --pid=[% pid_files %]webgui.pid --quiet --port=[% webgui_port %] --preload-app --access-log=[% log_files %]/access_log --error-log=[% log_files %]/error_log --user=[% run_as_user %] --daemonize --start all
+    	;;
+  	stop)
+    		kill `cat [% pid_files %]/webgui.pid`
+    	;;
+#  	restart)
+#    		/data/wre/sbin/wreservice.pl --quiet --restart all
+#    	;;
+  	*)
+		echo $"WebGUI Service Controller"
+   		echo $"Usage:"
+		echo $"	$0 { start | stop }"
+   		exit 1
+esac
+
+exit $?
