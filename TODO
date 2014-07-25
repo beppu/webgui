@@ -5,7 +5,6 @@ TODO
 * Refactor assets to use streaming response
 * Fix WebGUI::Form::param
 * Test github irc hooks.
-* maybe this will work?
 
 DONE
 * $session->request is now a Plack::Request object
