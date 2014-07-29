@@ -54,7 +54,7 @@ property showInForms => (
              hoverHelp       => ['show in forms description', 'Asset_Template'],
          );
 property parser => (
-             noFormPost      => 1,
+             noFormPost      => 0,
              fieldType       => 'selectBox',
              lazy            => 1,
              builder         => '_default_parser',
