@@ -923,6 +923,15 @@ if( $mysqld_safe_path) {
     # install and set up MySQL
 
     if( ( $root or $sudo_command ) and $linux eq 'debian' ) {
+        my $codename = (split /\s+/, `lsb_release --codename`)[1] || 'squeeze';
+        my %packages = (
+          squeeze => [ qw(percona-server-server-5.5 libmysqlclient18-dev) ],
+          wheezy  => [ qw(percona-server-server-5.5 libmysqlclient18-dev) ],
+          lucid   => [ qw(percona-server-server-5.5 libmysqlclient18-dev) ],
+          precise => [ qw(percona-server-server-5.5 libmysqlclient18-dev) ],
+          saucy   => [ qw(percona-server-server-5.5 libmysqlclient18-dev) ],
+          trusty  => [ qw(percona-server-server-5.5 libperconaserverclient18-dev) ],
+        );
 
         update(qq{
             Installing Percona Server to satisfy MySQL dependency.
@@ -940,7 +949,7 @@ if( $mysqld_safe_path) {
             # cp '/etc/apt/sources.list', '/tmp/sources.list' or bail "Failed to copy /etc/apt/sources.list to /tmp: $!; this means that I can't add ``deb http://repo.percona.com/apt squeeze main'' to the list; please do yourself and try again";
             cp '/etc/apt/sources.list', '/tmp/sources.list' or bail "Failed to copy /etc/apt/sources.list to /tmp: $!";
             open my $fh, '>>', '/tmp/sources.list' or bail "Failed to open /tmp/sources.list for append";
-            $fh->print("deb http://repo.percona.com/apt squeeze main") or bail "write failed: $!";
+            $fh->print("deb http://repo.percona.com/apt $codename main") or bail "write failed: $!";
             $fh->close;
             run( qq{ $sudo_command cp /tmp/sources.list /etc/apt/sources.list }, input => $sudo_password, );
         }
@@ -950,7 +959,7 @@ if( $mysqld_safe_path) {
 
         # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
         # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
-        system( "echo $sudo_password | $sudo_command apt-get install -y percona-server-server-5.5 libmysqlclient18-dev" ); # system(), not run(), so have to do sudo the old way
+        system( "echo $sudo_password | $sudo_command apt-get install -y @{$packages{$codename}}" ); # system(), not run(), so have to do sudo the old way
 
         $mwh = Curses->new; # re-init the screen (echo off, etc)
         main_win();  update();    # redraw
