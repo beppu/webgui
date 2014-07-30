@@ -151,7 +151,7 @@ BEGIN {
          goto skip_update if readline(STDIN) =~ m/s/;
          system $cmd;
        skip_update:
-         $cmd = "$sudo apt-get install -y build-essential libncurses5-dev libcurses-perl libcurses-widgets-perl";
+         $cmd = "$sudo apt-get install -y build-essential libncurses5-dev libpng-dev libcurses-perl libcurses-widgets-perl";
          print "\n\nrunning: $cmd\nHit Enter to continue or Control-C to abort or 's' to skip.\n\n";
          goto skip_apt_get if readline(STDIN) =~ m/s/;
          system $cmd;
