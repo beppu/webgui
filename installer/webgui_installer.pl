@@ -959,6 +959,7 @@ if( $mysqld_safe_path) {
 
         # run( $sudo_command . 'apt-get install -y percona-server-server-5.5 libmysqlclient-dev' ); 
         # run( $sudo_command . 'apt-get install -y -q percona-server-server-5.5 libmysqlclient18-dev' ); # no can do; Debian fires up a curses UI and asks for a root password to set, even with 'quiet' set, so just shell out
+        #system( "echo $sudo_password | $sudo_command env DEBIAN_FRONTEND=noninteractive apt-get install -y @{$packages{$codename}}" ); # would like to be less interactive, but need to set a password for percona also.
         system( "echo $sudo_password | $sudo_command apt-get install -y @{$packages{$codename}}" ); # system(), not run(), so have to do sudo the old way
 
         $mwh = Curses->new; # re-init the screen (echo off, etc)
